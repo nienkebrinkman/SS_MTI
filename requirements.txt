@@ -1,1 +1,7 @@
 pytest
+instaseis
+obspy
+toml
+subprocess
+mqs_reports
+mars_tools
