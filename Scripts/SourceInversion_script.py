@@ -7,8 +7,10 @@ __author__ = "Nienke Brinkman"
 import argparse
 import toml
 
-from Classes.GetData import GetData
-from Classes.PullData import PullData
+import SS_MTI
+
+# from SS_MTI.GetData import GetData
+# from SS_MTI.PullData import PullData
 
 
 def define_arguments():
@@ -40,7 +42,6 @@ if __name__ == "__main__":
         host_name=source["SERVER"]["host_name"],
         user_name=source["SERVER"]["username"],
         remote_folder=source["SERVER"]["remote_folder"],
-
     )
 
     a = 1

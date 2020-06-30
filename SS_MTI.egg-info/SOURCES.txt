@@ -1,0 +1,10 @@
+README.md
+setup.py
+SS_MTI/GetData.py
+SS_MTI/Inversion.py
+SS_MTI/PullData.py
+SS_MTI/__init__.py
+SS_MTI.egg-info/PKG-INFO
+SS_MTI.egg-info/SOURCES.txt
+SS_MTI.egg-info/dependency_links.txt
+SS_MTI.egg-info/top_level.txt

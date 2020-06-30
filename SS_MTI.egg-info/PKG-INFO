@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: SS-MTI
+Version: 0.0.1
+Summary: A single-station source inversion package
+Home-page: https://github.com/nienkebrinkman/SS_MTI/
+Author: Nienke Brinkman
+Author-email: nienke.brinkman@erdw.ethz.ch
+License: UNKNOWN
+Description: # SS_MTI
+        Single-station focal mechanism inversion package
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
