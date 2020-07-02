@@ -6,12 +6,10 @@ __author__ = "Nienke Brinkman"
 
 import argparse
 import toml
+from os.path import join as pjoin
+from os.path import exists as exist
 
 import SS_MTI
-
-# from SS_MTI.GetData import GetData
-# from SS_MTI.PullData import PullData
-
 
 def define_arguments():
     helptext = "Determine focal mechanisms of Marsquake"
@@ -27,26 +25,61 @@ if __name__ == "__main__":
 
     ## Step 1:
     """ Read input file """
-    source = toml.load(args.input_file, _dict=dict)
+    f_in = toml.load(args.input_file, _dict=dict)
+
+    # If you want to save your catalog file for only the events that you want to use in your inversion:
+    cat_save_name = args.input_file.split("/")[-1].strip(".toml")  # None if you dont want to save
 
     ## Step 2:
     """ Get the observed data """
-    OBS = GetData()
-    OBS.read_inv(inv_path=source["DATA"]["inventory_filepath"])  # Inventory file
-    OBS.read_cat(cat_path=source["DATA"]["catalog_filepath"])  # Catalog file
-    OBS.read_events_from_cat(
-        event_params=source["EVENTS"],
-        cat=OBS.cat,
-        inv=OBS.inv,
-        local_folder=source["DATA"]["waveform_filepath"],
-        host_name=source["SERVER"]["host_name"],
-        user_name=source["SERVER"]["username"],
-        remote_folder=source["SERVER"]["remote_folder"],
+
+    ## Variables that look if the event file is already saved from previous runs:
+    inv = SS_MTI.DataGetter.read_inv(inv_path=f_in["DATA"]["inventory_filepath"])  # Inventory file
+    cat = SS_MTI.DataGetter.read_cat(cat_path=f_in["DATA"]["catalog_filepath"])  # Catalog file
+    events = SS_MTI.DataGetter.read_events_from_cat(
+        event_params=f_in["EVENTS"],
+        cat=cat,
+        inv=inv,
+        local_folder=f_in["DATA"]["waveform_filepath"],
+        host_name=f_in["SERVER"]["host_name"],
+        user_name=f_in["SERVER"]["username"],
+        remote_folder=f_in["SERVER"]["remote_folder"],
+        save_file_name=cat_save_name,
     )
 
-    a = 1
+    ## Step 3:
+    """ Define forward modeler """
+
+    forward_method = f_in["FORWARD"]["METHOD"]
+    forward_dict = f_in["FORWARD"][forward_method]
+
+    if forward_method == "INSTASEIS":
+        fwd = SS_MTI.Forward.Instaseis(
+            instaseis_db=forward_dict["VELOC"],
+            taup_model=forward_dict["VELOC_taup"],
+            rec_lat=f_in["PARAMETERS"]["RECEIVER"]["la_r"],
+            rec_lon=f_in["PARAMETERS"]["RECEIVER"]["lon_r"],
+        )
+    elif forward_method == "REFLECTIVITY":
+        fwd = SS_MTI.Forward.reflectivity()
+    else:
+        raise ValueError(
+            "forward_method can be either INSTASEIS or REFLECTIVITY in [FORWARD] of .toml file"
+        )
+
+    fwd = SS_MTI.Forward()
+    
+
 
     ## Step 3:
     """ Start inversion """
 
-    pass
+    inv_methods = f_in["INVERSION"]["METHOD"]
+    for inv_method in inv_methods:
+        print("Start {} inversion".format(inv_method))
+        for event in OBS.events:
+            if inv_method == 'GS'
+                invs.Grid_Search(event= event,depths=[10],strikes=[10], dips=[10], rakes=[10])
+                
+         
+            pass
