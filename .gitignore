@@ -1,5 +1,8 @@
 /__pychache__
 /.idea
 /.git
+/.vscode
 /Data
 /Input
+/External_packages
+/SS_MTI.egg-info
