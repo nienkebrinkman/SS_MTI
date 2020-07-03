@@ -10,6 +10,10 @@
 
 import obspy
 import instaseis
+import numpy as _np
+import h5py as _h5
+import matplotlib.pyplot as plt
+from os.path import join as pjoin
 from obspy.taup import TauPyModel
 from obspy import UTCDateTime as utct
 from typing import List as _List, Union as _Union
@@ -18,20 +22,6 @@ from typing import List as _List, Union as _Union
 from SS_MTI import PreProcess as _PreProcess
 from SS_MTI import Forward as _Forward
 from SS_MTI import Misfit as _Misfit
-
-
-# def Grid_Search_run(fwd: _Forward._AbstractForward):
-
-#     print(f"Running grid search with model: {fwd.name}")
-
-#     _preprocess()
-
-#     "Actual algorithm"
-
-#     for i in grid:
-#         fwd.greens_functions()
-
-#     _postprocess()
 
 
 def Grid_Search_run(
@@ -51,6 +41,9 @@ def Grid_Search_run(
     fmin: float = None,
     fmax: float = None,
     zerophase: bool = False,
+    list_to_correct_M0: [str] = None,
+    output_folder=None,
+    plot=False,
 ):
     """
     Grid search over strike, dip, rake angles
@@ -58,7 +51,7 @@ def Grid_Search_run(
     :param phases: list of phases to include in the inversion
     """
     print(f"Running grid search with model: {fwd.name}")
-    print(f"and with misfit: {misfit.name}")
+    print(f"and with {misfit.description}")
     M0 = 1e14
 
     if tstars is None:
@@ -73,20 +66,23 @@ def Grid_Search_run(
     else:
         filter_par = True
 
+    if output_folder is None:
+        output_folder = "."
+
     # TODO: IMPLEMENT LQT COORDINATE SYSTEM
     LQT_value = False
     baz = None
     inc = None
 
-    """ step 1: PRE-PROCESS THE OBSERVED DATA """
+    """ PRE-PROCESS THE OBSERVED DATA """
     obs_tt = []
     for i, phase in enumerate(phases):
         obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
-
     st_obs, sigmas = _PreProcess.prepare_event_data(
         event=event,
         phases=phases,
         components=components,
+        slice=True,
         tts=obs_tt,
         t_pre=t_pre,
         t_post=t_post,
@@ -98,7 +94,15 @@ def Grid_Search_run(
     )
 
     for depth in depths:
-        """ Step 2: GENERATE GREEN'S FUNCTION AT SPECIFIC DEPTH """
+        """ Open .h5 file """
+        file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}.hdf5"
+        f = _h5.File(pjoin(output_folder, file_name), "w")
+        data_len = 6 + len(phases)
+        file_len = len(strikes) * len(dips) * len(rakes)
+        f.create_dataset("samples", (file_len, data_len), maxshape=(None, 50))
+        iteration = 0
+
+        """ GENERATE GREEN'S FUNCTION AT SPECIFIC DEPTH """
         syn_tts = []
         syn_GFs = []
         for i, phase in enumerate(phases):
@@ -114,8 +118,11 @@ def Grid_Search_run(
                 inc=inc,
                 baz=baz,
                 M0=M0,
+                filter=filter_par,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
             )
-            # TODO: filter the streams
             syn_GFs.append(syn_GF)
             syn_tts.append(syn_tt)
 
@@ -125,7 +132,9 @@ def Grid_Search_run(
 
                     focal_mech = [strike, dip, rake]
                     st_syn = obspy.Stream()
+                    misfit_amp = []
 
+                    """ Generate the synthetic data"""
                     for i, phase in enumerate(phases):
                         tr_syn = fwd.generate_synthetic_data(
                             st_GF=syn_GFs[i],
@@ -135,17 +144,95 @@ def Grid_Search_run(
                             tt=syn_tts[i],
                             t_pre=t_pre[i],
                             t_post=t_post[i],
-                            filter=filter_par,
-                            fmin=fmin,
-                            fmax=fmax,
                         )
+
+                        if phases[i] + components[i] in list_to_correct_M0:
+                            misfit_amp.append(
+                                (_np.sum(_np.abs(st_obs[i].data)))
+                                / (_np.sum(_np.abs(tr_syn.data)))
+                            )
+
                         st_syn += tr_syn
 
+                    """ Multiply the data with the M0 correction"""
+                    M0_corr = _np.sum(misfit_amp) / len(misfit_amp)
+                    for tr in st_syn:
+                        tr.data = tr.data * M0_corr
+
+                    """ Determine the misfit between syntetic and observed"""
                     chi = misfit.run_misfit(
                         phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas
                     )
+                    f["samples"][iteration, :] = [depth, strike, dip, rake, M0, M0_corr] + chi
+                    iteration += 1
 
-                    a = 1
+                    print(focal_mech)
+                    print(_np.sum(chi))
+                    print(M0_corr * M0)
+
+        if plot:
+            sum_misfits = _np.sum(f["samples"][:, -len(phases) :], axis=1)
+            nlowest = 1
+            lowest_indices = sum_misfits.argsort()[0:nlowest]
+            sdrs = f["samples"][lowest_indices, 1:4]
+            M0_corrs = f["samples"][lowest_indices, 5]
+            fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(8, 6))
+            for n in range(len(lowest_indices)):
+                for i, phase in enumerate(phases):
+                    tr_syn_full = fwd.generate_synthetic_data(
+                        st_GF=syn_GFs[i], focal_mech=sdrs[n], M0=M0, slice=False,
+                    )
+
+                    tr_slice = tr_syn_full.slice(
+                        starttime=fwd.or_time + syn_tts[i] - t_pre[i],
+                        endtime=fwd.or_time + syn_tts[i] + t_post[i],
+                    )
+
+                    if n == 0:
+                        st_obs_full, sigmas = _PreProcess.prepare_event_data(
+                            event=event,
+                            phases=phases,
+                            components=components,
+                            slice=False,
+                            filter=filter_par,
+                            fmin=fmin,
+                            fmax=fmax,
+                            zerophase=zerophase,
+                            noise_level=False,
+                        )
+                        ax[i].plot(
+                            st_obs_full[i].times() - obs_tt[i], st_obs_full[i].data, lw=2, c="k",
+                        )
+                        ax[i].plot(
+                            st_obs[i].times() - t_pre[i],
+                            st_obs[i].data,
+                            lw=4,
+                            c="k",
+                            label="Observed",
+                        )
+                        ax[i].plot(
+                            tr_slice.times() - t_pre[i],
+                            tr_slice.data * M0_corrs[n],
+                            lw=4,
+                            c="r",
+                            label="Synthetic",
+                        )
+                    else:
+                        ax[i].plot(
+                            tr_slice.times() - t_pre[i], tr_slice.data * M0_corrs[n], lw=4, c="r"
+                        )
+                    ax[i].plot(
+                        tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
+                        tr_syn_full.data * M0_corrs[n],
+                        lw=2,
+                        c="r",
+                    )
+                    ax[i].legend()
+                    ax[i].set_ylim(-5e-10, 5e-10)
+                    ax[i].axvline(x=0.0, c="grey")
+            ax[-1].set_xlim(-10.0, 60.0)
+            plt.savefig(pjoin(output_folder, f"{depth}_{strike}_{dip}_{rake}.pdf"))
+        f.close()
 
 
 def Direct(self, event: obspy.core.event.Event):
@@ -154,95 +241,4 @@ def Direct(self, event: obspy.core.event.Event):
 
 def MH(self, event: obspy.core.event.Event):
     pass
-
-
-class Inversion:
-    def __init__(
-        self, forward_method: str, forward_dict: dict, rec_lat: float, rec_lon: float,
-    ):
-        """
-        :param forward: string defining the forward modeller: "INSTASEIS", "REFLECTIVITY"
-        :param forward_dict: Dict with all specification of the forward modeller (see input.toml)
-        :param rec_lat: latitude of receiver station
-        :param rec_lon: longitude of receiver station
-        """
-        if forward_method == "INSTASEIS":
-            self.forward = _Forward.Instaseis(
-                instaseis_db=forward_dict["VELOC"],
-                taup_model=forward_dict["VELOC_taup"],
-                rec_lat=rec_lat,
-                rec_lon=rec_lon,
-            )
-        elif forward_method == "REFLECTIVITY":
-            self.forward = _Forward.reflectivity()
-        else:
-            raise ValueError(
-                "forward_method can be either INSTASEIS or REFLECTIVITY in [FORWARD] of .toml file"
-            )
-        pass
-
-    def Grid_Search(
-        self,
-        event: obspy.core.event.Event,
-        phases: [str],
-        phase_corrs: [float],
-        components: [str],
-        t_pre: [str],
-        t_post: [str],
-        depths: [float],
-        strikes: [float],
-        dips: [float],
-        rakes: [float],
-        tstars: _Union[_List[float], _List[str]] = None,
-        fmin: float = 1.0 / 8,
-        fmax: float = 1.0 / 3.5,
-        zerophase: bool = False,
-    ):
-        """
-        Grid search over strike, dip, rake angles
-        :param event: Obspy.event including waveforms and phase arrivals
-        :param phases: list of phases to include in the inversion
-        """
-
-        if tstars is None:
-            tstars = [None] * len(phases)
-
-        # TODO: IMPLEMENT LQT COORDINATE SYSTEM
-        LQT_value = False
-
-        """ step 1: PRE-PROCESS THE OBSERVED DATA """
-        proc = _PreProcess()
-
-        obs_tt = []
-        for i, phase in enumerate(phases):
-            obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
-        st_obs = proc.prepare_event_data(
-            event=event,
-            phases=phases,
-            components=components,
-            tts=obs_tt,
-            t_pre=t_pre,
-            t_post=t_post,
-            fmin=fmin,
-            fmax=fmax,
-        )
-
-        for depth in depths:
-            """ Step 2: calculate synthetic arrivals """
-
-            self.forward.greens_functions()
-
-            for strike in strikes:
-                for dip in dips:
-                    for rake in rakes:
-
-                        pass
-
-        pass
-
-    def Direct(self, event: obspy.core.event.Event):
-        pass
-
-    def MH(self, event: obspy.core.event.Event):
-        pass
 

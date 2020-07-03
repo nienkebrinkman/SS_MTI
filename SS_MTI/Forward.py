@@ -62,6 +62,10 @@ class Instaseis(_AbstractForward):
         LQT: bool = False,
         inc: float = None,
         baz: float = None,
+        filter: bool = False,
+        fmin: float = None,
+        fmax: float = None,
+        zerophase: bool = False,
     ) -> _Tuple[obspy.Stream, float]:
         """ GREENS FUNCTIONS FOR INSTASEIS FORWARD MODELING: """
 
@@ -85,6 +89,13 @@ class Instaseis(_AbstractForward):
             baz=baz,
             M0=M0,
         )
+        if filter:
+            assert (
+                fmin is not None and fmax is not None
+            ), "if filter == True, specify fmin, fmax and zerophase"
+            _PreProcess.filter_tr(st_GF, fmin=fmin, fmax=fmax, zerophase=zerophase)
+        st_GF.trim(starttime=self.or_time + self.start_cut, endtime=self.or_time + self.end_cut)
+
         return st_GF, syn_tt
 
     def generate_synthetic_data(
@@ -96,10 +107,6 @@ class Instaseis(_AbstractForward):
         tt: float = None,
         t_pre: float = None,
         t_post: float = None,
-        filter: bool = False,
-        fmin: float = None,
-        fmax: float = None,
-        zerophase: bool = False,
     ):
         """ Generate synthetic waveforms 
         :param st_GF: 
@@ -111,20 +118,15 @@ class Instaseis(_AbstractForward):
 
         assert (
             slice == True and tt is not None and t_pre is not None and t_post is not None
-        ), "if slice is set to True you have to specify tt, t_pre and t_post"
+        ) or slice == False, "if slice is set to True you have to specify tt, t_pre and t_post"
 
         syn_tr_full = _GreensFunctions.from_GF(st_GF, focal_mech, M0)
-        syn_tr = syn_tr_full.slice(
-            starttime=self.or_time + tt - t_pre, endtime=self.or_time + tt + t_post,
-        )
+        if slice:
+            syn_tr_full.trim(
+                starttime=self.or_time + tt - t_pre, endtime=self.or_time + tt + t_post,
+            )
 
-        if filter:
-            assert (
-                fmin is not None and fmax is not None
-            ), "if filter == True, specify fmin, fmax and zerophase"
-            _PreProcess.filter_tr(syn_tr, fmin=fmin, fmax=fmax, zerophase=zerophase)
-
-        return syn_tr
+        return syn_tr_full
 
 
 class reflectivity(_AbstractForward):

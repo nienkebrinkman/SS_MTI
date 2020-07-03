@@ -39,7 +39,7 @@ dt = 0.05
 
 components = "ZRT"
 kind = "displacement"
-noise = False
+noise = True
 
 ## Step 2: Create observed data and waveforms
 event = EventObj(
@@ -95,18 +95,20 @@ else:
 
 ## Step 5:
 """ Start inversion """
-components = ["Z", "Z"]
+components = ["Z", "T"]
+amplitude_correction = ["PZ", "ST"]
 t_pre = [1, 1]
-t_post = [10, 10]
-depths = [10, 11, 12]
-strikes = [40, 50]
-dips = [20, 30]
-rakes = [100, -100]
+t_post = [20, 20]
+depths = [depth]
+strikes = [strike, 180]
+dips = [dip]
+rakes = [rake]
 phase_corrs = None
 tstars = None
 fmin = 1.0 / 8.0
 fmax = 1.0 / 5.0
 zerophase = False
+output_folder = "/home/nienke/Documents/Research/Data/Figures/"
 
 SS_MTI.Inversion.Grid_Search_run(
     fwd=fwd,
@@ -125,20 +127,8 @@ SS_MTI.Inversion.Grid_Search_run(
     fmin=fmin,
     fmax=fmax,
     zerophase=zerophase,
+    list_to_correct_M0=amplitude_correction,
+    output_folder=output_folder,
+    plot=True,
 )
 
-
-# invs = SS_MTI.Inversion(
-#     forward_method=forward_method,
-#     forward_dict=forward_dict,
-#     rec_lat=f_in["PARAMETERS"]["RECEIVER"]["la_r"],
-#     rec_lon=f_in["PARAMETERS"]["RECEIVER"]["lon_r"],
-# )
-# inv_methods = f_in["INVERSION"]["METHOD"]
-# for inv_method in inv_methods:
-#     print("Start {} inversion".format(inv_method))
-#     for event in OBS.events:
-#         if inv_method == "GS":
-#             invs.Grid_Search(event=event, depths=[10], strikes=[10], dips=[10], rakes=[10])
-
-#             pass

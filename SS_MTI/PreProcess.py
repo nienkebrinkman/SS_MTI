@@ -3,7 +3,7 @@ import numpy as _np
 from typing import Tuple as _Tuple
 
 
-def filter_tr(tr, fmin=1.0 / 10.0, fmax=1.0 / 2, zerophase=True):
+def filter_tr(tr, fmin=1.0 / 10.0, fmax=1.0 / 2, zerophase=False):
     tr.filter("highpass", freq=fmin, zerophase=zerophase)
     tr.filter("highpass", freq=fmin, zerophase=zerophase)
     tr.filter("lowpass", freq=fmax, zerophase=zerophase)
@@ -30,9 +30,10 @@ def prepare_event_data(
     event: obspy.core.event.Event,
     phases: [str],
     components: [str],
-    tts: [float],
-    t_pre: [float],
-    t_post: [float],
+    slice: bool = False,
+    tts: [float] = None,
+    t_pre: [float] = None,
+    t_post: [float] = None,
     filter: bool = False,
     fmin: float = None,
     fmax: float = None,
@@ -52,6 +53,10 @@ def prepare_event_data(
             fmin is not None and fmax is not None
         ), "if filter == True, specify fmin, fmax and zerophase"
 
+    assert (
+        slice == True and tts is not None and t_pre is not None and t_post is not None
+    ) or slice == False, "if slice is set to True you have to specify tt, t_pre and t_post"
+
     st_obs = obspy.Stream()
     if noise_level:
         print("noise stream will be a 30 second" " window starting 10 seconds before arrival")
@@ -61,10 +66,13 @@ def prepare_event_data(
         if filter:
             filter_tr(tr_orig, fmin=fmin, fmax=fmax, zerophase=zerophase)
 
-        tr_window = tr_orig.slice(
-            starttime=event.origin_time + tts[i] - t_pre[i],
-            endtime=event.origin_time + tts[i] + t_post[i],
-        )
+        if slice:
+            tr_window = tr_orig.slice(
+                starttime=event.origin_time + tts[i] - t_pre[i],
+                endtime=event.origin_time + tts[i] + t_post[i],
+            )
+        else:
+            tr_window = tr_orig.copy()
 
         if noise_level:
             tr_noise = tr_orig.slice(

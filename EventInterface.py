@@ -130,7 +130,7 @@ class EventObj:
             origin_time=self.event.origin_time,
         )
 
-        if components == "LOT":
+        if components == "LQT":
             st_obs = db.get_seismograms(
                 source=src, receiver=receiver, components=components, kind=kind, dt=dt
             )
@@ -147,16 +147,23 @@ class EventObj:
         st_obs.trim(starttime=self.event.origin_time, endtime=self.event.origin_time + 800.0)
 
         if noise:
-            path = "/home/nienke/Documents/Research/Data/Noise/"
+            Path = "/home/nienke/Documents/Research/Data/Noise/"
             File_names = [
                 "XB.02.ELYSE.BHE-2019.274T0809-2019.274T0920",
                 "XB.02.ELYSE.BHN-2019.274T0809-2019.274T0920",
                 "XB.02.ELYSE.BHZ-2019.274T0809-2019.274T0920",
             ]
             st_noise = obspy.Stream()
+
             for file in File_names:
                 tr = obspy.read(Path + file)
                 st_noise += tr
+
+            if components == "LQT":
+                raise ValueError("LQT orientation Not implemented yet")
+                # TODO: implement LQT orientation
+            else:
+                st_noise.rotate(method="NE->RT", back_azimuth=self.event.baz)
 
             for trace in st_obs:
                 chan = trace.stats.channel
