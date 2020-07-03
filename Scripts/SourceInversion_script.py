@@ -47,6 +47,8 @@ if __name__ == "__main__":
         save_file_name=cat_save_name,
     )
 
+    event = event[0]
+
     ## Step 3:
     """ Define forward modeler """
 
@@ -59,6 +61,10 @@ if __name__ == "__main__":
             taup_model=forward_dict["VELOC_taup"],
             rec_lat=f_in["PARAMETERS"]["RECEIVER"]["la_r"],
             rec_lon=f_in["PARAMETERS"]["RECEIVER"]["lon_r"],
+            or_time=event.origin_time,
+            dt = event.delta
+            start_cut=f_in["PARAMETERS"]["start_cut"],
+            end_cut=f_in["PARAMETERS"]["end_cut"],
         )
     elif forward_method == "REFLECTIVITY":
         fwd = SS_MTI.Forward.reflectivity()
@@ -66,12 +72,23 @@ if __name__ == "__main__":
         raise ValueError(
             "forward_method can be either INSTASEIS or REFLECTIVITY in [FORWARD] of .toml file"
         )
-
-    fwd = SS_MTI.Forward()
-    
-
-
+   
     ## Step 3:
+    """ Define misfit """
+    misfit_method = f_in["MISFIT"]["METHOD"]
+    misfit_dict = f_in["MISFIT"][misfit_method]
+
+    if method == "L2":
+        misfit = SS_MTI.Misfit.L2()
+    elif method == "CC":
+        misfit = SS_MTI.Misfit.CC()
+    elif method == "POL":
+        misfit = SS_MTI.Misfit.POL()
+    else:
+        raise ValueError("misfit can be L2, CC or POL in [MISFIT] of .toml file")
+
+
+    ## step 4:
     """ Start inversion """
 
     inv_methods = f_in["INVERSION"]["METHOD"]

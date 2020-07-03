@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+
+:copyright:
+    Nienke Brinkman (nienke.brinkman@erdw.ethz.ch), 2020
+:license:
+    None
+"""
+
 import obspy
 import instaseis
 from typing import Union as _Union
@@ -5,7 +15,6 @@ import numpy as np
 
 
 def make_GF(
-    self,
     or_time: obspy.UTCDateTime,
     lat_src: float,
     lon_src: float,
@@ -19,6 +28,7 @@ def make_GF(
     LQT: bool = False,
     inc: float = None,
     baz: float = None,
+    M0: float = 1e14,
 ) -> obspy.Stream:
     """
     Create stream of different source components
@@ -35,6 +45,7 @@ def make_GF(
     :param LQT: set to true if component system is LQT
     :param inc: inclination angle in degrees (needed when LQT = TRUE)
     :param baz: backazimuth angle in degrees (needed when LQT = TRUE)
+    :param M0: scalar moment
     """
 
     if tstar is not None and not isinstance(tstar, str):
@@ -45,12 +56,12 @@ def make_GF(
     elif isinstance(tstar, str):
         stf = self.STF_.Create_stf_from_file(tstar, db.info.dt)
     mts = [
-        [1e14, 0e14, 0e14, 0e14, 0e14, 0e14],
-        [0e14, 1e14, 0e14, 0e14, 0e14, 0e14],
-        [0e14, 0e14, 1e14, 0e14, 0e14, 0e14],
-        [0e14, 0e14, 0e14, 1e14, 0e14, 0e14],
-        [0e14, 0e14, 0e14, 0e14, 1e14, 0e14],
-        [0e14, 0e14, 0e14, 0e14, 0e14, 1e14],
+        [M0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, M0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, M0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, M0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, M0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, M0],
     ]
 
     st = obspy.Stream()
@@ -108,7 +119,7 @@ def make_GF(
     return st
 
 
-def convert_SDR(strike, dip, rake, M0=1e14):
+def convert_SDR(strike: float, dip: float, rake: float, M0: float = 1e14):
     phi = np.deg2rad(strike)
     delta = np.deg2rad(dip)
     lambd = np.deg2rad(rake)
@@ -144,14 +155,22 @@ def convert_SDR(strike, dip, rake, M0=1e14):
     return MT
 
 
-def from_GF(st_in, strike, dip, rake, M0=1e14):
-    MT = convert_SDR(strike, dip, rake, M0)
-    m_rr = MT[0] / 1e14
-    m_pp = MT[1] / 1e14
-    m_tt = MT[2] / 1e14
-    m_rp = MT[3] / 1e14
-    m_rt = MT[4] / 1e14
-    m_tp = MT[5] / 1e14
+def from_GF(st_in: obspy.Stream, focal_mech: [float], M0: float):
+    """ Generate synthetic waveforms 
+    :param st_GF: 
+    :param focal_mech: strike,dip,rake or m_rr, m_pp, m_tt, m_rp, m_rt, m_tp
+    :param M0: scalar moment
+    """
+
+    if len(focal_mech) == 3:
+        focal_mech = convert_SDR(focal_mech[0], focal_mech[1], focal_mech[2], M0)
+
+    m_rr = focal_mech[0] / M0
+    m_pp = focal_mech[1] / M0
+    m_tt = focal_mech[2] / M0
+    m_rp = focal_mech[3] / M0
+    m_rt = focal_mech[4] / M0
+    m_tp = focal_mech[5] / M0
 
     data = (
         st_in[0].data * m_rr

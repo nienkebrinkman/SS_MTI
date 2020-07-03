@@ -17,6 +17,7 @@ from typing import List as _List, Union as _Union
 
 from SS_MTI import PreProcess as _PreProcess
 from SS_MTI import Forward as _Forward
+from SS_MTI import Misfit as _Misfit
 
 
 # def Grid_Search_run(fwd: _Forward._AbstractForward):
@@ -35,6 +36,7 @@ from SS_MTI import Forward as _Forward
 
 def Grid_Search_run(
     fwd: _Forward._AbstractForward,
+    misfit: _Misfit._AbstractMisfit,
     event: obspy.core.event.Event,
     phases: [str],
     components: [str],
@@ -46,8 +48,8 @@ def Grid_Search_run(
     rakes: [float],
     phase_corrs: [float] = None,
     tstars: _Union[_List[float], _List[str]] = None,
-    fmin: float = 1.0 / 8,
-    fmax: float = 1.0 / 3.5,
+    fmin: float = None,
+    fmax: float = None,
     zerophase: bool = False,
 ):
     """
@@ -56,12 +58,20 @@ def Grid_Search_run(
     :param phases: list of phases to include in the inversion
     """
     print(f"Running grid search with model: {fwd.name}")
+    print(f"and with misfit: {misfit.name}")
+    M0 = 1e14
 
     if tstars is None:
         tstars = [None] * len(phases)
 
     if phase_corrs is None:
         phase_corrs = [0] * len(phases)
+
+    if (fmin == None) or (fmax == None):
+        print("Data will not be filtered due to fmin or fmax equal to None")
+        filter_par = False
+    else:
+        filter_par = True
 
     # TODO: IMPLEMENT LQT COORDINATE SYSTEM
     LQT_value = False
@@ -72,23 +82,27 @@ def Grid_Search_run(
     obs_tt = []
     for i, phase in enumerate(phases):
         obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
-    st_obs = _PreProcess.prepare_event_data(
+
+    st_obs, sigmas = _PreProcess.prepare_event_data(
         event=event,
         phases=phases,
         components=components,
         tts=obs_tt,
         t_pre=t_pre,
         t_post=t_post,
+        filter=filter_par,
         fmin=fmin,
         fmax=fmax,
+        zerophase=zerophase,
+        noise_level=misfit.noise_level,
     )
 
     for depth in depths:
         """ Step 2: GENERATE GREEN'S FUNCTION AT SPECIFIC DEPTH """
-        syn_tt = []
-        syn_GF = []
+        syn_tts = []
+        syn_GFs = []
         for i, phase in enumerate(phases):
-            syn_GF, syn_tt = fwd.greens_functions(
+            syn_GF, syn_tt = fwd.get_greens_functions(
                 phase=phase,
                 comp=components[i],
                 depth=depth,
@@ -99,17 +113,39 @@ def Grid_Search_run(
                 LQT=LQT_value,
                 inc=inc,
                 baz=baz,
+                M0=M0,
             )
-            syn_GF.append(st)
-            syn_tt.append(syn_tt)
+            # TODO: filter the streams
+            syn_GFs.append(syn_GF)
+            syn_tts.append(syn_tt)
 
         for strike in strikes:
             for dip in dips:
                 for rake in rakes:
 
-                    pass
+                    focal_mech = [strike, dip, rake]
+                    st_syn = obspy.Stream()
 
-    pass
+                    for i, phase in enumerate(phases):
+                        tr_syn = fwd.generate_synthetic_data(
+                            st_GF=syn_GFs[i],
+                            focal_mech=focal_mech,
+                            M0=M0,
+                            slice=True,
+                            tt=syn_tts[i],
+                            t_pre=t_pre[i],
+                            t_post=t_post[i],
+                            filter=filter_par,
+                            fmin=fmin,
+                            fmax=fmax,
+                        )
+                        st_syn += tr_syn
+
+                    chi = misfit.run_misfit(
+                        phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas
+                    )
+
+                    a = 1
 
 
 def Direct(self, event: obspy.core.event.Event):

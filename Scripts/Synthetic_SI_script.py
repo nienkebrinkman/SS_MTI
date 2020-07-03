@@ -70,10 +70,30 @@ fwd = SS_MTI.Forward.Instaseis(
     taup_model=npz_file,
     rec_lat=lat_rec,
     rec_lon=lon_rec,
-    or_time=event.or_time,
+    or_time=event.origin_time,
+    dt=dt,
+    start_cut=100.0,
+    end_cut=800.0,
 )
 
 ## Step 4:
+""" Define misfit """
+misfit_method = "L2"
+
+weights = [[1, 3], [1, 4]]
+start_weight_len = 3.0
+
+
+if misfit_method == "L2":
+    misfit = SS_MTI.Misfit.L2(weights=weights, start_weight_len=start_weight_len, dt=dt)
+elif misfit_method == "CC":
+    misfit = SS_MTI.Misfit.CC()
+elif misfit_method == "POL":
+    misfit = SS_MTI.Misfit.POL()
+else:
+    raise ValueError("misfit can be L2, CC or POL in [MISFIT] of .toml file")
+
+## Step 5:
 """ Start inversion """
 components = ["Z", "Z"]
 t_pre = [1, 1]
@@ -90,6 +110,7 @@ zerophase = False
 
 SS_MTI.Inversion.Grid_Search_run(
     fwd=fwd,
+    misfit=misfit,
     event=event,
     phases=phases,
     components=components,
