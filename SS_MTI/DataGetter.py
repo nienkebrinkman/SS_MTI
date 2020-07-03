@@ -63,7 +63,7 @@ def mnt_remote_folder(host_ip: str, host_usr: str, remote_folder: str, mnt_folde
 
 def read_waveforms_from_saved_dir(
     self, file_path: str, event: obspy.core.event.Event = None
-) -> _Union[obspy.core.event.Event, _Tuple[obspy.core.stream.Stream, obspy.core.stream.Stream]]:
+) -> _Union[obspy.core.event.Event, _Tuple[obspy.Stream, obspy.Stream]]:
     """
     Read in the obspy waveform data in this folder        
     :param file_path: path to waveform data
