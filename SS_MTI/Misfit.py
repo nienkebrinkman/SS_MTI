@@ -31,7 +31,8 @@ class _AbstractMisfit(metaclass=abc.ABCMeta):
 
 
 class L2(_AbstractMisfit):
-    name = "L2 based misfit"
+    name = "L2"
+    description = "L2 based misfit"
     noise_level = True  # Do you need to determine level of noise for this misfit class?
 
     def __init__(self, weights: [_List[int]], start_weight_len: float, dt: float):
@@ -46,7 +47,7 @@ class L2(_AbstractMisfit):
         self.dt = dt
 
     def run_misfit(
-        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, sigmas: [float]
+        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, sigmas: [float],
     ) -> [float]:
         """
         L2 misfit is calculated with a weighting matrix based on a noise array before arrival
@@ -80,13 +81,14 @@ class L2(_AbstractMisfit):
                 * (
                     (d_obs - d_syn).T
                     @ (_np.expand_dims(1 / (sigmas[i] ** 2 * d_weight), axis=1) * (d_obs - d_syn))
-                )
+                )[0][0]
             )
         return misfit_L2
 
 
 class CC(_AbstractMisfit):
-    name = "cross-correlation based misfit"
+    name = "CC"
+    description = "cross-correlation based misfit"
     noise_level = False  # Do you need to determine level of noise for this misfit class?
 
     def __init__(self):
@@ -97,7 +99,8 @@ class CC(_AbstractMisfit):
 
 
 class Pol(_AbstractMisfit):
-    name = "polarization based misfit"
+    name = "POL"
+    description = "polarization based misfit"
     noise_level = False  # Do you need to determine level of noise for this misfit class?
 
     def __init__(self):
