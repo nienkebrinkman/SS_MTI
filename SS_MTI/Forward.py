@@ -42,7 +42,7 @@ class Instaseis(_AbstractForward):
     ) -> None:
         """ Setup of instaseis forward modeling is specified """
         self.rec = instaseis.Receiver(latitude=rec_lat, longitude=rec_lon)
-        self.db = instaseis.open_db(instaseis_db)
+        self.db = instaseis_db
         self.taup_veloc = _TauPyModel(taup_model)
         self.or_time = or_time
         self.dt = dt
@@ -51,7 +51,6 @@ class Instaseis(_AbstractForward):
 
     def get_greens_functions(
         self,
-        phase: str,
         comp: str,
         depth: float,
         distance: float,
@@ -68,9 +67,6 @@ class Instaseis(_AbstractForward):
         zerophase: bool = False,
     ) -> _Tuple[obspy.Stream, float]:
         """ GREENS FUNCTIONS FOR INSTASEIS FORWARD MODELING: """
-
-        """ SYNTHETIC TRAVEL TIME: """
-        syn_tt = _PhaseTracer.get_traveltime(self.taup_veloc, phase, depth, distance)
 
         """ GREEN'S FUNCTIONS: """
         st_GF = _GreensFunctions.make_GF(
@@ -96,7 +92,12 @@ class Instaseis(_AbstractForward):
             _PreProcess.filter_tr(st_GF, fmin=fmin, fmax=fmax, zerophase=zerophase)
         st_GF.trim(starttime=self.or_time + self.start_cut, endtime=self.or_time + self.end_cut)
 
-        return st_GF, syn_tt
+        return st_GF
+
+    def get_phase_tt(self, phase: str, depth: float, distance: float):
+        """ SYNTHETIC TRAVEL TIME: """
+        syn_tt = _PhaseTracer.get_traveltime(self.taup_veloc, phase, depth, distance)
+        return syn_tt
 
     def generate_synthetic_data(
         self,
@@ -113,7 +114,7 @@ class Instaseis(_AbstractForward):
         :param focal_mech: strike,dip,rake or m_rr, m_pp, m_tt, m_rp, m_rt, m_tp
         :param M0: scalar moment
         :param slice: if true the trace will be slices around the tt
-        :param tt: travel time in seconds after origin time
+        :param tt: None if slice=False, travel time in seconds after origin time
         """
 
         assert (

@@ -106,8 +106,8 @@ def Grid_Search_run(
         syn_tts = []
         syn_GFs = []
         for i, phase in enumerate(phases):
-            syn_GF, syn_tt = fwd.get_greens_functions(
-                phase=phase,
+            syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
+            syn_GF = fwd.get_greens_functions(
                 comp=components[i],
                 depth=depth,
                 distance=event.distance,

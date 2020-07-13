@@ -6,6 +6,7 @@ __author__ = "Nienke Brinkman"
 
 import argparse
 import toml
+import instaseis
 from os.path import join as pjoin
 from os.path import exists as exist
 
@@ -57,7 +58,7 @@ if __name__ == "__main__":
 
     if forward_method == "INSTASEIS":
         fwd = SS_MTI.Forward.Instaseis(
-            instaseis_db=forward_dict["VELOC"],
+            instaseis_db=instaseis.open_db(forward_dict["VELOC"]),
             taup_model=forward_dict["VELOC_taup"],
             rec_lat=f_in["PARAMETERS"]["RECEIVER"]["la_r"],
             rec_lon=f_in["PARAMETERS"]["RECEIVER"]["lon_r"],

@@ -5,6 +5,7 @@ __author__ = "Nienke Brinkman"
 
 from os.path import join as pjoin
 from os.path import exists as exist
+import instaseis
 
 import SS_MTI
 import EventInterface
@@ -41,7 +42,7 @@ forward_dict = f_in["FORWARD"][forward_method]
 
 if forward_method == "INSTASEIS":
     fwd = SS_MTI.Forward.Instaseis(
-        instaseis_db=forward_dict["VELOC"],
+        instaseis_db=instaseis.open_db(forward_dict["VELOC"]),
         taup_model=forward_dict["VELOC_taup"],
         rec_lat=f_in["PARAMETERS"]["RECEIVER"],
         rec_lon=rec_lon,

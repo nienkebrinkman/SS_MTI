@@ -10,7 +10,16 @@
 # from SS_MTI.PhaseTracer import PhaseTracer as PhaseTracer
 
 # Dit pakt de hele module met onderliggende functions ZONDER _
-from SS_MTI import DataGetter, Forward, GreensFunctions, Inversion, PreProcess, PullData, Misfit
+from SS_MTI import (
+    DataGetter,
+    Forward,
+    GreensFunctions,
+    Inversion,
+    PreProcess,
+    PullData,
+    Misfit,
+    PostProcessing,
+)
 
 
 __all__ = [
@@ -22,4 +31,5 @@ __all__ = [
     "PullData",
     "PhaseTracer",
     "Misfit",
+    "PostProcessing",
 ]
