@@ -33,7 +33,7 @@ def unmnt_remote_folder(mnt_folder) -> None:
     unmount folder including waveform data to local machine
     :param mnt_folder: name of folder to mount to local machine
     """
-    unmount_command = "fusermount -u {}".format(mnt_folder)
+    unmount_command = f"fusermount -u {mnt_folder}"
     subprocess.call(unmount_command, shell=True)
     print("UN-mounted to {}".format(mnt_folder))
 

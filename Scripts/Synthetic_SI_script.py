@@ -7,6 +7,7 @@ from os.path import join as pjoin
 from os.path import exists as exist
 from obspy.taup import TauPyModel
 import obspy
+import instaseis
 
 import SS_MTI
 from EventInterface import EventObj
@@ -24,7 +25,7 @@ npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 model = TauPyModel(npz_file)
 
 db_path = "http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/"
-
+db = instaseis.open_db(db_path)
 
 lat_rec = 4.502384
 lon_rec = 135.623447
@@ -66,7 +67,7 @@ event = event.event
 ## Step 3:
 """ Define forward modeler """
 fwd = SS_MTI.Forward.Instaseis(
-    instaseis_db=db_path,
+    instaseis_db=db,
     taup_model=npz_file,
     rec_lat=lat_rec,
     rec_lon=lon_rec,
@@ -108,7 +109,7 @@ tstars = None
 fmin = 1.0 / 8.0
 fmax = 1.0 / 5.0
 zerophase = False
-output_folder = "/home/nienke/Documents/Research/Data/Figures/"
+output_folder = "/home/nienke/Documents/Research/Data/MTI/"
 
 SS_MTI.Inversion.Grid_Search_run(
     fwd=fwd,

@@ -15,9 +15,9 @@ def get_traveltime(model: _TauPyModel, phase: str, depth: float, distance: float
         tt = model.get_travel_times(
             source_depth_in_km=depth, distance_in_degree=distance, phase_list=[phase]
         )
+        return tt[0].time
     except IndexError as e:
-        raise e(
-            "{} not arriving at {}km depth and {} degrees".format(phase, depth, event.distance)
-        )
-    return tt[0].time
+        # raise e("{} not arriving at {}km depth and {} degrees".format(phase, depth, distance))
+        print("{} not arriving at {}km depth and {} degrees".format(phase, depth, distance))
+        return None
 
