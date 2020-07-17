@@ -171,6 +171,7 @@ def Grid_Search_run(
                     print(M0_corr * M0)
 
         if plot:
+            # TODO: make this plot routine as a function
             sum_misfits = _np.sum(f["samples"][:, -len(phases) :], axis=1)
             nlowest = 1
             lowest_indices = sum_misfits.argsort()[0:nlowest]
@@ -228,10 +229,24 @@ def Grid_Search_run(
                         c="r",
                     )
                     ax[i].legend()
-                    ax[i].set_ylim(-5e-10, 5e-10)
-                    ax[i].axvline(x=0.0, c="grey")
+
+                    st = obspy.Stream()
+                    st += tr_slice
+                    st += st_obs[i]
+                    global_max = max([tr.data.max() for tr in st]) * 1.2
+                    global_min = min([tr.data.min() for tr in st]) * 1.2
+                    ax[i].set_ylim(global_min, global_max)
+                    ax[i].axvline(x=0.0 + 0.1, c="grey")
+                    ax[i].text(
+                        0,
+                        global_max * 0.8,
+                        phase,
+                        verticalalignment="center",
+                        color="grey",
+                        fontsize=6,
+                    )
             ax[-1].set_xlim(-10.0, 60.0)
-            plt.savefig(pjoin(output_folder, f"{depth}_{strike}_{dip}_{rake}.pdf"))
+            plt.savefig(pjoin(output_folder, f"{depth}_{strike}_{dip}_{rake}_{misfit.name}.pdf"))
         f.close()
 
 

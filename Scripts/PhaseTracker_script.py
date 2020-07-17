@@ -7,8 +7,8 @@ from obspy.taup import TauPyModel
 import obspy
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.lines import Line2D
+
+
 import os
 import instaseis
 
@@ -26,6 +26,10 @@ name = "Test_Event"
 
 lat_rec = 4.502384
 lon_rec = 135.623447
+
+fig = PP.Plot_event_location(lat_src, lon_src, lat_rec, lon_rec, "test event")
+plt.savefig("/home/nienke/Documents/Research/Data/MTI/Phase_tracking/source_location.pdf")
+plt.close()
 
 strike = 60
 dip = 90
@@ -56,9 +60,20 @@ npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 db_name_3 = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/DWThot_1s"
 npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/DWThot.npz"
 
-db_names = [db_name_1, db_name_2]
-npz_file_names = [npz_file_name_1, npz_file_name_2]
+db_name_4 = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/DWAK_1s"
+npz_file_name_4 = "/home/nienke/Documents/Research/Data/npz_files/DWAK.npz"
 
+db_name_5 = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/MAAK_1s"
+npz_file_name_5 = "/home/nienke/Documents/Research/Data/npz_files/MAAK.npz"
+
+db_names = [db_name_1, db_name_2, db_name_3, db_name_4, db_name_5]
+npz_file_names = [
+    npz_file_name_1,
+    npz_file_name_2,
+    npz_file_name_3,
+    npz_file_name_4,
+    npz_file_name_5,
+]
 
 mnt_folder = "/mnt/marshost/"
 
@@ -69,7 +84,7 @@ DG.mnt_remote_folder(
 
 """ Define the depths you want to loop over """
 depths = np.arange(5, 90, 10)
-# depths = [5, 30]
+# depths = [85]
 
 for npz_file, db_path in zip(npz_file_names, db_names):
 
@@ -91,37 +106,45 @@ for npz_file, db_path in zip(npz_file_names, db_names):
     Underside_refl_src = []
     Conversion_src = []
     Conversion_rec = []
+    Reflection_phases = []
     for i, values in enumerate(model.model.s_mod.critical_depths):
         if values[0] < 1.0 or values[0] > 100.0:
-            pass
-        else:
-            interface = str(int(values[0]))
-            for down_phase in ["p^", "s^"]:
-                for up_phase in ["P", "S"]:
-                    Underside_refl_src.append(down_phase + interface + up_phase)
-            Conversion_src.append("S" + interface + "P")
-            Conversion_src.append("P" + interface + "S")
-            # Conversion_rec.append("P" + interface + "p")
-            Conversion_rec.append("P" + interface + "s")
+            continue
+        interface = str(int(values[0]))
+        if i > 1:
+            Reflection_phases.append(
+                "P" + interface + "s" + str(int(model.model.s_mod.critical_depths[i - 1][0])) + "p"
+            )
+        if values[0] > 50.0 and "TAYAK" in model_name:
+            continue
+        for down_phase in ["p^", "s^"]:
+            for up_phase in ["P", "S"]:
 
-    Direct_phases = ["P", "S"]
+                Underside_refl_src.append(down_phase + interface + up_phase)
+
+        Conversion_src.append("S" + interface + "P")
+        Conversion_src.append("P" + interface + "S")
+        # Conversion_rec.append("P" + interface + "p")
+        Conversion_rec.append("P" + interface + "s")
+
+    Direct_phases = ["P"]
     Depth_phases = ["pP", "sP", "sS"]
     Double_phases = ["PP", "PPP", "SSS"]
-    phases = (
-        Direct_phases
-        + Depth_phases
+    extra_phases = (
+        Depth_phases
         + Double_phases
         + Conversion_src
         + Conversion_rec
         + Underside_refl_src
+        + Reflection_phases
     )
-    phase_colors = (
-        ["grey"] * len(Direct_phases)
-        + ["grey"] * len(Depth_phases)
+    extra_phase_colors = (
+        ["grey"] * len(Depth_phases)
         + ["grey"] * len(Double_phases)
         + ["red"] * len(Conversion_src)
         + ["blue"] * len(Conversion_rec)
         + ["green"] * len(Underside_refl_src)
+        + ["purple"] * len(Reflection_phases)
     )
     phase_labels = {
         "grey": "Direct/Double/Depth phase",
@@ -131,23 +154,18 @@ for npz_file, db_path in zip(npz_file_names, db_names):
     }
 
     """ Vizualize the reflection phases """
-    # if not os.path.exists(os.path.join(save_path, "ray_paths")):
-    #     os.mkdir(os.path.join(save_path, "ray_paths"))
-    # for depth in depths:
-    #     arrivals = model.get_ray_paths(
-    #         source_depth_in_km=depth, distance_in_degree=epi, phase_list=Conversion_src
-    #     )
-
-    #     ax = arrivals.plot_rays(plot_type="cartesian", show=False, legend=True)
-    #     plt.savefig(os.path.join(save_path, "ray_paths", f"src_d_{depth}"))
-    #     plt.close()
-
-    #     arrivals = model.get_ray_paths(
-    #         source_depth_in_km=depth, distance_in_degree=epi, phase_list=Conversion_rec
-    #     )
-
-    #     ax = arrivals.plot_rays(plot_type="cartesian", show=False, legend=True)
-    #     plt.savefig(os.path.join(save_path, "ray_paths", f"rec_d_{depth}"))
+    if not os.path.exists(os.path.join(save_path, "ray_paths")):
+        os.mkdir(os.path.join(save_path, "ray_paths"))
+        for depth in depths:
+            for phase in phases:
+                arrivals = model.get_ray_paths(
+                    source_depth_in_km=depth, distance_in_degree=epi, phase_list=[phase]
+                )
+                if not arrivals:
+                    continue
+                ax = arrivals.plot_rays(plot_type="cartesian", show=False, legend=True)
+                plt.savefig(os.path.join(save_path, "ray_paths", f"d_{depth}_{phase}"))
+                plt.close()
 
     """ Define forward solver """
 
@@ -162,24 +180,27 @@ for npz_file, db_path in zip(npz_file_names, db_names):
         end_cut=800.0,
     )
 
-    figP = None
-    axP = None
-    figS = None
-    axS = None
-    Yticks = np.arange(len(depths))
+    fig = [None] * len(Direct_phases)
+    ax = [None] * len(Direct_phases)
+    Yticks = np.arange(len(depths)) * 1.8
 
     normalize = True
+    vlines = False
 
-    for Ytick, depth in zip(Yticks, depths):
-        """ GENERATE GREEN'S FUNCTION AT SPECIFIC DEPTH """
-        syn_tts = []
+    extra_arrs = [[] for _ in range(len(depths))]
+
+    for idepth, depth in enumerate(depths):
+        print(f"Depth {depth}")
+
+        """ Get phase arrivals (not yet the extra phases) """
+        phase_arrs = []
+        for phase in Direct_phases:
+            arr = fwd.get_phase_tt(phase=phase, depth=depth, distance=epi)
+            phase_arrs.append(arr)
+
+        """ Generate Green's function at the current depth """
         syn_GFs = []
-        for phase in phases:
-            print(phase)
-            syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=epi)
-            syn_tts.append(syn_tt)
-
-        st_syn = obspy.Stream()
+        st_syn_full = obspy.Stream()
         for i, comp in enumerate(list(components)):
             """ Compute GreensFunctions at depth"""
             syn_GF = fwd.get_greens_functions(
@@ -193,7 +214,7 @@ for npz_file, db_path in zip(npz_file_names, db_names):
                 inc=None,
                 baz=baz,
                 M0=M0,
-                filter=True,
+                filter=False,
                 fmin=fmin,
                 fmax=fmax,
                 zerophase=zerophase,
@@ -205,100 +226,118 @@ for npz_file, db_path in zip(npz_file_names, db_names):
                 st_GF=syn_GFs[i], focal_mech=focal_mech, M0=M0, slice=False,
             )
             tr_syn.stats.channel = f"BX{comp}"
-            st_syn += tr_syn
+            st_syn_full += tr_syn
 
-        """ Normalize the stream"""
-        if normalize:
-            st_syn.normalize(global_max=True)
+        for iphase, phase in enumerate(Direct_phases):
+            for extraphase in extra_phases:
+                arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=epi)
+                if arr:
+                    extra_arrs[idepth].append(arr - phase_arrs[iphase])
+                else:
+                    extra_arrs[idepth].append(arr)
+            st_syn = st_syn_full.copy()
 
-        extra_phases = phases[2:]
-        extra_arrs = syn_tts[2:]
+            t_pre = 5.0
+            t_post = 35.0
 
-        """ Phase vs Depth """
+            """ Trim the stream around the phase """
+            st_syn.trim(
+                starttime=st_syn[0].stats.starttime + phase_arrs[iphase] - t_pre,
+                endtime=st_syn[0].stats.starttime + phase_arrs[iphase] + t_post,
+            )
 
-        ## P - Phase
-        figP, axP = PP.Plot_trace_vs_depth(
-            stream=st_syn[0:2],
-            depth=depth,
-            total_depths=len(depths),
-            Ytick=Ytick,
-            phase=Direct_phases[0],
-            phase_arr=syn_tts[0],
-            t_pre=10.0,
-            t_post=35.0,
-            fig=figP,
-            ax=axP,
-            extra_phases=extra_phases,
-            extra_arrs=extra_arrs,
-            phase_colors=phase_colors,
-            phase_labels=phase_labels,
-        )
+            """ Normalize the stream"""
+            if normalize:
+                st_syn.normalize(global_max=True)
 
-        ## S - Phase
-        figS, axS = PP.Plot_trace_vs_depth(
-            stream=st_syn,
-            depth=depth,
-            total_depths=len(depths),
-            Ytick=Ytick * 2,
-            phase=Direct_phases[1],
-            phase_arr=syn_tts[1],
-            t_pre=10.0,
-            t_post=50.0,
-            fig=figS,
-            ax=axS,
-            extra_phases=extra_phases,
-            extra_arrs=extra_arrs,
-            phase_colors=phase_colors,
-            phase_labels=phase_labels,
-        )
+            """ Phase vs Depth """
+            if phase == "P":
+                stream = st_syn[0:2]
+            else:
+                stream = st_syn
 
-        """ Phases at one depth """
-        fig1, ax1 = PP.Plot_phases_vs_comp(
-            stream=st_syn,
-            phase_cuts=Direct_phases,
-            phase_arrs=syn_tts[0 : len(Direct_phases)],
-            t_pre=10.0,
-            t_post=50.0,
-            extra_phases=extra_phases,
-            extra_arrs=extra_arrs,
-            phase_colors=phase_colors,
-            phase_labels=phase_labels,
-        )
-        fig1.text(
-            0.55,
-            0.9,
-            f"Veloc model: {model_name},Depth:{depth}",
+            if vlines:
+                fig[iphase], ax[iphase] = PP.Plot_trace_vs_depth_copy(
+                    stream=stream,
+                    depth=depth,
+                    total_depths=len(depths),
+                    Ytick=Yticks[idepth],
+                    phase=phase,
+                    phase_arr=phase_arrs[iphase],
+                    t_pre=t_pre,
+                    t_post=t_post,
+                    fig=fig[iphase],
+                    ax=ax[iphase],
+                    extra_phases=extra_phases,
+                    extra_arrs=extra_arrs[idepth],
+                    phase_colors=extra_phase_colors,
+                    phase_labels=phase_labels,
+                )
+            else:
+                fig[iphase], ax[iphase] = PP.Plot_trace_vs_depth(
+                    stream=stream,
+                    phase=phase,
+                    total_depths=len(depths),
+                    Ytick=Yticks[idepth],
+                    t_pre=t_pre,
+                    t_post=t_post,
+                    fig=fig[iphase],
+                    ax=ax[iphase],
+                )
+    delta = Yticks[1] - Yticks[0]
+    for iphase, phase in enumerate(Direct_phases):
+        if vlines:
+            pass
+        else:
+            for j in range(len(list(components))):
+                if phase == "P" and j == 2:
+                    continue
+                for k in range(len(extra_phases)):
+                    x = np.asarray([arr[k] for arr in extra_arrs], dtype=np.float)
+                    y = np.asarray(Yticks)
+                    y = y[~np.isnan(x)]
+                    x = x[~np.isnan(x)]
+                    if x.size == 0:
+                        continue
+                    rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
+                    if rotn.size == 0:
+                        trans_angle = 90
+                        ax[iphase][j].plot(
+                            [x[0], x[0]], [y[0] - 0.8, y[0] + 0.8], extra_phase_colors[k],
+                        )
+                    else:
+                        l2 = np.array((x[-1], y[-1]))
+                        rotation = rotn[-1]
+                        trans_angle = plt.gca().transData.transform_angles(
+                            np.array((rotation,)), l2.reshape((1, 2))
+                        )[0]
+                        ax[iphase][j].plot(x, y, "-", c=extra_phase_colors[k])
+
+                    ax[iphase][j].text(
+                        x[-1],
+                        y[-1],
+                        extra_phases[k],
+                        verticalalignment="center",
+                        color=extra_phase_colors[k],
+                        fontsize=6,
+                        rotation=trans_angle,
+                    )
+
+        ax[iphase][0].yaxis.set_ticks(Yticks)
+        ax[iphase][0].set_yticklabels(depths)
+        ax[iphase][0].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
+        fig[iphase].text(
+            0.5,
+            0.95,
+            f"Velocity model: {model_name}",
             ha="center",
             va="bottom",
             size="x-large",
             color="blue",
         )
-        fig1.savefig(os.path.join(save_path, f"d_{depth}.png"))
+        fig[iphase].savefig(os.path.join(save_path, f"{phase}_Phase_model_{model_name}.pdf"))
+        plt.close(fig[iphase])
 
-    axS[0].yaxis.set_ticks(Yticks * 2)
-    axS[0].set_yticklabels(depths)
-    figS.text(
-        0.5,
-        0.95,
-        f"Velocity model: {model_name}",
-        ha="center",
-        va="bottom",
-        size="x-large",
-        color="blue",
-    )
-    figS.savefig(os.path.join(save_path, f"{Direct_phases[1]}_Phase_model_{model_name}.pdf"))
-
-    axP[0].yaxis.set_ticks(Yticks)
-    axP[0].set_yticklabels(depths)
-    figP.text(
-        0.5,
-        0.95,
-        f"Velocity model: {model_name}",
-        ha="center",
-        va="bottom",
-        size="x-large",
-        color="blue",
-    )
-    figP.savefig(os.path.join(save_path, f"{Direct_phases[0]}_Phase_model_{model_name}.pdf"))
+        a = 1
 
 DG.unmnt_remote_folder(mnt_folder=mnt_folder)
