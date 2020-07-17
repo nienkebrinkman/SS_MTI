@@ -12,6 +12,7 @@ import instaseis
 import SS_MTI
 from EventInterface import EventObj
 
+
 ## Step 1: Define parameters
 or_time = obspy.UTCDateTime("2020-3-10T12:00:00")
 lat_src = 10.99032013
@@ -21,11 +22,23 @@ name = "Test_Event"
 
 phases = ["P", "S"]
 
-npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
+mnt_folder = "/mnt/marshost/"
+
+SS_MTI.DataGetter.mnt_remote_folder(
+    host_ip="marshost.ethz.ch", host_usr="sysop", remote_folder="/data/", mnt_folder=mnt_folder,
+)
+
+
+npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
+# npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 model = TauPyModel(npz_file)
 
-db_path = "http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/"
+db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
+# db_path = "http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/"
 db = instaseis.open_db(db_path)
+
+SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
+
 
 lat_rec = 4.502384
 lon_rec = 135.623447
@@ -79,7 +92,7 @@ fwd = SS_MTI.Forward.Instaseis(
 
 ## Step 4:
 """ Define misfit """
-misfit_method = "L2"
+misfit_method = "CC"
 
 weights = [[1, 3], [1, 4]]
 start_weight_len = 3.0
@@ -88,7 +101,7 @@ start_weight_len = 3.0
 if misfit_method == "L2":
     misfit = SS_MTI.Misfit.L2(weights=weights, start_weight_len=start_weight_len, dt=dt)
 elif misfit_method == "CC":
-    misfit = SS_MTI.Misfit.CC()
+    misfit = SS_MTI.Misfit.CC(shift_samples=128)
 elif misfit_method == "POL":
     misfit = SS_MTI.Misfit.POL()
 else:
@@ -101,7 +114,7 @@ amplitude_correction = ["PZ", "ST"]
 t_pre = [1, 1]
 t_post = [20, 20]
 depths = [depth]
-strikes = [strike, 180]
+strikes = [180, strike]
 dips = [dip]
 rakes = [rake]
 phase_corrs = None
@@ -109,7 +122,7 @@ tstars = None
 fmin = 1.0 / 8.0
 fmax = 1.0 / 5.0
 zerophase = False
-output_folder = "/home/nienke/Documents/Research/Data/MTI/"
+output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/"
 
 SS_MTI.Inversion.Grid_Search_run(
     fwd=fwd,

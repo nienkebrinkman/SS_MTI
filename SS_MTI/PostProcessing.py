@@ -2,6 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate
 import obspy
+from PIL import Image
+from matplotlib.lines import Line2D
+import os
+
+pyproj_datadir = os.environ["PROJ_LIB"]
+
+from mpl_toolkits.basemap import Basemap
+import re
 
 
 def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
@@ -91,7 +99,7 @@ def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
     return fig
 
 
-def Plot_trace_vs_depth(
+def Plot_trace_vs_depth_copy(
     stream: obspy.Stream,
     depth: float,
     total_depths: int,
@@ -107,6 +115,7 @@ def Plot_trace_vs_depth(
     phase_colors: [str] = None,
     phase_labels: dict = None,
 ):
+
     if fig is None and ax is None:
         fig, ax = plt.subplots(
             nrows=1,
@@ -115,16 +124,11 @@ def Plot_trace_vs_depth(
             sharex="col",
             sharey="all",
         )
-    st = stream.copy()
-    st.trim(
-        starttime=st[0].stats.starttime + phase_arr - t_pre,
-        endtime=st[0].stats.starttime + phase_arr + t_post,
-    )
 
+    st = stream.copy()
     global_max = max([tr.data.max() for tr in st])
     global_min = min([tr.data.min() for tr in st])
     y = global_max * 0.9 + Ytick
-
     ymin = global_min + Ytick
     ymax = global_max + Ytick
     for i in range(len(stream)):
@@ -140,11 +144,27 @@ def Plot_trace_vs_depth(
             for k in range(len(extra_phases)):
                 if extra_arrs[k] is None:
                     continue
-                phase_t = extra_arrs[k] - phase_arr
+                phase_t = extra_arrs[k]
                 if phase_colors is None:
+                    y = global_max * 0.9 + Ytick
                     c = "grey"
                 else:
-                    c = phase_colors[k]
+                    y = global_max * 0.9 + Ytick
+                    ind = re.findall(r"\d+", extra_phases[k])
+                    if ind:
+                        if len(ind) == 2:
+                            if int(ind[0]) < depth:
+                                c = "blue"
+                                y = global_min * 0.4 + Ytick
+                            else:
+                                c = "red"
+                                y = global_min * 0.4 + Ytick
+                        else:
+                            c = phase_colors[k]
+                    else:
+                        c = phase_colors[k]
+                        y = global_max * 0.9 + Ytick
+
                 ax[i].plot(
                     [phase_t, phase_t], [ymin, ymax], c,
                 )
@@ -169,6 +189,42 @@ def Plot_trace_vs_depth(
         handles=unique_list, prop={"size": 6}, loc="upper left", bbox_to_anchor=(0.0, 1.07)
     )
     # fig.legend(handles=unique_list, prop={"size": 6}, loc="upper left")
+    fig.text(0.04, 0.5, "Source Depth (km)", va="center", rotation="vertical")
+    fig.text(0.5, 0.04, "Time after arrival (s)", va="center")
+    return fig, ax
+
+
+def Plot_trace_vs_depth(
+    stream: obspy.Stream,
+    phase: str,
+    total_depths: int,
+    Ytick: float,
+    t_pre: float = 10.0,
+    t_post: float = 50.0,
+    fig: plt.figure = None,
+    ax: plt.axes = None,
+):
+    if fig is None and ax is None:
+        fig, ax = plt.subplots(
+            nrows=1,
+            ncols=len(stream),
+            figsize=(5 * len(stream), 2 * total_depths),
+            sharex="col",
+            sharey="all",
+        )
+
+    st = stream.copy()
+    global_max = max([tr.data.max() for tr in st])
+    global_min = min([tr.data.min() for tr in st])
+    y = global_max * 0.9 + Ytick
+    ymin = global_min + Ytick
+    ymax = global_max + Ytick
+    for i in range(len(stream)):
+        ax[i].plot(
+            st[i].times() - t_pre, st[i].data + Ytick, "k",
+        )
+        ax[i].set_xlim(-t_pre, t_post)
+        ax[i].set_title(f"{phase}-Phase channel:{st[i].stats.channel}")
     fig.text(0.04, 0.5, "Source Depth (km)", va="center", rotation="vertical")
     fig.text(0.5, 0.04, "Time after arrival (s)", va="center")
     return fig, ax
@@ -250,3 +306,45 @@ def Plot_phases_vs_comp(
     fig.text(0.04, 0.5, "Displacement (m)", va="center", rotation="vertical")
     fig.text(0.5, 0.04, "Time after arrival (s)", va="center")
     return fig, ax
+
+
+def Plot_event_location(
+    la_s: float, lo_s: float, la_r: float, lo_r: float, name: str = "test event"
+):
+    # la_s = event.latitude
+    # lo_s = event.longitude
+
+    mars_dir = "/home/nienke/Documents/Research/Data/mars_pictures/Mars_lightgray.jpg"
+
+    fig = plt.figure(figsize=(10, 8))
+
+    # m = Basemap(projection='moll', lon_0=round(0.0))
+    m = Basemap(
+        projection="merc", llcrnrlat=-80, urcrnrlat=80, llcrnrlon=0, urcrnrlon=200, resolution="c"
+    )
+
+    # draw parallels and meridians.
+    par = np.arange(-90, 90, 30)
+    label_par = np.full(len(par), True, dtype=bool)
+    meridians = np.arange(-180, 180, 30)
+    label_meri = np.full(len(meridians), True, dtype=bool)
+
+    m.drawmeridians(np.arange(-180, 180, 30), labels=label_meri)
+    m.drawparallels(np.arange(-90, 90, 30), label=label_par)
+
+    m.warpimage(mars_dir)
+    mstatlon, mstatlat = m(lo_r, la_r)
+    m.plot(mstatlon, mstatlat, "k^", markersize=20, label="InSight")
+
+    EQlonA, EQlatA = m(lo_s, la_s)
+    #     EQlonB, EQlatB = m(lo_sB, la_sB)
+    #     EQlonC, EQlatC = m(lo_sC, la_sC)
+    m.plot(EQlonA, EQlatA, "r*", markersize=20, zorder=10, label=name)
+    # m.plot(EQlonB, EQlatB, 'g*', markersize=20, zorder=10, label = event_B.name)
+    #     m.plot(EQlonC, EQlatC, 'b*', markersize=20, zorder=10, label=event_C.name)
+    plt.legend(fontsize=20)
+    plt.tight_layout()
+    # plt.show()
+    #     plt.savefig('Location_Event.pdf')
+    return fig
+
