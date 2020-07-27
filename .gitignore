@@ -7,3 +7,4 @@
 /External_packages
 /SS_MTI.egg-info
 *.mseed
+/events
