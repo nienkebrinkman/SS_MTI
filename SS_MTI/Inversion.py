@@ -250,8 +250,96 @@ def Grid_Search_run(
         f.close()
 
 
-def Direct(self, event: obspy.core.event.Event):
-    pass
+def Direct(
+    fwd: _Forward._AbstractForward,    misfit: _Misfit._AbstractMisfit, event: obspy.core.event.Event,
+    phases: [str],
+    components: [str],
+    t_pre: [str],
+    t_post: [str],
+    depths: [float],
+    tstars: _Union[_List[float], _List[str]] = None,
+    fmin: float = None,
+    fmax: float = None,
+    zerophase: bool = False,
+    list_to_correct_M0: [str] = None,
+    output_folder=None,
+    plot=False,):
+    print(f"Running grid search with model: {fwd.name}")
+    print(f"and with {misfit.description}")
+    M0 = 1e14
+
+    if tstars is None:
+        tstars = [None] * len(phases)
+
+    if (fmin == None) or (fmax == None):
+        print("Data will not be filtered due to fmin or fmax equal to None")
+        filter_par = False
+    else:
+        filter_par = True
+
+    if output_folder is None:
+        output_folder = "."
+
+    # TODO: IMPLEMENT LQT COORDINATE SYSTEM
+    LQT_value = False
+    baz = None
+    inc = None
+
+    for depth in depths:
+        """ Open .h5 file """
+        file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}.hdf5"
+        f = _h5.File(pjoin(output_folder, file_name), "w")
+        data_len = 6 + len(phases)
+        file_len = 1
+        f.create_dataset("samples", (file_len, data_len), maxshape=(None, 50))        
+
+        ## Do inversion
+        for i, phase in range(len(phases)):
+            syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
+            syn_GF = fwd.get_greens_functions(
+                comp=components[i],
+                depth=depth,
+                distance=event.distance,
+                lat_src=event.latitude,
+                lon_src=event.longitude,
+                tstar=tstars[i],
+                LQT=LQT_value,
+                inc=inc,
+                baz=baz,
+                M0=M0,
+                filter=filter_par,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
+            )
+            syn_GFs.append(syn_GF)
+            syn_tts.append(syn_tt)
+
+        ## Calculate the misfit
+
+        ## Write into file
+        f["samples"][0, :] = [depth, M0, M0_corr] + chi
+        
+
+
+    """ PRE-PROCESS THE OBSERVED DATA """
+    obs_tt = []
+    for i, phase in enumerate(phases):
+        obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
+    st_obs, sigmas = _PreProcess.prepare_event_data(
+        event=event,
+        phases=phases,
+        components=components,
+        slice=True,
+        tts=obs_tt,
+        t_pre=t_pre,
+        t_post=t_post,
+        filter=filter_par,
+        fmin=fmin,
+        fmax=fmax,
+        zerophase=zerophase,
+        noise_level=misfit.noise_level,
+    )    
 
 
 def MH(self, event: obspy.core.event.Event):

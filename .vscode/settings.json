@@ -1,5 +1,4 @@
 {
-    "python.pythonPath": "/home/nienke/Applications/anaconda3/envs/BBB/bin/python",
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
     "python.linting.flake8Args": [

@@ -1,10 +1,12 @@
 README.md
 setup.py
+SS_MTI/DataGetter.py
 SS_MTI/Forward.py
-SS_MTI/GetData.py
 SS_MTI/GreensFunctions.py
 SS_MTI/Inversion.py
+SS_MTI/Misfit.py
 SS_MTI/PhaseTracer.py
+SS_MTI/PostProcessing.py
 SS_MTI/PreProcess.py
 SS_MTI/PullData.py
 SS_MTI/__init__.py

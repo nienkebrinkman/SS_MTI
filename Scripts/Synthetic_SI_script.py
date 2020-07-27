@@ -55,7 +55,8 @@ components = "ZRT"
 kind = "displacement"
 noise = True
 
-## Step 2: Create observed data and waveforms
+## Step 2: 
+"""Create observed data and waveforms """
 event = EventObj(
     or_time=or_time,
     lat_src=lat_src,
@@ -92,7 +93,7 @@ fwd = SS_MTI.Forward.Instaseis(
 
 ## Step 4:
 """ Define misfit """
-misfit_method = "CC"
+misfit_method = "L2"
 
 weights = [[1, 3], [1, 4]]
 start_weight_len = 3.0
@@ -124,7 +125,31 @@ fmax = 1.0 / 5.0
 zerophase = False
 output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/"
 
-SS_MTI.Inversion.Grid_Search_run(
+""" Grid-Search inversion """
+# SS_MTI.Inversion.Grid_Search_run(
+#     fwd=fwd,
+#     misfit=misfit,
+#     event=event,
+#     phases=phases,
+#     components=components,
+#     t_pre=t_pre,
+#     t_post=t_post,
+#     depths=depths,
+#     strikes=strikes,
+#     dips=dips,
+#     rakes=rakes,
+#     phase_corrs=phase_corrs,
+#     tstars=tstars,
+#     fmin=fmin,
+#     fmax=fmax,
+#     zerophase=zerophase,
+#     list_to_correct_M0=amplitude_correction,
+#     output_folder=output_folder,
+#     plot=True,
+# )
+
+""" Direct inversion """
+SS_MTI.Inversion.Direct(
     fwd=fwd,
     misfit=misfit,
     event=event,
@@ -133,15 +158,10 @@ SS_MTI.Inversion.Grid_Search_run(
     t_pre=t_pre,
     t_post=t_post,
     depths=depths,
-    strikes=strikes,
-    dips=dips,
-    rakes=rakes,
-    phase_corrs=phase_corrs,
     tstars=tstars,
     fmin=fmin,
     fmax=fmax,
     zerophase=zerophase,
-    list_to_correct_M0=amplitude_correction,
     output_folder=output_folder,
     plot=True,
 )
