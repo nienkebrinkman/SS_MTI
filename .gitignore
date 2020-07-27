@@ -1,4 +1,4 @@
-/__pychache__
+/__pycache__
 /.idea
 /.git
 /.vscode
@@ -6,4 +6,4 @@
 /Input
 /External_packages
 /SS_MTI.egg-info
-/events
+*.mseed
