@@ -6,7 +6,7 @@ from PIL import Image
 from matplotlib.lines import Line2D
 import os
 
-pyproj_datadir = os.environ["PROJ_LIB"]
+# pyproj_datadir = os.environ["PROJ_LIB"]
 
 from mpl_toolkits.basemap import Basemap
 import re
