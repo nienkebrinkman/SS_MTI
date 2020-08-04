@@ -5,8 +5,15 @@ import obspy
 from PIL import Image
 from matplotlib.lines import Line2D
 import os
+from matplotlib.patches import Circle
+from obspy.imaging.beachball import beach
+import matplotlib.image as mpimg
+import io
+from sklearn import preprocessing
+import pandas as pd
+import matplotlib.cm as cm
 
-# pyproj_datadir = os.environ["PROJ_LIB"]
+pyproj_datadir = os.environ["PROJ_LIB"]
 
 from mpl_toolkits.basemap import Basemap
 import re
@@ -346,5 +353,347 @@ def Plot_event_location(
     plt.tight_layout()
     # plt.show()
     #     plt.savefig('Location_Event.pdf')
+    return fig
+
+
+def Plot_waveforms(
+    fig: plt.figure, ax: plt.axes,
+):
+    pass
+
+
+""" Plot beachballs """
+
+
+def Get_bb_img(MT, color, alpha=1.0):
+    ### FULL MOMENT TENSOR
+    img = None
+    buf = io.BytesIO()
+    fig_bb = plt.figure(figsize=(5, 5), dpi=200)
+    ax_bb_1 = fig_bb.add_axes([0.0, 0.0, 1.0, 1.0])
+    ax_bb_1.set_xticks([])
+    ax_bb_1.set_yticks([])
+    ax_bb_1.axis("off")
+
+    if np.count_nonzero(MT) < 6 and len(MT) == 6:
+        pass
+    else:
+        b = beach(
+            fm=MT, width=990, linewidth=0, facecolor=color, xy=(0, 0), axes=ax_bb_1, alpha=alpha
+        )
+        ax_bb_1.add_collection(b)
+    ax_bb_1.set_xlim((-1, 1))
+    ax_bb_1.set_ylim((-1, 1))
+
+    buf.seek(0)
+    fig_bb.savefig(buf, format="png", dpi=200)
+    buf.seek(0)
+    if img is None:
+        img = mpimg.imread(buf)
+    else:
+        img += mpimg.imread(buf)
+
+    plt.close(fig_bb)
+    return img, buf
+
+
+def Plot_Direct_BB(
+    MT_Full,
+    Eps,
+    MT_DC,
+    M0_DC,
+    MT_CLVD,
+    M0_CLVD,
+    azimuths,
+    inc_angles,
+    phase_names,
+    color,
+    height=None,
+    horizontal=False,
+):
+    if horizontal:
+        width = 15.0
+        height = 6.0
+
+        axis_height = 5.0 / height
+        resid_heigt = 1.0 - axis_height
+        title_height = resid_heigt
+
+        axis_width = 5.0 / width
+    else:
+        if height == None:
+            height = 19.0
+        axis_height = 5.0 / height
+        resid_height = 1.0 - 3.0 * axis_height
+        title_height = resid_height / 3.0
+
+    ## Full moment tensor:
+    img1, buf1 = Get_bb_img(MT_Full, color)
+
+    if horizontal:
+        fig = plt.figure(figsize=(width, height), dpi=200)
+        ax_1 = fig.add_axes([0.0, 0.0, axis_width, axis_height])
+    else:
+        fig = plt.figure(figsize=(5, height), dpi=200)
+        ax_1 = fig.add_axes([0.0, 2 * (axis_height + title_height), 1.0, axis_height])
+
+    if img1 is not None:
+        ax_1.imshow(img1 / np.max(img1.flatten()))
+    if horizontal:
+        ax_X = fig.add_axes([0.0, 0.0, axis_width, axis_height], label="Circle_ray")
+    else:
+        ax_X = fig.add_axes(
+            [0.0, 2 * (axis_height + title_height), 1.0, axis_height], label="Circle_ray"
+        )
+    ax_X.set_xlim((-1, 1))
+    ax_X.set_ylim((-1, 1))
+    p = Circle((0.0, 0,), 0.99, linewidth=2, edgecolor="k", zorder=0, fill=False)
+    ax_X.add_patch(p)
+    if azimuths is not None and inc_angles is not None:
+        for a, i, phase in zip(azimuths, inc_angles, phase_names):
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+            p = Circle(
+                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+            )
+            ax_X.add_patch(p)
+            ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
+    for a in [ax_1, ax_X]:
+        a.set_xticks([])
+        a.set_yticks([])
+        a.axis("off")
+    #
+    if horizontal:
+        title_1 = fig.add_axes([0.0, axis_height, axis_width, title_height])
+    else:
+        title_1 = fig.add_axes([0.0, 3 * axis_height + 2 * title_height, 1.0, title_height])
+    title_1.set_xticks([])
+    title_1.set_yticks([])
+    title_1.axis("off")
+    title_1.text(
+        0.5,
+        0.2,
+        "Full moment\n" r"$\epsilon=%.2f$" % Eps,
+        ha="center",
+        va="bottom",
+        size="x-large",
+        fontsize=25,
+    )
+
+    ########################
+
+    ## DC moment tensor:
+    img2, buf2 = Get_bb_img(MT_DC, color)
+    if horizontal:
+        ax_2 = fig.add_axes([axis_width, 0.0, axis_width, axis_height])
+    else:
+        ax_2 = fig.add_axes([0.0, axis_height + title_height, 1.0, axis_height])
+
+    if img2 is not None:
+        ax_2.imshow(img2 / np.max(img2.flatten()))
+    if horizontal:
+        ax_X = fig.add_axes([axis_width, 0.0, axis_width, axis_height], label="Circle_ray")
+    else:
+        ax_X = fig.add_axes(
+            [0.0, axis_height + title_height, 1.0, axis_height], label="Circle_ray"
+        )
+    ax_X.set_xlim((-1, 1))
+    ax_X.set_ylim((-1, 1))
+    p = Circle((0.0, 0,), 0.99, linewidth=2, edgecolor="k", zorder=0, fill=False)
+    ax_X.add_patch(p)
+    if azimuths is not None and inc_angles is not None:
+        for a, i, phase in zip(azimuths, inc_angles, phase_names):
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+            p = Circle(
+                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+            )
+            ax_X.add_patch(p)
+            ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
+    for a in [ax_2, ax_X]:
+        a.set_xticks([])
+        a.set_yticks([])
+        a.axis("off")
+
+    if horizontal:
+        title_2 = fig.add_axes([axis_width, axis_height, axis_width, title_height])
+    else:
+        title_2 = fig.add_axes([0.0, 2 * axis_height + title_height, 1.0, title_height])
+    title_2.set_xticks([])
+    title_2.set_yticks([])
+    title_2.axis("off")
+    title_2.text(
+        0.5,
+        0.2,
+        "Double-Couple \n M0: %.2e" % M0_DC,
+        ha="center",
+        va="bottom",
+        size="x-large",
+        fontsize=25,
+    )
+    # title_2.text(0.5, 0.2, "Direct", ha="center", va="bottom", size="x-large", fontsize=40)
+
+    ### CLVD
+    img3, buf3 = Get_bb_img(MT_CLVD, color)
+    if horizontal:
+        ax_3 = fig.add_axes([2 * (axis_width), 0.0, axis_width, axis_height])
+    else:
+        ax_3 = fig.add_axes([0.0, 0.0, 1.0, axis_height])
+
+    if img3 is not None:
+        ax_3.imshow(img3 / np.max(img3.flatten()))
+    if horizontal:
+        ax_X = fig.add_axes([2 * (axis_width), 0.0, axis_width, axis_height], label="Circle_ray")
+    else:
+        ax_X = fig.add_axes([0.0, 0.0, 1.0, axis_height], label="Circle_ray")
+    ax_X.set_xlim((-1, 1))
+    ax_X.set_ylim((-1, 1))
+    p = Circle((0.0, 0,), 0.99, linewidth=2, edgecolor="k", zorder=0, fill=False)
+    ax_X.add_patch(p)
+    if azimuths is not None and inc_angles is not None:
+        for a, i, phase in zip(azimuths, inc_angles, phase_names):
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+            p = Circle(
+                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+            )
+            ax_X.add_patch(p)
+            ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
+    for a in [ax_3, ax_X]:
+        a.set_xticks([])
+        a.set_yticks([])
+        a.axis("off")
+
+    if horizontal:
+        title_3 = fig.add_axes([2 * axis_width, axis_height, axis_width, title_height])
+    else:
+        title_3 = fig.add_axes([0.0, axis_height, 1.0, title_height])
+    title_3.set_xticks([])
+    title_3.set_yticks([])
+    title_3.axis("off")
+    title_3.text(
+        0.5,
+        0.2,
+        "CLVD \n M0: %.2e" % M0_CLVD,
+        ha="center",
+        va="bottom",
+        size="x-large",
+        fontsize=25,
+    )
+
+    return fig
+
+
+def Plot_GS_BB(
+    strikes, dips, rakes, azimuths, inc_angles, phase_names, color, height=None, horizontal=True
+):
+    if horizontal:
+        width = 5.0
+        height = 6.0
+
+        axis_height = 5.0 / height
+        resid_heigt = 1.0 - axis_height
+        title_height = resid_heigt
+
+        axis_width = 5.0 / width
+    else:
+        if height == None:
+            height = 19.0
+        axis_height = 5.0 / height
+        resid_height = 1.0 - 3.0 * axis_height
+        title_height = resid_height / 3.0
+
+    fig_bb = plt.figure(figsize=(5, 5), dpi=200)
+    ax_bb = fig_bb.add_axes([0.0, 0.0, 1.0, 1.0])
+
+    ax_bb.set_xticks([])
+    ax_bb.set_yticks([])
+    ax_bb.axis("off")
+    img = None
+    buf = io.BytesIO()
+    i = 0
+    for strike, dip, rake in zip(strikes, dips, rakes):
+        i += 1
+        b = beach(
+            fm=[strike, dip, rake],
+            width=990,
+            linewidth=0,
+            facecolor=color,
+            xy=(0, 0),
+            axes=ax_bb,
+            alpha=1,
+            zorder=i,
+        )
+        ax_bb.add_collection(b)
+        ax_bb.set_xlim((-1, 1))
+        ax_bb.set_ylim((-1, 1))
+
+        buf.seek(0)
+        fig_bb.savefig(buf, format="png", dpi=200)
+        buf.seek(0)
+        if img is None:
+            img = mpimg.imread(buf)
+        else:
+            img += mpimg.imread(buf)
+
+    plt.close(fig_bb)
+
+    if horizontal:
+        fig = plt.figure(figsize=(width, height), dpi=200)
+        ax_1 = fig.add_axes([0.0, 0.0, axis_width, axis_height])
+    else:
+        fig = plt.figure(figsize=(5, height), dpi=200)
+        ax_1 = fig.add_axes([0.0, 2 * (axis_height + title_height), 1.0, axis_height])
+
+    if img is not None:
+        ax_1.imshow(img / np.max(img.flatten()))
+    if horizontal:
+        ax_X = fig.add_axes([0.0, 0.0, axis_width, axis_height], label="Circle_ray")
+    else:
+        ax_X = fig.add_axes(
+            [0.0, 2 * (axis_height + title_height), 1.0, axis_height], label="Circle_ray"
+        )
+    ax_X.set_xlim((-1, 1))
+    ax_X.set_ylim((-1, 1))
+    p = Circle((0.0, 0,), 0.99, linewidth=2, edgecolor="k", zorder=0, fill=False)
+    ax_X.add_patch(p)
+    if azimuths is not None and inc_angles is not None:
+        for a, i, phase in zip(azimuths, inc_angles, phase_names):
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+            p = Circle(
+                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+            )
+            ax_X.add_patch(p)
+            ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
+    for a in [ax_1, ax_X]:
+        a.set_xticks([])
+        a.set_yticks([])
+        a.axis("off")
+    #
+    if horizontal:
+        title_1 = fig.add_axes([0.0, axis_height, axis_width, title_height])
+    else:
+        title_1 = fig.add_axes([0.0, 3 * axis_height + 2 * title_height, 1.0, title_height])
+    title_1.set_xticks([])
+    title_1.set_yticks([])
+    title_1.axis("off")
+    title_1.text(0.5, 0.2, "Grid-Search", ha="center", va="bottom", size="x-large", fontsize=40)
     return fig
 

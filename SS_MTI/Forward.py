@@ -33,15 +33,12 @@ class Instaseis(_AbstractForward):
         self,
         instaseis_db: instaseis.open_db,
         taup_model: _TauPyModel,
-        rec_lat: float,
-        rec_lon: float,
         or_time: obspy.UTCDateTime,
         dt: float = 0.05,
         start_cut: float = 100.0,
         end_cut: float = 800.0,
     ) -> None:
         """ Setup of instaseis forward modeling is specified """
-        self.rec = instaseis.Receiver(latitude=rec_lat, longitude=rec_lon)
         self.db = instaseis_db
         self.taup_veloc = _TauPyModel(taup_model)
         self.or_time = or_time
@@ -56,6 +53,7 @@ class Instaseis(_AbstractForward):
         distance: float,
         lat_src: float,
         lon_src: float,
+        rec: instaseis.Receiver,
         tstar: _Union[float, str],
         M0: float,
         LQT: bool = False,
@@ -75,7 +73,7 @@ class Instaseis(_AbstractForward):
             lon_src=lon_src,
             depth=depth,
             distance=distance,
-            rec=self.rec,
+            rec=rec,
             db=self.db,
             dt=self.dt,
             comp=comp,
@@ -94,9 +92,25 @@ class Instaseis(_AbstractForward):
 
         return st_GF
 
-    def get_phase_tt(self, phase: str, depth: float, distance: float):
-        """ SYNTHETIC TRAVEL TIME: """
-        syn_tt = _PhaseTracer.get_traveltime(self.taup_veloc, phase, depth, distance)
+    def get_phase_tt(self, phase: str, depth: float, distance: float, takeoffs: bool = False):
+        """
+        Get travel time of phase or take-off angle
+        :param model: Velocity model
+        :param phases: list of phases to include in the inversion
+        :param depth: Depth of event in km
+        :param distance: Distance of event in degrees
+        :param take_off: return take-off angle instead of traveltime
+        """
+        if takeoffs:
+            """ SYNTHETIC TAKE-OFF ANGLE: """
+            syn_tt = _PhaseTracer.get_traveltime(
+                self.taup_veloc, phase, depth, distance, take_off=True
+            )
+        else:
+            """ SYNTHETIC TRAVEL TIME: """
+            syn_tt = _PhaseTracer.get_traveltime(
+                self.taup_veloc, phase, depth, distance, take_off=False
+            )
         return syn_tt
 
     def generate_synthetic_data(
@@ -128,6 +142,24 @@ class Instaseis(_AbstractForward):
             )
 
         return syn_tr_full
+
+    def generate_G_matrix(
+        self,
+        st_GF: obspy.Stream,
+        az: float,
+        comp: str,
+        slice: bool = False,
+        tt: float = None,
+        t_pre: float = None,
+        t_post: float = None,
+    ):
+        st_in = st_GF.copy()
+        if slice:
+            st_in.trim(
+                starttime=self.or_time + tt - t_pre, endtime=self.or_time + tt + t_post,
+            )
+        G = _GreensFunctions.from_GF_get_G(st_in, az, comp)
+        return G
 
 
 class reflectivity(_AbstractForward):

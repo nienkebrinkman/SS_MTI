@@ -49,6 +49,7 @@ if __name__ == "__main__":
     )
 
     event = event[0]
+    rec = instaseis.Receiver(latitude=f_in["PARAMETERS"]["RECEIVER"]["la_r"], longitude=f_in["PARAMETERS"]["RECEIVER"]["lon_r"])
 
     ## Step 3:
     """ Define forward modeler """
@@ -60,8 +61,6 @@ if __name__ == "__main__":
         fwd = SS_MTI.Forward.Instaseis(
             instaseis_db=instaseis.open_db(forward_dict["VELOC"]),
             taup_model=forward_dict["VELOC_taup"],
-            rec_lat=f_in["PARAMETERS"]["RECEIVER"]["la_r"],
-            rec_lon=f_in["PARAMETERS"]["RECEIVER"]["lon_r"],
             or_time=event.origin_time,
             dt = event.delta
             start_cut=f_in["PARAMETERS"]["start_cut"],

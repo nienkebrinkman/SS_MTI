@@ -20,7 +20,7 @@ lon_src = 170
 depth = 45.0
 name = "Test_Event"
 
-phases = ["P", "S"]
+phases = ["S", "P"]
 
 mnt_folder = "/mnt/marshost/"
 
@@ -55,7 +55,7 @@ components = "ZRT"
 kind = "displacement"
 noise = True
 
-## Step 2: 
+## Step 2:
 """Create observed data and waveforms """
 event = EventObj(
     or_time=or_time,
@@ -77,14 +77,13 @@ event.add_waveforms(
     noise=noise,
 )
 event = event.event
+rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 ## Step 3:
 """ Define forward modeler """
 fwd = SS_MTI.Forward.Instaseis(
     instaseis_db=db,
     taup_model=npz_file,
-    rec_lat=lat_rec,
-    rec_lon=lon_rec,
     or_time=event.origin_time,
     dt=dt,
     start_cut=100.0,
@@ -95,8 +94,8 @@ fwd = SS_MTI.Forward.Instaseis(
 """ Define misfit """
 misfit_method = "L2"
 
-weights = [[1, 3], [1, 4]]
-start_weight_len = 3.0
+weights = [[1, 3], [1, 3]]
+start_weight_len = 7.0
 
 
 if misfit_method == "L2":
@@ -110,13 +109,14 @@ else:
 
 ## Step 5:
 """ Start inversion """
-components = ["Z", "T"]
+components = ["T", "Z"]
+# components = ["Z"]
 amplitude_correction = ["PZ", "ST"]
 t_pre = [1, 1]
 t_post = [20, 20]
 depths = [depth]
 strikes = [180, strike]
-dips = [dip]
+dips = [dip, 10, 20, 30]
 rakes = [rake]
 phase_corrs = None
 tstars = None
@@ -130,6 +130,7 @@ output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/"
 #     fwd=fwd,
 #     misfit=misfit,
 #     event=event,
+#     rec=rec,
 #     phases=phases,
 #     components=components,
 #     t_pre=t_pre,
@@ -148,11 +149,12 @@ output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/"
 #     plot=True,
 # )
 
-""" Direct inversion """
+# """ Direct inversion """
 SS_MTI.Inversion.Direct(
     fwd=fwd,
     misfit=misfit,
     event=event,
+    rec=rec,
     phases=phases,
     components=components,
     t_pre=t_pre,

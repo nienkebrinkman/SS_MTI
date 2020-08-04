@@ -19,6 +19,7 @@ from SS_MTI import (
     PullData,
     Misfit,
     PostProcessing,
+    MTDecompose,
 )
 
 
@@ -32,4 +33,5 @@ __all__ = [
     "PhaseTracer",
     "Misfit",
     "PostProcessing",
+    "MTDecompose",
 ]
