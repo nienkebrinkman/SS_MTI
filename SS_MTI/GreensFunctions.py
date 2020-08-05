@@ -13,6 +13,8 @@ import instaseis
 from typing import Union as _Union
 import numpy as np
 
+import SS_MTI.SourceTimeFunction as _STF
+
 
 def make_GF(
     or_time: obspy.UTCDateTime,
@@ -50,11 +52,9 @@ def make_GF(
 
     if tstar is not None and not isinstance(tstar, str):
         stf_len_sec = 30.0
-        stf = self.STF_.stf_tstar(tstar=tstar, dt=db.info.dt, npts=int(stf_len_sec / db.info.dt))[
-            0
-        ]
+        stf = _STF.stf_tstar(tstar=tstar, dt=db.info.dt, npts=int(stf_len_sec / db.info.dt))[0]
     elif isinstance(tstar, str):
-        stf = self.STF_.Create_stf_from_file(tstar, db.info.dt)
+        stf = _STF.Create_stf_from_file(tstar, db.info.dt)
     mts = [
         [M0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, M0, 0.0, 0.0, 0.0, 0.0],
@@ -314,11 +314,9 @@ def Get_GF_with_STF(origin_time, baz, tstar, db, epi, depth_in_m, dt, LQT_value=
 
     if tstar is not None and not isinstance(tstar, str):
         stf_len_sec = 30.0
-        stf = self.STF_.stf_tstar(tstar=tstar, dt=db.info.dt, npts=int(stf_len_sec / db.info.dt))[
-            0
-        ]
+        stf = _STF.stf_tstar(tstar=tstar, dt=db.info.dt, npts=int(stf_len_sec / db.info.dt))[0]
     elif isinstance(tstar, str):
-        stf = self.STF_.Create_stf_from_file(tstar, db.info.dt)
+        stf = _STF.Create_stf_from_file(tstar, db.info.dt)
 
     for name, src, comp in items:
         reconvolve_stf = False

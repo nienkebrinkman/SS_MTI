@@ -72,7 +72,8 @@ def prepare_event_data(
                 endtime=event.origin_time + tts[i] + t_post[i],
             )
         else:
-            tr_window = tr_orig.copy()
+            tr_window = tr_orig.slice(starttime=event.origin_time, endtime=tr_orig.stats.endtime,)
+            # tr_window = tr_orig.copy()
 
         if noise_level:
             tr_noise = tr_orig.slice(

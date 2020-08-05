@@ -6,74 +6,204 @@ __author__ = "Nienke Brinkman"
 from os.path import join as pjoin
 from os.path import exists as exist
 import instaseis
+import numpy as np
 
 import SS_MTI
 import EventInterface
 
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Test"
+
+path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
+# path = "/home/nienke/Documents/Research/SS_MTI/Data"
+path_to_inventory = pjoin(path, "inventory.xml")
+path_to_catalog = pjoin(path, "catalog.xml")
 
 
-or_time= obspy.UTCDateTime("2020-3-10T12:00:00"),
-lat= 10.99032013,
-lon= 170,
-depth= 45.0,
-name= "Test_Event",
+""" Read the inventory and catalog file (the once that contain info about the marsquakes) """
+inv = SS_MTI.DataGetter.read_inv(inv_path=path_to_inventory)  # Inventory file
+cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
 
-event = EventInterface.create_event(or_time=or_time,lat=lat,lon=lon,depth=depth,name=name)
 
-## Variables that look if the event file is already saved from previous runs:
-inv = SS_MTI.DataGetter.read_inv(inv_path = "/path/to/inv")  # Inventory file
-cat = SS_MTI.DataGetter.read_cat(cat_path=f_in["DATA"]["catalog_filepath"])  # Catalog file
+""" Define events to invert for and its parameters """
+event_input = {
+    "S0235b": {
+        "phases": ["P", "P", "S", "S", "S"],
+        "components": ["Z", "R", "Z", "R", "T"],
+        "phase_corrs": [0.0, 0.0, 10.1, 10.1, 10.10],
+        "tstars": [1.2, 1.2, 1.5, 1.5, 1.5],
+        "fmin": 0.1,
+        "fmax": 0.9,
+        "zerophase": False,
+        "amplitude_correction": ["PZ", "ST"],
+        "t_pre": [1, 1, 1, 1, 1],
+        "t_post": [3, 3, 3, 3, 3],
+        "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
+        "start_weight_len": 3.0,
+        "dt": 0.05,
+        "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
+        "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
+    },
+    "S0173a": {
+        "phases": ["P", "P", "S", "S", "S"],
+        "components": ["Z", "R", "Z", "R", "T"],
+        "phase_corrs": [-0.8, -0.8, 2.0, 2.0, 2.0],
+        "tstars": [1.2, 1.2, 1.6, 1.6, 1.6],
+        "fmin": 0.1,
+        "fmax": 0.7,
+        "zerophase": False,
+        "amplitude_correction": ["PZ", "ST"],
+        "t_pre": [1, 1, 1, 1, 1],
+        "t_post": [20, 20, 20, 20, 20],
+        "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
+        "start_weight_len": 7.0,
+        "dt": 0.05,
+        "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
+        "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
+    },
+}
+
+""" Get the data into a list of obspy.Event objects """
 events = SS_MTI.DataGetter.read_events_from_cat(
-    event_params=f_in["EVENTS"],
+    event_params=event_input,
     cat=cat,
     inv=inv,
-    local_folder=f_in["DATA"]["waveform_filepath"],
-    host_name=f_in["SERVER"]["host_name"],
-    user_name=f_in["SERVER"]["username"],
-    remote_folder=f_in["SERVER"]["remote_folder"],
-    save_file_name=cat_save_name,
+    local_folder="/mnt/marshost/",
+    host_name="marshost.ethz.ch",
+    user_name="sysop",
+    remote_folder="/data/",
+    save_file_name=pjoin(save_folder, "event.mseed"),
 )
 
-## Step 3:
-""" Define forward modeler """
+""" Specify receiver """
+lat_rec = 4.502384
+lon_rec = 135.623447
+rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
-forward_method = f_in["FORWARD"]["METHOD"]
-forward_dict = f_in["FORWARD"][forward_method]
+""" """
+# depths = np.arange(5, 90, 3)
+depths = [41]
 
-if forward_method == "INSTASEIS":
-    fwd = SS_MTI.Forward.Instaseis(
-        instaseis_db=instaseis.open_db(forward_dict["VELOC"]),
-        taup_model=forward_dict["VELOC_taup"],
-        rec_lat=f_in["PARAMETERS"]["RECEIVER"],
-        rec_lon=rec_lon,
+strikes = np.arange(0, 360, 20)
+dips = np.arange(0, 91, 15)
+rakes = np.arange(-180, 180, 15)
+
+""" Loop over events to invert for: """
+event_nr = 0
+for i, v in event_input.items():
+    event = events[event_nr]
+    print(event.name)
+    event_nr += 1
+    assert event.name == i, "Dictionary and events do not iterate correct"
+    if event_nr > 1:
+        continue
+    """ Define forward modeler """
+    forward_method = "INSTASEIS"
+    db_path = v["db_path"]
+
+    mnt_folder = "/mnt/marshost/"
+    SS_MTI.DataGetter.mnt_remote_folder(
+        host_ip="marshost.ethz.ch",
+        host_usr="sysop",
+        remote_folder="/data/",
+        mnt_folder=mnt_folder,
     )
-elif forward_method == "REFLECTIVITY":
-    fwd = SS_MTI.Forward.reflectivity()
-else:
-    raise ValueError(
-        "forward_method can be either INSTASEIS or REFLECTIVITY in [FORWARD] of .toml file"
+
+    db = instaseis.open_db(db_path)
+
+    SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
+
+    npz_file = v["npz_file"]
+
+    """ Define misfit function """
+    misfit_method = "L2"
+
+    weights = v["weights"]
+    start_weight_len = v["start_weight_len"]
+    dt = v["dt"]
+
+    """ Define inversion method """
+    inv_method = "GS"
+    phases = v["phases"]
+    components = v["components"]
+    amplitude_correction = v["amplitude_correction"]
+    t_pre = v["t_pre"]
+    t_post = v["t_post"]
+    phase_corrs = v["phase_corrs"]
+    tstars = v["tstars"]
+    fmin = v["fmin"]
+    fmax = v["fmax"]
+    zerophase = v["zerophase"]
+    output_folder = save_folder
+
+    if forward_method == "INSTASEIS":
+        fwd = SS_MTI.Forward.Instaseis(
+            instaseis_db=db,
+            taup_model=npz_file,
+            or_time=event.origin_time,
+            dt=dt,
+            start_cut=100.0,
+            end_cut=800.0,
+        )
+    elif forward_method == "REFLECTIVITY":
+        fwd = SS_MTI.Forward.reflectivity()
+    else:
+        raise ValueError(
+            "forward_method can be either INSTASEIS or REFLECTIVITY in [FORWARD] of .toml file"
+        )
+
+    if misfit_method == "L2":
+        misfit = SS_MTI.Misfit.L2(weights=weights, start_weight_len=start_weight_len, dt=dt)
+    elif misfit_method == "CC":
+        misfit = SS_MTI.Misfit.CC(shift_samples=128)
+    elif misfit_method == "POL":
+        misfit = SS_MTI.Misfit.POL()
+    else:
+        raise ValueError("misfit can be L2, CC or POL in [MISFIT] of .toml file")
+
+    """ Start inversion """
+    # if inv_method == "GS":
+    SS_MTI.Inversion.Grid_Search_run(
+        fwd=fwd,
+        misfit=misfit,
+        event=event,
+        rec=rec,
+        phases=phases,
+        components=components,
+        t_pre=t_pre,
+        t_post=t_post,
+        depths=depths,
+        strikes=strikes,
+        dips=dips,
+        rakes=rakes,
+        phase_corrs=phase_corrs,
+        tstars=tstars,
+        fmin=fmin,
+        fmax=fmax,
+        zerophase=zerophase,
+        list_to_correct_M0=amplitude_correction,
+        output_folder=output_folder,
+        plot=True,
     )
+    # elif inv_method == "Direct":
+    # """ Direct inversion """
+    SS_MTI.Inversion.Direct(
+        fwd=fwd,
+        misfit=misfit,
+        event=event,
+        rec=rec,
+        phases=phases,
+        components=components,
+        phase_corrs=phase_corrs,
+        t_pre=t_pre,
+        t_post=t_post,
+        depths=depths,
+        tstars=tstars,
+        fmin=fmin,
+        fmax=fmax,
+        zerophase=zerophase,
+        output_folder=output_folder,
+        plot=True,
+    )
+    # else:
+    #     raise ValueError("inv_method is not recognized, specify: GS or Direct")
 
-fwd = SS_MTI.Forward()
-
-
-
-
-""" Start inversion """
-
-
-invs = SS_MTI.Inversion(
-    forward_method=forward_method,
-    forward_dict=forward_dict,
-    rec_lat=f_in["PARAMETERS"]["RECEIVER"]["la_r"],
-    rec_lon=f_in["PARAMETERS"]["RECEIVER"]["lon_r"],
-)
-inv_methods = f_in["INVERSION"]["METHOD"]
-for inv_method in inv_methods:
-    print("Start {} inversion".format(inv_method))
-    for event in OBS.events:
-        if inv_method == 'GS'
-            invs.Grid_Search(event= event,depths=[10],strikes=[10], dips=[10], rakes=[10])
-            
-        
-        pass

@@ -20,6 +20,7 @@ from SS_MTI import (
     Misfit,
     PostProcessing,
     MTDecompose,
+    SourceTimeFunction,
 )
 
 
@@ -34,4 +35,5 @@ __all__ = [
     "Misfit",
     "PostProcessing",
     "MTDecompose",
+    "SourceTimeFunction",
 ]

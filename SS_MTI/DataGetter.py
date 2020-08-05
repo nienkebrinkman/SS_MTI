@@ -28,11 +28,14 @@ def read_cat(cat_path: str) -> None:
     return cat
 
 
-def unmnt_remote_folder(mnt_folder) -> None:
+def unmnt_remote_folder(mnt_folder, pkill=False) -> None:
     """
     unmount folder including waveform data to local machine
     :param mnt_folder: name of folder to mount to local machine
     """
+    if pkill:
+        # TODO: kill subprocess first and then unmountS
+        pass
     unmount_command = f"fusermount -u {mnt_folder}"
     subprocess.call(unmount_command, shell=True)
     print("UN-mounted to {}".format(mnt_folder))
@@ -62,7 +65,7 @@ def mnt_remote_folder(host_ip: str, host_usr: str, remote_folder: str, mnt_folde
 
 
 def read_waveforms_from_saved_dir(
-    self, file_path: str, event: obspy.core.event.Event = None
+    file_path: str, event: obspy.core.event.Event = None
 ) -> _Union[obspy.core.event.Event, _Tuple[obspy.Stream, obspy.Stream]]:
     """
     Read in the obspy waveform data in this folder        
@@ -80,7 +83,6 @@ def read_waveforms_from_saved_dir(
 
 
 def read_events_from_cat(
-    self,
     event_params: dict,
     cat: obspy.Catalog,
     inv: obspy.Inventory,
@@ -149,7 +151,7 @@ def read_events_from_cat(
         pass
         # TODO: IMPLEMENT SAVE FUNCTION!
 
-    return event
+    return events
 
 
 # class GetData:

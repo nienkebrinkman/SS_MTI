@@ -97,6 +97,7 @@ def Grid_Search_run(
     )
 
     for depth in depths:
+        print(depth)
         """ Open .h5 file """
         file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}.hdf5"
         f = _h5.File(pjoin(output_folder, file_name), "w")
@@ -172,9 +173,9 @@ def Grid_Search_run(
                     f["samples"][iteration, :] = [depth, strike, dip, rake, M0, M0_corr] + chi
                     iteration += 1
 
-                    print(focal_mech)
-                    print(_np.sum(chi))
-                    print(M0_corr * M0)
+                    # print(focal_mech)
+                    # print(_np.sum(chi))
+                    # print(M0_corr * M0)
 
         if plot:
             # TODO: make this plot routine as a function
@@ -192,7 +193,7 @@ def Grid_Search_run(
             extra_phases = ["PP", "SS", "pP", "sP", "PPP", "SSS"]
 
             sum_misfits = _np.sum(f["samples"][:, -len(phases) :], axis=1)
-            nlowest = 3
+            nlowest = 10
             lowest_indices = sum_misfits.argsort()[0:nlowest]
             sdrs_total = f["samples"][:, 1:4]
             sdrs = sdrs_total[lowest_indices, :]
@@ -209,9 +210,7 @@ def Grid_Search_run(
                 phase_names=takeoff_angles,
                 color="blue",
             )
-            plt.savefig(
-                pjoin(output_folder, f"GS_BBB_{depth}_{strike}_{dip}_{rake}_{misfit.name}.pdf")
-            )
+            plt.savefig(pjoin(output_folder, f"GS_BBB__{event.name}_{depth}_{misfit.name}.png"))
             plt.close()
 
             """ Waveform plot """
@@ -229,7 +228,7 @@ def Grid_Search_run(
                     )
 
                     if n == 0:
-                        st_obs_full, sigmas = _PreProcess.prepare_event_data(
+                        st_obs_full, sigmasPLOT = _PreProcess.prepare_event_data(
                             event=event,
                             phases=phases,
                             components=components,
@@ -305,15 +304,16 @@ def Grid_Search_run(
                             arr = fwd.get_phase_tt(
                                 phase=extraphase, depth=depth, distance=event.distance
                             )
-                            ax[i].axvline(x=arr - syn_tts[i], c="grey")
-                            ax[i].text(
-                                arr - syn_tts[i] + 0.1,
-                                global_max * 0.8,
-                                extraphase,
-                                verticalalignment="center",
-                                color="grey",
-                                fontsize=6,
-                            )
+                            if arr:
+                                ax[i].axvline(x=arr - syn_tts[i], c="grey")
+                                ax[i].text(
+                                    arr - syn_tts[i] + 0.1,
+                                    global_max * 0.8,
+                                    extraphase,
+                                    verticalalignment="center",
+                                    color="grey",
+                                    fontsize=6,
+                                )
                         ax[i].get_yaxis().get_offset_text().set_visible(False)
                         ax_max = max(ax[i].get_yticks())
                         exponent_axis = _np.floor(_np.log10(ax_max)).astype(int)
@@ -345,9 +345,7 @@ def Grid_Search_run(
             ax[-1].set_xlim(-10.0, 60.0)
             ax[-1].set_xlabel("time after phase (s)", fontsize=18)
             plt.savefig(
-                pjoin(
-                    output_folder, f"GS_waveforms_{depth}_{strike}_{dip}_{rake}_{misfit.name}.pdf"
-                )
+                pjoin(output_folder, f"GS_waveforms_{event.name}_{depth}_{misfit.name}.png")
             )
             plt.close()
         f.close()
@@ -424,6 +422,7 @@ def Direct(
     )
 
     for depth in depths:
+        print(depth)
         ## Do inversion
         syn_tts = []
         for i, phase in enumerate(phases):
@@ -635,7 +634,7 @@ def Direct(
                 horizontal=True,
             )
 
-            plt.savefig(pjoin(output_folder, f"Direct_BB_{depth}_{misfit.name}.pdf"))
+            plt.savefig(pjoin(output_folder, f"Direct_BB_{event.name}_{depth}_{misfit.name}.png"))
             plt.close()
 
             """ Extra phases to plot:"""
@@ -653,7 +652,7 @@ def Direct(
                     endtime=fwd.or_time + syn_tts[i] + t_post[i],
                 )
 
-                st_obs_full, sigmas = _PreProcess.prepare_event_data(
+                st_obs_full, sigmasPLOT = _PreProcess.prepare_event_data(
                     event=event,
                     phases=phases,
                     components=components,
@@ -713,15 +712,16 @@ def Direct(
                 # Extra phase arrivals:
                 for j, extraphase in enumerate(extra_phases):
                     arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
-                    ax[i].axvline(x=arr - syn_tts[i], c="grey")
-                    ax[i].text(
-                        arr - syn_tts[i] + 0.1,
-                        global_max * 0.8,
-                        extraphase,
-                        verticalalignment="center",
-                        color="grey",
-                        fontsize=6,
-                    )
+                    if arr:
+                        ax[i].axvline(x=arr - syn_tts[i], c="grey")
+                        ax[i].text(
+                            arr - syn_tts[i] + 0.1,
+                            global_max * 0.8,
+                            extraphase,
+                            verticalalignment="center",
+                            color="grey",
+                            fontsize=6,
+                        )
 
                 ax[i].get_yaxis().get_offset_text().set_visible(False)
                 ax_max = max(ax[i].get_yticks())
@@ -753,7 +753,9 @@ def Direct(
             )
             ax[-1].set_xlim(-10.0, 60.0)
             ax[-1].set_xlabel("time after phase (s)", fontsize=18)
-            plt.savefig(pjoin(output_folder, f"Direct_waveforms_{depth}_{misfit.name}.pdf"))
+            plt.savefig(
+                pjoin(output_folder, f"Direct_waveforms__{event.name}_{depth}_{misfit.name}.png")
+            )
             plt.close()
         f.close()
 

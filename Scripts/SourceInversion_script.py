@@ -12,6 +12,7 @@ from os.path import exists as exist
 
 import SS_MTI
 
+
 def define_arguments():
     helptext = "Determine focal mechanisms of Marsquake"
     parser = argparse.ArgumentParser(description=helptext)
@@ -49,7 +50,10 @@ if __name__ == "__main__":
     )
 
     event = event[0]
-    rec = instaseis.Receiver(latitude=f_in["PARAMETERS"]["RECEIVER"]["la_r"], longitude=f_in["PARAMETERS"]["RECEIVER"]["lon_r"])
+    rec = instaseis.Receiver(
+        latitude=f_in["PARAMETERS"]["RECEIVER"]["la_r"],
+        longitude=f_in["PARAMETERS"]["RECEIVER"]["lon_r"],
+    )
 
     ## Step 3:
     """ Define forward modeler """
@@ -62,7 +66,7 @@ if __name__ == "__main__":
             instaseis_db=instaseis.open_db(forward_dict["VELOC"]),
             taup_model=forward_dict["VELOC_taup"],
             or_time=event.origin_time,
-            dt = event.delta
+            dt=event.delta,
             start_cut=f_in["PARAMETERS"]["start_cut"],
             end_cut=f_in["PARAMETERS"]["end_cut"],
         )
@@ -72,7 +76,7 @@ if __name__ == "__main__":
         raise ValueError(
             "forward_method can be either INSTASEIS or REFLECTIVITY in [FORWARD] of .toml file"
         )
-   
+
     ## Step 3:
     """ Define misfit """
     misfit_method = f_in["MISFIT"]["METHOD"]
@@ -87,7 +91,6 @@ if __name__ == "__main__":
     else:
         raise ValueError("misfit can be L2, CC or POL in [MISFIT] of .toml file")
 
-
     ## step 4:
     """ Start inversion """
 
@@ -95,8 +98,6 @@ if __name__ == "__main__":
     for inv_method in inv_methods:
         print("Start {} inversion".format(inv_method))
         for event in OBS.events:
-            if inv_method == 'GS'
-                invs.Grid_Search(event= event,depths=[10],strikes=[10], dips=[10], rakes=[10])
-                
-         
-            pass
+            if inv_method == "GS":
+                invs.Grid_Search(event=event, depths=[10], strikes=[10], dips=[10], rakes=[10])
+
