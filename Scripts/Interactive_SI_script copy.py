@@ -7,9 +7,11 @@ from os.path import join as pjoin
 from os.path import exists as exist
 import instaseis
 import numpy as np
+import matplotlib.pyplot as plt
 
 import SS_MTI
 import EventInterface
+from SS_MTI import PostProcessing as _PostProcessing
 
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Test"
 
@@ -27,38 +29,40 @@ cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
 """ Define events to invert for and its parameters """
 event_input = {
     "S0235b": {
-        "phases": ["P", "P", "S", "S", "S"],
-        "components": ["Z", "R", "Z", "R", "T"],
-        "phase_corrs": [0.0, 0.0, 10.1, 10.1, 10.10],
-        "tstars": [1.2, 1.2, 1.5, 1.5, 1.5],
+        "phases": ["P", "S", "S", "P", "S"],
+        "components": ["Z", "T", "Z", "R", "R"],
+        "phase_corrs": [0.0, 10.1, 10.1, 0.0, 10.10],
+        "tstars": [1.2, 1.5, 1.5, 1.2, 1.5],
         "fmin": 0.1,
         "fmax": 0.9,
         "zerophase": False,
         "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
-        "t_post": [3, 3, 3, 3, 3],
-        "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
-        "start_weight_len": 3.0,
-        "dt": 0.05,
-        "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
-        "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
-    },
-    "S0173a": {
-        "phases": ["P", "P", "S", "S", "S"],
-        "components": ["Z", "R", "Z", "R", "T"],
-        "phase_corrs": [-0.8, -0.8, 2.0, 2.0, 2.0],
-        "tstars": [1.2, 1.2, 1.6, 1.6, 1.6],
-        "fmin": 0.1,
-        "fmax": 0.7,
-        "zerophase": False,
-        "amplitude_correction": ["PZ", "ST"],
-        "t_pre": [1, 1, 1, 1, 1],
-        "t_post": [20, 20, 20, 20, 20],
+        "t_post": [30, 30, 30, 30, 30],
         "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
         "start_weight_len": 7.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
         "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
+        "ylims": [4e-9, 4e-9, 4e-9, 4e-9, 4e-9],
+    },
+    "S0173a": {
+        "phases": ["P", "S", "S", "P", "S"],
+        "components": ["Z", "T", "Z", "R", "R"],
+        "phase_corrs": [-0.8, 2.0, 2.0, -0.8, 2.0],
+        "tstars": [1.2, 1.6, 1.6, 1.2, 1.6],
+        "fmin": 0.1,
+        "fmax": 0.7,
+        "zerophase": False,
+        "amplitude_correction": ["PZ", "ST"],
+        "t_pre": [1, 1, 1, 1, 1],
+        "t_post": [17, 30, 30, 17, 30],
+        "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
+        "start_weight_len": 7.0,
+        "dt": 0.05,
+        "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
+        "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
+        "ylims": [2e-9, 4e-9, 4e-9, 2e-9, 4e-9],
     },
 }
 
@@ -80,12 +84,12 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-# depths = np.arange(5, 90, 3)
-depths = [41]
+depths = np.arange(5, 90, 3)
+# depths = [41]
 
-strikes = np.arange(0, 360, 20)
-dips = np.arange(0, 91, 15)
-rakes = np.arange(-180, 180, 15)
+strikes = np.arange(0, 360, 5)
+dips = np.arange(0, 91, 5)
+rakes = np.arange(-180, 180, 5)
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -134,6 +138,10 @@ for i, v in event_input.items():
     fmax = v["fmax"]
     zerophase = v["zerophase"]
     output_folder = save_folder
+    ylims = v["ylims"]
+
+    """ Extra phases to plot:"""
+    extra_phases = None  # ["PP", "SS", "pP", "sP", "PPP", "SSS"]
 
     if forward_method == "INSTASEIS":
         fwd = SS_MTI.Forward.Instaseis(
@@ -183,6 +191,9 @@ for i, v in event_input.items():
         list_to_correct_M0=amplitude_correction,
         output_folder=output_folder,
         plot=True,
+        plot_extra_phases=extra_phases,
+        color_plot="blue",
+        Ylims=ylims,
     )
     # elif inv_method == "Direct":
     # """ Direct inversion """
@@ -203,7 +214,36 @@ for i, v in event_input.items():
         zerophase=zerophase,
         output_folder=output_folder,
         plot=True,
+        plot_extra_phases=extra_phases,
+        color_plot="red",
+        Ylims=ylims,
     )
     # else:
     #     raise ValueError("inv_method is not recognized, specify: GS or Direct")
+
+    # """ Post-processing (misfit vs depth analysis)"""
+    # DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
+    # Moho_d = 30
+    # fig = _PostProcessing.plot_misfit_vs_depth(
+    #     save_paths=[output_folder],
+    #     event_name=event.name,
+    #     DOF=DOF,
+    #     depths=depths,
+    #     misfit_name=misfit.name,
+    #     veloc_model=fwd.veloc_name,
+    #     true_depth=None,
+    #     Moho=Moho_d,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     amount_of_phases=len(v["phases"]),
+    # )
+    # plt.tight_layout()
+    # plt.savefig(
+    #     pjoin(
+    #         save_folder,
+    #         f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    #     ),
+    #     dpi=600,
+    # )
+    # plt.close()
 

@@ -41,6 +41,7 @@ class Instaseis(_AbstractForward):
         """ Setup of instaseis forward modeling is specified """
         self.db = instaseis_db
         self.taup_veloc = _TauPyModel(taup_model)
+        self.veloc_name = taup_model.split("/")[-1].strip(".npz")
         self.or_time = or_time
         self.dt = dt
         self.start_cut = start_cut

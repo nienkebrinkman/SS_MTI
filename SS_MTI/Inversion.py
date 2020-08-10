@@ -45,8 +45,11 @@ def Grid_Search_run(
     fmax: float = None,
     zerophase: bool = False,
     list_to_correct_M0: [str] = None,
-    output_folder=None,
-    plot=False,
+    output_folder: str = None,
+    plot: bool = False,
+    plot_extra_phases: [str] = None,
+    color_plot: str = None,
+    Ylims: [float] = None,
 ):
     """
     Grid search over strike, dip, rake angles
@@ -99,7 +102,7 @@ def Grid_Search_run(
     for depth in depths:
         print(depth)
         """ Open .h5 file """
-        file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}.hdf5"
+        file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.hdf5"
         f = _h5.File(pjoin(output_folder, file_name), "w")
         data_len = 6 + len(phases)
         file_len = len(strikes) * len(dips) * len(rakes)
@@ -188,17 +191,18 @@ def Grid_Search_run(
                         phase=phase, depth=depth, distance=event.distance, takeoffs=True
                     )
                 )
-
-            """ Extra phases to plot:"""
-            extra_phases = ["PP", "SS", "pP", "sP", "PPP", "SSS"]
+            if color_plot is None:
+                color_plot = "blue"
 
             sum_misfits = _np.sum(f["samples"][:, -len(phases) :], axis=1)
-            nlowest = 10
+            nlowest = 50
             lowest_indices = sum_misfits.argsort()[0:nlowest]
             sdrs_total = f["samples"][:, 1:4]
             sdrs = sdrs_total[lowest_indices, :]
             M0_corrs_total = f["samples"][:, 5]
             M0_corrs = M0_corrs_total[lowest_indices]
+            M0_total = f["samples"][:, 4]
+            M0_plot = M0_total[lowest_indices][0] * M0_corrs_total[lowest_indices][0]
             """ Beachball plot """
 
             fig = _PostProcessing.Plot_GS_BB(
@@ -208,9 +212,15 @@ def Grid_Search_run(
                 azimuths=[event.az, event.az, event.az],
                 inc_angles=angles,
                 phase_names=takeoff_angles,
-                color="blue",
+                color=color_plot,
             )
-            plt.savefig(pjoin(output_folder, f"GS_BBB__{event.name}_{depth}_{misfit.name}.png"))
+            plt.savefig(
+                pjoin(
+                    output_folder,
+                    f"GS_BBB__{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                ),
+                dpi=300,
+            )
             plt.close()
 
             """ Waveform plot """
@@ -240,31 +250,34 @@ def Grid_Search_run(
                             noise_level=False,
                         )
                         ax[i].plot(
-                            st_obs_full[i].times() - obs_tt[i], st_obs_full[i].data, lw=2, c="k",
+                            st_obs_full[i].times() - obs_tt[i], st_obs_full[i].data, lw=1, c="k",
                         )
                         ax[i].plot(
                             st_obs[i].times() - t_pre[i],
                             st_obs[i].data,
-                            lw=4,
+                            lw=2,
                             c="k",
                             label="Observed",
                         )
                         ax[i].plot(
                             tr_slice.times() - t_pre[i],
                             tr_slice.data * M0_corrs[n],
-                            lw=4,
-                            c="r",
+                            lw=2,
+                            c=color_plot,
                             label="Synthetic",
                         )
                     else:
                         ax[i].plot(
-                            tr_slice.times() - t_pre[i], tr_slice.data * M0_corrs[n], lw=4, c="r"
+                            tr_slice.times() - t_pre[i],
+                            tr_slice.data * M0_corrs[n],
+                            lw=2,
+                            c=color_plot,
                         )
                     ax[i].plot(
                         tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
                         tr_syn_full.data * M0_corrs[n],
-                        lw=2,
-                        c="r",
+                        lw=1,
+                        c=color_plot,
                     )
                     # ax[i].legend()
 
@@ -274,7 +287,6 @@ def Grid_Search_run(
                     if n == len(lowest_indices) - 1:
                         global_max = max([tr.data.max() for tr in st]) * 1.2
                         global_min = min([tr.data.min() for tr in st]) * 1.2
-                        ax[i].set_ylim(global_min, global_max)
                         ax[i].axvline(x=t_post[i], c="grey", ls="dashed")
                         ax[i].axvline(x=-t_pre[i], c="grey", ls="dashed")
                         ax[i].axvspan(
@@ -300,20 +312,25 @@ def Grid_Search_run(
                         )
 
                         # Extra phase arrivals:
-                        for j, extraphase in enumerate(extra_phases):
-                            arr = fwd.get_phase_tt(
-                                phase=extraphase, depth=depth, distance=event.distance
-                            )
-                            if arr:
-                                ax[i].axvline(x=arr - syn_tts[i], c="grey")
-                                ax[i].text(
-                                    arr - syn_tts[i] + 0.1,
-                                    global_max * 0.8,
-                                    extraphase,
-                                    verticalalignment="center",
-                                    color="grey",
-                                    fontsize=6,
+                        if plot_extra_phases is not None:
+                            for j, extraphase in enumerate(extra_phases):
+                                arr = fwd.get_phase_tt(
+                                    phase=extraphase, depth=depth, distance=event.distance
                                 )
+                                if arr:
+                                    ax[i].axvline(x=arr - syn_tts[i], c="grey")
+                                    ax[i].text(
+                                        arr - syn_tts[i] + 0.1,
+                                        global_max * 0.8,
+                                        extraphase,
+                                        verticalalignment="center",
+                                        color="grey",
+                                        fontsize=6,
+                                    )
+                        if Ylims is None:
+                            ax[i].set_ylim(global_min, global_max)
+                        else:
+                            ax[i].set_ylim(-Ylims[i], Ylims[i])
                         ax[i].get_yaxis().get_offset_text().set_visible(False)
                         ax_max = max(ax[i].get_yticks())
                         exponent_axis = _np.floor(_np.log10(ax_max)).astype(int)
@@ -323,6 +340,16 @@ def Grid_Search_run(
                             xycoords="axes fraction",
                         )
 
+            fig.text(
+                0.9,
+                0.88,
+                "M0: %.2e" % (M0_plot),
+                ha="right",
+                va="bottom",
+                size="medium",
+                color="black",
+                fontsize=14,
+            )
             fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=18)
             fig.text(
                 0.5,
@@ -338,14 +365,18 @@ def Grid_Search_run(
             ax[0].legend(
                 prop={"size": 12},
                 loc="center left",
-                bbox_to_anchor=(0.0, 0.95),
+                bbox_to_anchor=(0.12, 0.93),
                 bbox_transform=fig.transFigure,
             )
 
             ax[-1].set_xlim(-10.0, 60.0)
             ax[-1].set_xlabel("time after phase (s)", fontsize=18)
             plt.savefig(
-                pjoin(output_folder, f"GS_waveforms_{event.name}_{depth}_{misfit.name}.png")
+                pjoin(
+                    output_folder,
+                    f"GS_waveforms_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                ),
+                dpi=300,
             )
             plt.close()
         f.close()
@@ -367,8 +398,11 @@ def Direct(
     fmax: float = None,
     zerophase: bool = False,
     list_to_correct_M0: [str] = None,
-    output_folder=None,
-    plot=False,
+    output_folder: str = None,
+    plot: bool = False,
+    plot_extra_phases: [str] = None,
+    color_plot: str = None,
+    Ylims: [float] = None,
 ):
     print(f"Running direct inversion with model: {fwd.name}")
     print(f"and with {misfit.description}")
@@ -588,7 +622,9 @@ def Direct(
             )
 
         """ Open .h5 file """
-        file_name = f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}.hdf5"
+        file_name = (
+            f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.hdf5"
+        )
         f = _h5.File(pjoin(output_folder, file_name), "w")
         data_len = 5 + 3 * 6 + len(angles) + len(phases)
         file_len = 1
@@ -611,6 +647,9 @@ def Direct(
             M0_DC = f["samples"][0, 3]
             M0_CLVD = f["samples"][0, 4]
 
+            if color_plot is None:
+                color_plot = "red"
+
             # For the plotting you need to re-arrange the order of the Moment tensor#
             # , since obspy uses a different order
             FULL = _np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5]])
@@ -629,18 +668,22 @@ def Direct(
                 azimuths=[event.az, event.az, event.az],
                 inc_angles=angles,
                 phase_names=angle_names,
-                color="red",
+                color=color_plot,
                 height=19.0,
                 horizontal=True,
             )
 
-            plt.savefig(pjoin(output_folder, f"Direct_BB_{event.name}_{depth}_{misfit.name}.png"))
+            plt.savefig(
+                pjoin(
+                    output_folder,
+                    f"Direct_BB_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                ),
+                dpi=300,
+            )
             plt.close()
 
-            """ Extra phases to plot:"""
-            extra_phases = ["PP", "SS", "pP", "sP", "PPP", "SSS"]
-
             fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(8, 6))
+
             for i, phase in enumerate(phases):
                 """ Plot is generated with the DC solution """
                 tr_syn_full = fwd.generate_synthetic_data(
@@ -664,20 +707,24 @@ def Direct(
                     noise_level=False,
                 )
                 ax[i].plot(
-                    st_obs_full[i].times() - obs_tt[i], st_obs_full[i].data, lw=2, c="k",
+                    st_obs_full[i].times() - obs_tt[i], st_obs_full[i].data, lw=1, c="k",
                 )
                 ax[i].plot(
-                    st_obs[i].times() - t_pre[i], st_obs[i].data, lw=4, c="k", label="Observed",
+                    st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
                 )
                 ax[i].plot(
-                    tr_slice.times() - t_pre[i], tr_slice.data, lw=4, c="r", label="Synthetic",
+                    tr_slice.times() - t_pre[i],
+                    tr_slice.data,
+                    lw=2,
+                    c=color_plot,
+                    label="Synthetic",
                 )
 
                 ax[i].plot(
                     tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
                     tr_syn_full.data,
-                    lw=2,
-                    c="r",
+                    lw=1,
+                    c=color_plot,
                 )
                 # ax[i].legend()
 
@@ -686,7 +733,7 @@ def Direct(
                 st += st_obs[i]
                 global_max = max([tr.data.max() for tr in st]) * 1.2
                 global_min = min([tr.data.min() for tr in st]) * 1.2
-                ax[i].set_ylim(global_min, global_max)
+
                 ax[i].axvline(x=0.0, c="grey")
                 ax[i].axvline(x=t_post[i], c="grey", ls="dashed")
                 ax[i].axvline(x=-t_pre[i], c="grey", ls="dashed")
@@ -710,29 +757,47 @@ def Direct(
                 )
 
                 # Extra phase arrivals:
-                for j, extraphase in enumerate(extra_phases):
-                    arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
-                    if arr:
-                        ax[i].axvline(x=arr - syn_tts[i], c="grey")
-                        ax[i].text(
-                            arr - syn_tts[i] + 0.1,
-                            global_max * 0.8,
-                            extraphase,
-                            verticalalignment="center",
-                            color="grey",
-                            fontsize=6,
+                if plot_extra_phases is not None:
+                    for j, extraphase in enumerate(extra_phases):
+                        arr = fwd.get_phase_tt(
+                            phase=extraphase, depth=depth, distance=event.distance
                         )
+                        if arr:
+                            ax[i].axvline(x=arr - syn_tts[i], c="grey")
+                            ax[i].text(
+                                arr - syn_tts[i] + 0.1,
+                                global_max * 0.8,
+                                extraphase,
+                                verticalalignment="center",
+                                color="grey",
+                                fontsize=6,
+                            )
+
+                if Ylims is None:
+                    ax[i].set_ylim(global_min, global_max)
+                else:
+                    ax[i].set_ylim(-Ylims[i], Ylims[i])
 
                 ax[i].get_yaxis().get_offset_text().set_visible(False)
                 ax_max = max(ax[i].get_yticks())
                 exponent_axis = _np.floor(_np.log10(ax_max)).astype(int)
                 ax[i].annotate(
                     r"$\times$10$^{%i}$" % (exponent_axis),
-                    xy=(0.01, 0.9),
+                    xy=(0.01, 0.82),
                     xycoords="axes fraction",
                 )
                 ax[i].axvspan(-t_pre[i], misfit.start_weight_len, facecolor="grey", alpha=0.2)
 
+            fig.text(
+                0.9,
+                0.88,
+                "M0: %.2e" % (M0),
+                ha="right",
+                va="bottom",
+                size="medium",
+                color="black",
+                fontsize=14,
+            )
             fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=18)
             fig.text(
                 0.5,
@@ -748,13 +813,17 @@ def Direct(
             ax[0].legend(
                 prop={"size": 12},
                 loc="center left",
-                bbox_to_anchor=(0.0, 0.95),
+                bbox_to_anchor=(0.12, 0.93),
                 bbox_transform=fig.transFigure,
             )
             ax[-1].set_xlim(-10.0, 60.0)
             ax[-1].set_xlabel("time after phase (s)", fontsize=18)
             plt.savefig(
-                pjoin(output_folder, f"Direct_waveforms__{event.name}_{depth}_{misfit.name}.png")
+                pjoin(
+                    output_folder,
+                    f"Direct_waveforms__{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                ),
+                dpi=300,
             )
             plt.close()
         f.close()

@@ -21,6 +21,7 @@ from SS_MTI import (
     PostProcessing,
     MTDecompose,
     SourceTimeFunction,
+    Read_H5,
 )
 
 
@@ -36,4 +37,5 @@ __all__ = [
     "PostProcessing",
     "MTDecompose",
     "SourceTimeFunction",
+    "Read_H5",
 ]

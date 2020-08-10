@@ -12,11 +12,16 @@ import io
 from sklearn import preprocessing
 import pandas as pd
 import matplotlib.cm as cm
+import glob
+from os.path import join as pjoin
 
 pyproj_datadir = os.environ["PROJ_LIB"]
 
 from mpl_toolkits.basemap import Basemap
 import re
+
+from SS_MTI import Read_H5 as _ReadH5
+from SS_MTI import MTDecompose as _MTDecompose
 
 
 def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
@@ -356,12 +361,6 @@ def Plot_event_location(
     return fig
 
 
-def Plot_waveforms(
-    fig: plt.figure, ax: plt.axes,
-):
-    pass
-
-
 """ Plot beachballs """
 
 
@@ -697,3 +696,257 @@ def Plot_GS_BB(
     title_1.text(0.5, 0.2, "Grid-Search", ha="center", va="bottom", size="x-large", fontsize=40)
     return fig
 
+
+""" Misfit analysis """
+
+
+def plot_misfit_vs_depth(
+    save_paths=[],
+    depths=[45],
+    DOF=700,
+    event_name="S0235b",
+    misfit_name="L2",
+    veloc_model="TAYAK_BKE",
+    true_depth=None,
+    Moho=30,
+    fmin=1.0 / 10.0,
+    fmax=1.0 / 2.0,
+    amount_of_phases=5,
+):
+    labels =['', ''] 
+    n_lowest = 1
+
+    fig, ax = plt.subplots(
+        nrows=2, ncols=1, sharex="all", figsize=(8, 6), gridspec_kw={"height_ratios": [3, 1]}
+    )
+    # from matplotlib import gridspec
+    # gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
+    BB = []
+    Line_x = []
+    Line1_ymin = []
+    Line1_ymax = []
+    Line2_ymin = []
+    Line2_ymax = []
+    for i, save_path in enumerate(save_paths):
+        L2_GS = np.array([])
+        L2_Direct = np.array([])
+        Eps = np.array([])
+
+        for depth in depths:
+            print(i, depth)
+            GS_File = glob.glob(
+                pjoin(
+                    save_path,
+                    f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
+                )
+            )[0]
+            Direct_File = glob.glob(
+                pjoin(
+                    save_path,
+                    f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
+                )
+            )[0]
+
+            ## ================ READ GS =============================
+            (depth_GS, sdr, M0_GS, misfit_L2_GS,) = _ReadH5.Read_GS_h5(Filename=GS_File)
+            Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+            # Total_L2_norm_GS = np.sum(misfit_L2_norm_GS, axis=1)
+            # GOF = ( (Total_L2_GS - DOF ) * 100 ) / DOF
+            # GOF_GS = (Total_L2_norm_GS / DOF) * 100
+            GOF_GS = Total_L2_GS / DOF  # * 100
+
+            lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
+            # lowest_indices = GOF_GS.argsort()[0:n_lowest]
+
+            sdr = sdr[lowest_indices, :]
+            print("strike", sdr[0][0], "dip", sdr[0][1], "rake", sdr[0][2])
+            depth_GS = depth_GS[lowest_indices]
+            M0_GS = M0_GS[lowest_indices]
+            # shifts["P"] = shifts["P"][lowest_indices]
+            # shifts["S"] = shifts["S"][lowest_indices]
+
+            # L2_GS = np.append(L2_GS, Total_L2_GS[lowest_indices][0])
+            L2_GS = np.append(L2_GS, GOF_GS[lowest_indices][0])
+            # if depth == 8:
+            #     lowest_indices[0] = lowest_indices[2]
+            #     L2_GS = np.append(L2_GS, GOF_GS[lowest_indices][0])
+            # else:
+            #     L2_GS = np.append(L2_GS, GOF_GS[lowest_indices][0])
+
+            ## ============ Read Direct ========================
+            (
+                depth_Direct,
+                MT_Direct,
+                misfit_L2_Direct,
+                Epsilon,
+                M0_Direct,
+            ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
+            Total_L2_Direct = np.sum(misfit_L2_Direct)
+            # Total_L2_norm_Direct = np.sum(misfit_L2_norm_Direct, axis=1)
+            # GOF_Direct = (Total_L2_norm_Direct / DOF) * 100
+            GOF_Direct = Total_L2_Direct / DOF  # * 100
+            # L2_Direct = np.append(L2_Direct, Total_L2_Direct[0])
+            L2_Direct = np.append(L2_Direct, GOF_Direct)
+
+            M = np.array(
+                [
+                    [MT_Direct[2], -MT_Direct[5], MT_Direct[4]],
+                    [-MT_Direct[5], MT_Direct[1], -MT_Direct[3]],
+                    [MT_Direct[4], -MT_Direct[3], MT_Direct[0]],
+                ]
+            )
+            M_CLVD, M_DC, F = _MTDecompose.Get_CLVD_DC(M)
+            FULL_MT = np.array(
+                [
+                    MT_Direct[0],
+                    MT_Direct[2],
+                    MT_Direct[1],
+                    MT_Direct[4],
+                    MT_Direct[3],
+                    MT_Direct[5],
+                ]
+            )
+            M0_DC = (
+                M_DC[2, 2] ** 2
+                + M_DC[0, 0] ** 2
+                + M_DC[1, 1] ** 2
+                + 2 * M_DC[0, 2] ** 2
+                + 2 * M_DC[1, 2] ** 2
+                + 2 * M_DC[0, 1] ** 2
+            ) ** 0.5 * 0.5 ** 0.5
+            DC_MT = np.array(
+                [M_DC[2, 2], M_DC[0, 0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1]]
+            )
+            CLVD_MT = np.array(
+                [
+                    M_CLVD[2, 2],
+                    M_CLVD[0, 0],
+                    M_CLVD[1, 1],
+                    M_CLVD[0, 2],
+                    -M_CLVD[1, 2],
+                    -M_CLVD[0, 1],
+                ]
+            )
+
+            # ============== CREATE BEACHBALL PATCHES ===============
+
+            # y1 = Total_L2_GS[lowest_indices][0]
+            # y2 = Total_L2_Direct[0]
+
+            y1 = GOF_GS[lowest_indices][0]
+            y2 = GOF_Direct
+
+            y_dist = np.log(np.abs(y1 - y2))
+
+            if y_dist < 100:
+                adding_value = 2e-1
+                Line_x.append(depth)
+                if y1 > y2:
+                    y1 = y1 + adding_value
+                    y2 = y2 - adding_value
+                    Line1_ymin.append(GOF_GS[lowest_indices][0])
+                    Line1_ymax.append(y1)
+                    Line2_ymin.append(y2)
+                    Line2_ymax.append(GOF_Direct)
+                else:
+                    diff = y2 - y1
+                    y1 = y1 + adding_value + diff
+                    y2 = y2 - adding_value - diff
+                    Line1_ymin.append(GOF_GS[lowest_indices][0])
+                    Line1_ymax.append(y1)
+                    Line2_ymin.append(y2)
+                    Line2_ymax.append(GOF_Direct)
+
+            # if y_dist < 100:
+            #     adding_value = 1e1
+            #     Line_x.append(depth)
+            #     if y1 > y2:
+            #         y1 = y1 + adding_value
+            #         y2 = y2 - adding_value
+            #         Line1_ymin.append(GOF_GS[lowest_indices][0])
+            #         Line1_ymax.append(y1)
+            #         Line2_ymin.append(y2)
+            #         Line2_ymax.append(GOF_Direct[0])
+            #     else:
+            #         y1 = y1 - adding_value
+            #         y2 = y2 + adding_value
+            #         Line1_ymax.append(GOF_GS[lowest_indices][0])
+            #         Line1_ymin.append(y1)
+            #         Line2_ymax.append(y2)
+            #         Line2_ymin.append(GOF_Direct[0])
+
+            BB.append(
+                beach(
+                    [sdr[0][0], sdr[0][1], sdr[0][2]],
+                    xy=(depth_GS[0], y1),
+                    width=15,
+                    linewidth=1,
+                    axes=ax[0],
+                )
+            )
+            BB.append(
+                beach(
+                    DC_MT / M0_DC, xy=(depth, y2), width=15, facecolor="r", linewidth=1, axes=ax[0]
+                )
+            )
+
+            Eps = np.append(Eps, Epsilon)
+
+        ax[0].plot(depths, L2_GS, "-bo", label="Grid-Search %s" % labels[i], lw=i + 1)
+        ax[0].plot(depths, L2_Direct, "-ro", label="Direct %s" % labels[i], lw=i + 1)
+        if i == 0:
+            ax[0].axvline(x=Moho, c="grey", ls="dashed", label="Moho", lw=3)
+            # true_depth = 45.
+            if true_depth is not None:
+                ax[0].axvline(x=true_depth, c="green", ls="dotted", label="True Depth", lw=2)
+
+        ax[1].plot(depths, Eps, "--ko", label="Epsilon %s" % labels[i], lw=0.5)
+        if i == 0:
+            ax[1].axvline(x=Moho, c="grey", ls="dashed", lw=3)
+            if true_depth is not None:
+                ax[1].axvline(x=true_depth, c="black", ls="dashed", label="True Depth")
+
+    for iline in range(len(Line_x)):
+        ax[0].plot(
+            [Line_x[iline], Line_x[iline]],
+            [Line1_ymin[iline], Line1_ymax[iline]],
+            c="b",
+            ls="dashed",
+            alpha=0.5,
+            lw=0.5,
+        )
+        ax[0].plot(
+            [Line_x[iline], Line_x[iline]],
+            [Line2_ymin[iline], Line2_ymax[iline]],
+            c="r",
+            ls="dashed",
+            alpha=0.5,
+            lw=0.5,
+        )
+    for bb in BB:
+        ax[0].add_collection(bb)
+
+    ax[0].legend(prop={"size": 15}, loc="upper center", ncol=len(save_paths) + 1)
+    ax[0].set_ylabel(r"$\chi^2$", fontsize=20)
+    # ax[0].ticklabel_format(style="sci", axis='y', scilimits=(-2, 2))
+    ax[0].tick_params(axis="both", which="major", labelsize=18)
+    ax[0].tick_params(axis="both", which="minor", labelsize=10)
+    # ax[0].axvspan(26, 44, facecolor='purple', alpha=0.3)
+    # # y = ax[0].get_ylim()[0] * 0.8
+    # ax[0].text(26, 1.7, 'Preferred depth range',
+    #                 verticalalignment='center', color='purple', fontsize=8)
+    # ax[0].set_yscale('log')
+    ax[0].grid(True)
+    ax[0].set_ylim(0.4, 3.2)
+    # ax[0].set_xlabel('Depth (km)', fontsize=20)
+
+    extraticks = [0.1, 0.2, 0.3, 0.4]
+    ax[1].set_yticks(list(ax[1].get_yticks()) + extraticks)
+    ax[1].legend(prop={"size": 15}, loc="upper right")
+    ax[1].set_xlabel("Depth (km)", fontsize=20)
+    ax[1].set_ylabel("Epsilon", fontsize=20)
+    ax[1].tick_params(axis="both", which="major", labelsize=18)
+    ax[1].tick_params(axis="both", which="minor", labelsize=10)
+    ax[1].set_ylim(-0.05, 0.5)
+    ax[1].grid(True)
+    return fig
