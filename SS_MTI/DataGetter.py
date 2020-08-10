@@ -112,6 +112,7 @@ def read_events_from_cat(
 
     ## Setup remote directory /mnt/marshost
     event_names = [key for key in event_params.keys()]
+    data_exist = False
     if all([isdir(path) for path in [pjoin(dir_exist_name, x) for x in event_names]]):
         data_exist = True
         print("The miniseed data is already saved in /events/.. and used for the inversion")
@@ -119,7 +120,7 @@ def read_events_from_cat(
         if host_name is not None:
             mnt_remote_folder(host_name, user_name, remote_folder, local_folder)
             # TOO: check if local folder exists, otherwise raise error.
-
+    local_folder =pjoin( local_folder , "sc3data")
     for i, v in event_params.items():
         try:
             event = cat.select(name=i).events[0]
@@ -131,6 +132,7 @@ def read_events_from_cat(
             elif event.waveforms_VBB is not None:
                 pass
             else:
+                # 
                 event.read_waveforms(inv=inv, sc3dir=local_folder)
 
             events.append(event)
