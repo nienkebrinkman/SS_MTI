@@ -839,7 +839,7 @@ def plot_misfit_vs_depth(
             y_dist = np.log(np.abs(y1 - y2))
 
             if y_dist < 100:
-                adding_value = 2e-1
+                adding_value = 2e0
                 Line_x.append(depth)
                 if y1 > y2:
                     y1 = y1 + adding_value
@@ -937,7 +937,7 @@ def plot_misfit_vs_depth(
     #                 verticalalignment='center', color='purple', fontsize=8)
     # ax[0].set_yscale('log')
     ax[0].grid(True)
-    ax[0].set_ylim(0.4, 3.2)
+    ax[0].set_ylim(10, 30)
     # ax[0].set_xlabel('Depth (km)', fontsize=20)
 
     extraticks = [0.1, 0.2, 0.3, 0.4]

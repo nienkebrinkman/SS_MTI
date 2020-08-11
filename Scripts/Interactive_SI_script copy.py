@@ -170,80 +170,80 @@ for i, v in event_input.items():
 
     """ Start inversion """
     # if inv_method == "GS":
-    SS_MTI.Inversion.Grid_Search_run(
-        fwd=fwd,
-        misfit=misfit,
-        event=event,
-        rec=rec,
-        phases=phases,
-        components=components,
-        t_pre=t_pre,
-        t_post=t_post,
-        depths=depths,
-        strikes=strikes,
-        dips=dips,
-        rakes=rakes,
-        phase_corrs=phase_corrs,
-        tstars=tstars,
-        fmin=fmin,
-        fmax=fmax,
-        zerophase=zerophase,
-        list_to_correct_M0=amplitude_correction,
-        output_folder=output_folder,
-        plot=True,
-        plot_extra_phases=extra_phases,
-        color_plot="blue",
-        Ylims=ylims,
-    )
-    # elif inv_method == "Direct":
-    # """ Direct inversion """
-    SS_MTI.Inversion.Direct(
-        fwd=fwd,
-        misfit=misfit,
-        event=event,
-        rec=rec,
-        phases=phases,
-        components=components,
-        phase_corrs=phase_corrs,
-        t_pre=t_pre,
-        t_post=t_post,
-        depths=depths,
-        tstars=tstars,
-        fmin=fmin,
-        fmax=fmax,
-        zerophase=zerophase,
-        output_folder=output_folder,
-        plot=True,
-        plot_extra_phases=extra_phases,
-        color_plot="red",
-        Ylims=ylims,
-    )
+    # SS_MTI.Inversion.Grid_Search_run(
+    #     fwd=fwd,
+    #     misfit=misfit,
+    #     event=event,
+    #     rec=rec,
+    #     phases=phases,
+    #     components=components,
+    #     t_pre=t_pre,
+    #     t_post=t_post,
+    #     depths=depths,
+    #     strikes=strikes,
+    #     dips=dips,
+    #     rakes=rakes,
+    #     phase_corrs=phase_corrs,
+    #     tstars=tstars,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     zerophase=zerophase,
+    #     list_to_correct_M0=amplitude_correction,
+    #     output_folder=output_folder,
+    #     plot=True,
+    #     plot_extra_phases=extra_phases,
+    #     color_plot="blue",
+    #     Ylims=ylims,
+    # )
+    # # elif inv_method == "Direct":
+    # # """ Direct inversion """
+    # SS_MTI.Inversion.Direct(
+    #     fwd=fwd,
+    #     misfit=misfit,
+    #     event=event,
+    #     rec=rec,
+    #     phases=phases,
+    #     components=components,
+    #     phase_corrs=phase_corrs,
+    #     t_pre=t_pre,
+    #     t_post=t_post,
+    #     depths=depths,
+    #     tstars=tstars,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     zerophase=zerophase,
+    #     output_folder=output_folder,
+    #     plot=True,
+    #     plot_extra_phases=extra_phases,
+    #     color_plot="red",
+    #     Ylims=ylims,
+    # )
     # else:
     #     raise ValueError("inv_method is not recognized, specify: GS or Direct")
 
     # """ Post-processing (misfit vs depth analysis)"""
-    # DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
-    # Moho_d = 30
-    # fig = _PostProcessing.plot_misfit_vs_depth(
-    #     save_paths=[output_folder],
-    #     event_name=event.name,
-    #     DOF=DOF,
-    #     depths=depths,
-    #     misfit_name=misfit.name,
-    #     veloc_model=fwd.veloc_name,
-    #     true_depth=None,
-    #     Moho=Moho_d,
-    #     fmin=fmin,
-    #     fmax=fmax,
-    #     amount_of_phases=len(v["phases"]),
-    # )
-    # plt.tight_layout()
-    # plt.savefig(
-    #     pjoin(
-    #         save_folder,
-    #         f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-    #     ),
-    #     dpi=600,
-    # )
-    # plt.close()
+    DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
+    Moho_d = 30
+    fig = _PostProcessing.plot_misfit_vs_depth(
+        save_paths=[output_folder],
+        event_name=event.name,
+        DOF=DOF,
+        depths=depths,
+        misfit_name=misfit.name,
+        veloc_model=fwd.veloc_name,
+        true_depth=None,
+        Moho=Moho_d,
+        fmin=fmin,
+        fmax=fmax,
+        amount_of_phases=len(v["phases"]),
+    )
+    plt.tight_layout()
+    plt.savefig(
+        pjoin(
+            save_folder,
+            f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+        ),
+        dpi=600,
+    )
+    plt.close()
 
