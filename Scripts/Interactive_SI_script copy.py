@@ -221,7 +221,9 @@ for i, v in event_input.items():
     # else:
     #     raise ValueError("inv_method is not recognized, specify: GS or Direct")
 
-    # """ Post-processing (misfit vs depth analysis)"""
+    """ Post-processing """
+
+    """ (misfit vs depth analysis)"""
     DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
     Moho_d = 30
     fig = _PostProcessing.plot_misfit_vs_depth(
@@ -246,4 +248,6 @@ for i, v in event_input.items():
         dpi=600,
     )
     plt.close()
+
+    """ (best MT vs depth phase arrivals) """
 

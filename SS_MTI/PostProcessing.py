@@ -14,6 +14,7 @@ import pandas as pd
 import matplotlib.cm as cm
 import glob
 from os.path import join as pjoin
+from typing import List as _List, Union as _Union
 
 pyproj_datadir = os.environ["PROJ_LIB"]
 
@@ -22,6 +23,8 @@ import re
 
 from SS_MTI import Read_H5 as _ReadH5
 from SS_MTI import MTDecompose as _MTDecompose
+from SS_MTI import Forward as _Forward
+from SS_MTI import PreProcess as _PreProcess
 
 
 def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
@@ -950,3 +953,18 @@ def plot_misfit_vs_depth(
     ax[1].set_ylim(-0.05, 0.5)
     ax[1].grid(True)
     return fig
+
+
+def plot_phases_vs_depth(GS_h5_file_path:str,event: obspy.core.event.Event, fwd:_Forward._AbstractForward,depths:[float],fmin:float,fmax:float,zerophase:bool,tstars: _Union[_List[float], _List[str]] = None):
+
+    for depth in depths:
+        print(depth)
+        (depth_GS, sdr, M0_GS, misfit_L2_GS,) = _ReadH5.Read_GS_h5(Filename=GS_h5_file_path)
+        Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+        n_lowest = 1
+        lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
+        sdr = sdr[lowest_indices, :]
+        print("strike", sdr[0][0], "dip", sdr[0][1], "rake", sdr[0][2])
+        depth_GS = depth_GS[lowest_indices]
+        M0_GS = M0_GS[lowest_indices]
+
