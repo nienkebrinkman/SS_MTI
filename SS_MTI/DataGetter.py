@@ -118,7 +118,10 @@ def read_events_from_cat(
         print("The miniseed data is already saved in /events/.. and used for the inversion")
     else:
         if host_name is not None:
-            mnt_remote_folder(host_name, user_name, remote_folder, local_folder)
+            # Check if your mount folder already exists from previous runs for example:
+            if not os.path.getsize(local_folder):
+                print(f'{local_folder} is still empty, mounting now...')
+                mnt_remote_folder(host_name, user_name, remote_folder, local_folder)
             # TOO: check if local folder exists, otherwise raise error.
     local_folder =pjoin( local_folder , "sc3data")
     for i, v in event_params.items():

@@ -15,6 +15,8 @@ import matplotlib.cm as cm
 import glob
 from os.path import join as pjoin
 from typing import List as _List, Union as _Union
+import instaseis
+from obspy import UTCDateTime as utct
 
 pyproj_datadir = os.environ["PROJ_LIB"]
 
@@ -54,10 +56,16 @@ def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
                 event_vp = int_vp(depth_syn[i])
                 if i == 0:
                     ax[0].plot(
-                        event_vp, depth_syn[i], "r*", markersize=15, label="Synthetic Depth"
+                        event_vp,
+                        depth_syn[i],
+                        "r*",
+                        markersize=15,
+                        label="Synthetic Depth",
                     )
                 else:
-                    ax[0].plot(event_vp, depth_syn[i], "r*", markersize=15, label="_hidden")
+                    ax[0].plot(
+                        event_vp, depth_syn[i], "r*", markersize=15, label="_hidden"
+                    )
     ax[0].set_title("VP", color="b", fontsize=20)
     ax[0].set_ylabel("Depth [km]", fontsize=20)
     ax[0].tick_params(axis="x", labelsize=18)
@@ -77,10 +85,16 @@ def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
                 event_vs = int_vs(depth_syn[i])
                 if i == 0:
                     ax[1].plot(
-                        event_vs, depth_syn[i], "r*", markersize=15, label="Synthetic Depth"
+                        event_vs,
+                        depth_syn[i],
+                        "r*",
+                        markersize=15,
+                        label="Synthetic Depth",
                     )
                 else:
-                    ax[1].plot(event_vs, depth_syn[i], "r*", markersize=15, label="_hidden")
+                    ax[1].plot(
+                        event_vs, depth_syn[i], "r*", markersize=15, label="_hidden"
+                    )
     # ax[1].legend()
     ax[1].set_title("VS", color="b", fontsize=20)
     ax[1].tick_params(axis="x", labelsize=18)
@@ -99,10 +113,16 @@ def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
                 event_dens = int_dens(depth_syn[i])
                 if i == 0:
                     ax[2].plot(
-                        event_dens, depth_syn[i], "r*", markersize=15, label="Synthetic Depth"
+                        event_dens,
+                        depth_syn[i],
+                        "r*",
+                        markersize=15,
+                        label="Synthetic Depth",
                     )
                 else:
-                    ax[2].plot(event_dens, depth_syn[i], "r*", markersize=15, label="_hidden")
+                    ax[2].plot(
+                        event_dens, depth_syn[i], "r*", markersize=15, label="_hidden"
+                    )
         ax[2].legend()
     ax[2].set_title("Density", color="b", fontsize=20)
     ax[2].tick_params(axis="x", labelsize=18)
@@ -198,11 +218,16 @@ def Plot_trace_vs_depth_copy(
         unique_colors = list(set(phase_colors))
         # unique_list = [mpatches.Patch(color=c, label=phase_labels[c]) for c in phase_labels]
         unique_list = [
-            Line2D([0], [0], color=c, linewidth=3, label=phase_labels[c]) for c in phase_labels
+            Line2D([0], [0], color=c, linewidth=3, label=phase_labels[c])
+            for c in phase_labels
         ]
-    ax[0].legend(
-        handles=unique_list, prop={"size": 6}, loc="upper left", bbox_to_anchor=(0.0, 1.07)
-    )
+        ax[0].legend(
+            handles=unique_list,
+            prop={"size": 6},
+            loc="upper left",
+            bbox_to_anchor=(0.0, 1.07),
+        )
+
     # fig.legend(handles=unique_list, prop={"size": 6}, loc="upper left")
     fig.text(0.04, 0.5, "Source Depth (km)", va="center", rotation="vertical")
     fig.text(0.5, 0.04, "Time after arrival (s)", va="center")
@@ -263,7 +288,11 @@ def Plot_phases_vs_comp(
         if not len(extra_phases) == len(extra_arrs):
             raise ValueError("extra_phases and extra_arrs should have same length")
     fig, ax = plt.subplots(
-        nrows=len(stream), ncols=len(phase_cuts), figsize=(18, 8), sharex="col", sharey="all"
+        nrows=len(stream),
+        ncols=len(phase_cuts),
+        figsize=(18, 8),
+        sharex="col",
+        sharey="all",
     )
     for j in range(len(phase_cuts)):
 
@@ -280,7 +309,12 @@ def Plot_phases_vs_comp(
             y = ax[i, j].get_ylim()[1] * 0.8
             ax[i, j].axvline(x=0, c="grey")
             ax[i, j].text(
-                0, y, phase_cuts[j], verticalalignment="center", color="grey", fontsize=6
+                0,
+                y,
+                phase_cuts[j],
+                verticalalignment="center",
+                color="grey",
+                fontsize=6,
             )
             if extra_phases is not None:
                 for k in range(len(extra_phases)):
@@ -313,10 +347,14 @@ def Plot_phases_vs_comp(
         unique_colors = list(set(phase_colors))
         # unique_list = [mpatches.Patch(color=c, label=phase_labels[c]) for c in phase_labels]
         unique_list = [
-            Line2D([0], [0], color=c, linewidth=3, label=phase_labels[c]) for c in phase_labels
+            Line2D([0], [0], color=c, linewidth=3, label=phase_labels[c])
+            for c in phase_labels
         ]
     ax[0, 0].legend(
-        handles=unique_list, prop={"size": 6}, loc="upper left", bbox_to_anchor=(0.0, 1.4)
+        handles=unique_list,
+        prop={"size": 6},
+        loc="upper left",
+        bbox_to_anchor=(0.0, 1.4),
     )
     fig.text(0.04, 0.5, "Displacement (m)", va="center", rotation="vertical")
     fig.text(0.5, 0.04, "Time after arrival (s)", va="center")
@@ -335,7 +373,12 @@ def Plot_event_location(
 
     # m = Basemap(projection='moll', lon_0=round(0.0))
     m = Basemap(
-        projection="merc", llcrnrlat=-80, urcrnrlat=80, llcrnrlon=0, urcrnrlon=200, resolution="c"
+        projection="merc",
+        llcrnrlat=-80,
+        urcrnrlat=80,
+        llcrnrlon=0,
+        urcrnrlon=200,
+        resolution="c",
     )
 
     # draw parallels and meridians.
@@ -381,7 +424,13 @@ def Get_bb_img(MT, color, alpha=1.0):
         pass
     else:
         b = beach(
-            fm=MT, width=990, linewidth=0, facecolor=color, xy=(0, 0), axes=ax_bb_1, alpha=alpha
+            fm=MT,
+            width=990,
+            linewidth=0,
+            facecolor=color,
+            xy=(0, 0),
+            axes=ax_bb_1,
+            alpha=alpha,
         )
         ax_bb_1.add_collection(b)
     ax_bb_1.set_xlim((-1, 1))
@@ -445,7 +494,8 @@ def Plot_Direct_BB(
         ax_X = fig.add_axes([0.0, 0.0, axis_width, axis_height], label="Circle_ray")
     else:
         ax_X = fig.add_axes(
-            [0.0, 2 * (axis_height + title_height), 1.0, axis_height], label="Circle_ray"
+            [0.0, 2 * (axis_height + title_height), 1.0, axis_height],
+            label="Circle_ray",
         )
     ax_X.set_xlim((-1, 1))
     ax_X.set_ylim((-1, 1))
@@ -460,7 +510,13 @@ def Plot_Direct_BB(
                 x = np.sin(np.deg2rad(a)) * i / 90.0
                 y = np.cos(np.deg2rad(a)) * i / 90.0
             p = Circle(
-                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+                (x, y),
+                0.015,
+                linewidth=2,
+                edgecolor="k",
+                zorder=0,
+                facecolor="k",
+                fill=True,
             )
             ax_X.add_patch(p)
             ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
@@ -472,7 +528,9 @@ def Plot_Direct_BB(
     if horizontal:
         title_1 = fig.add_axes([0.0, axis_height, axis_width, title_height])
     else:
-        title_1 = fig.add_axes([0.0, 3 * axis_height + 2 * title_height, 1.0, title_height])
+        title_1 = fig.add_axes(
+            [0.0, 3 * axis_height + 2 * title_height, 1.0, title_height]
+        )
     title_1.set_xticks([])
     title_1.set_yticks([])
     title_1.axis("off")
@@ -498,7 +556,9 @@ def Plot_Direct_BB(
     if img2 is not None:
         ax_2.imshow(img2 / np.max(img2.flatten()))
     if horizontal:
-        ax_X = fig.add_axes([axis_width, 0.0, axis_width, axis_height], label="Circle_ray")
+        ax_X = fig.add_axes(
+            [axis_width, 0.0, axis_width, axis_height], label="Circle_ray"
+        )
     else:
         ax_X = fig.add_axes(
             [0.0, axis_height + title_height, 1.0, axis_height], label="Circle_ray"
@@ -516,7 +576,13 @@ def Plot_Direct_BB(
                 x = np.sin(np.deg2rad(a)) * i / 90.0
                 y = np.cos(np.deg2rad(a)) * i / 90.0
             p = Circle(
-                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+                (x, y),
+                0.015,
+                linewidth=2,
+                edgecolor="k",
+                zorder=0,
+                facecolor="k",
+                fill=True,
             )
             ax_X.add_patch(p)
             ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
@@ -553,7 +619,9 @@ def Plot_Direct_BB(
     if img3 is not None:
         ax_3.imshow(img3 / np.max(img3.flatten()))
     if horizontal:
-        ax_X = fig.add_axes([2 * (axis_width), 0.0, axis_width, axis_height], label="Circle_ray")
+        ax_X = fig.add_axes(
+            [2 * (axis_width), 0.0, axis_width, axis_height], label="Circle_ray"
+        )
     else:
         ax_X = fig.add_axes([0.0, 0.0, 1.0, axis_height], label="Circle_ray")
     ax_X.set_xlim((-1, 1))
@@ -569,7 +637,13 @@ def Plot_Direct_BB(
                 x = np.sin(np.deg2rad(a)) * i / 90.0
                 y = np.cos(np.deg2rad(a)) * i / 90.0
             p = Circle(
-                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+                (x, y),
+                0.015,
+                linewidth=2,
+                edgecolor="k",
+                zorder=0,
+                facecolor="k",
+                fill=True,
             )
             ax_X.add_patch(p)
             ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
@@ -599,7 +673,15 @@ def Plot_Direct_BB(
 
 
 def Plot_GS_BB(
-    strikes, dips, rakes, azimuths, inc_angles, phase_names, color, height=None, horizontal=True
+    strikes,
+    dips,
+    rakes,
+    azimuths,
+    inc_angles,
+    phase_names,
+    color,
+    height=None,
+    horizontal=True,
 ):
     if horizontal:
         width = 5.0
@@ -665,7 +747,8 @@ def Plot_GS_BB(
         ax_X = fig.add_axes([0.0, 0.0, axis_width, axis_height], label="Circle_ray")
     else:
         ax_X = fig.add_axes(
-            [0.0, 2 * (axis_height + title_height), 1.0, axis_height], label="Circle_ray"
+            [0.0, 2 * (axis_height + title_height), 1.0, axis_height],
+            label="Circle_ray",
         )
     ax_X.set_xlim((-1, 1))
     ax_X.set_ylim((-1, 1))
@@ -680,7 +763,13 @@ def Plot_GS_BB(
                 x = np.sin(np.deg2rad(a)) * i / 90.0
                 y = np.cos(np.deg2rad(a)) * i / 90.0
             p = Circle(
-                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+                (x, y),
+                0.015,
+                linewidth=2,
+                edgecolor="k",
+                zorder=0,
+                facecolor="k",
+                fill=True,
             )
             ax_X.add_patch(p)
             ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
@@ -692,11 +781,15 @@ def Plot_GS_BB(
     if horizontal:
         title_1 = fig.add_axes([0.0, axis_height, axis_width, title_height])
     else:
-        title_1 = fig.add_axes([0.0, 3 * axis_height + 2 * title_height, 1.0, title_height])
+        title_1 = fig.add_axes(
+            [0.0, 3 * axis_height + 2 * title_height, 1.0, title_height]
+        )
     title_1.set_xticks([])
     title_1.set_yticks([])
     title_1.axis("off")
-    title_1.text(0.5, 0.2, "Grid-Search", ha="center", va="bottom", size="x-large", fontsize=40)
+    title_1.text(
+        0.5, 0.2, "Grid-Search", ha="center", va="bottom", size="x-large", fontsize=40
+    )
     return fig
 
 
@@ -716,11 +809,15 @@ def plot_misfit_vs_depth(
     fmax=1.0 / 2.0,
     amount_of_phases=5,
 ):
-    labels =['', ''] 
+    labels = ["", ""]
     n_lowest = 1
 
     fig, ax = plt.subplots(
-        nrows=2, ncols=1, sharex="all", figsize=(8, 6), gridspec_kw={"height_ratios": [3, 1]}
+        nrows=2,
+        ncols=1,
+        sharex="all",
+        figsize=(8, 6),
+        gridspec_kw={"height_ratios": [3, 1]},
     )
     # from matplotlib import gridspec
     # gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
@@ -783,7 +880,9 @@ def plot_misfit_vs_depth(
                 misfit_L2_Direct,
                 Epsilon,
                 M0_Direct,
-            ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
+            ) = _ReadH5.Read_Direct_Inversion(
+                Direct_File, amount_of_phases=amount_of_phases
+            )
             Total_L2_Direct = np.sum(misfit_L2_Direct)
             # Total_L2_norm_Direct = np.sum(misfit_L2_norm_Direct, axis=1)
             # GOF_Direct = (Total_L2_norm_Direct / DOF) * 100
@@ -818,7 +917,14 @@ def plot_misfit_vs_depth(
                 + 2 * M_DC[0, 1] ** 2
             ) ** 0.5 * 0.5 ** 0.5
             DC_MT = np.array(
-                [M_DC[2, 2], M_DC[0, 0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1]]
+                [
+                    M_DC[2, 2],
+                    M_DC[0, 0],
+                    M_DC[1, 1],
+                    M_DC[0, 2],
+                    -M_DC[1, 2],
+                    -M_DC[0, 1],
+                ]
             )
             CLVD_MT = np.array(
                 [
@@ -889,7 +995,12 @@ def plot_misfit_vs_depth(
             )
             BB.append(
                 beach(
-                    DC_MT / M0_DC, xy=(depth, y2), width=15, facecolor="r", linewidth=1, axes=ax[0]
+                    DC_MT / M0_DC,
+                    xy=(depth, y2),
+                    width=15,
+                    facecolor="r",
+                    linewidth=1,
+                    axes=ax[0],
                 )
             )
 
@@ -901,7 +1012,9 @@ def plot_misfit_vs_depth(
             ax[0].axvline(x=Moho, c="grey", ls="dashed", label="Moho", lw=3)
             # true_depth = 45.
             if true_depth is not None:
-                ax[0].axvline(x=true_depth, c="green", ls="dotted", label="True Depth", lw=2)
+                ax[0].axvline(
+                    x=true_depth, c="green", ls="dotted", label="True Depth", lw=2
+                )
 
         ax[1].plot(depths, Eps, "--ko", label="Epsilon %s" % labels[i], lw=0.5)
         if i == 0:
@@ -955,16 +1068,222 @@ def plot_misfit_vs_depth(
     return fig
 
 
-def plot_phases_vs_depth(GS_h5_file_path:str,event: obspy.core.event.Event, fwd:_Forward._AbstractForward,depths:[float],fmin:float,fmax:float,zerophase:bool,tstars: _Union[_List[float], _List[str]] = None):
+def plot_phases_vs_depth(
+    h5_file_folder: str,
+    method: str,
+    misfit_name: str,
+    fwd: _Forward._AbstractForward,
+    event: obspy.core.event.Event,
+    rec: instaseis.Receiver,
+    phases: [str],
+    components: [str],
+    t_pre: [float],
+    t_post: [float],
+    depths: [float],
+    phase_corrs: [float] = None,
+    fmin: float = None,
+    fmax: float = None,
+    zerophase: bool = None,
+    tstars: _Union[_List[float], _List[str]] = None,
+    color_plot: str = None,
+):
+    assert (
+        method == "GS" or method == "Direct"
+    ), "method needs to be either GS or Direct"
 
-    for depth in depths:
-        print(depth)
-        (depth_GS, sdr, M0_GS, misfit_L2_GS,) = _ReadH5.Read_GS_h5(Filename=GS_h5_file_path)
-        Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
-        n_lowest = 1
-        lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
-        sdr = sdr[lowest_indices, :]
-        print("strike", sdr[0][0], "dip", sdr[0][1], "rake", sdr[0][2])
-        depth_GS = depth_GS[lowest_indices]
-        M0_GS = M0_GS[lowest_indices]
+    if tstars is None:
+        tstars = [None] * len(phases)
+
+    if phase_corrs is None:
+        phase_corrs = [0] * len(phases)
+
+    if (fmin == None) or (fmax == None):
+        print("Data will not be filtered due to fmin or fmax equal to None")
+        filter_par = False
+    else:
+        filter_par = True
+
+    # TODO: IMPLEMENT LQT COORDINATE SYSTEM
+    LQT_value = False
+    baz = None
+    inc = None
+
+    """ Process the observed data """
+    obs_tt = []
+    for i, phase in enumerate(phases):
+        obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
+    st_obs, sigmas = _PreProcess.prepare_event_data(
+        event=event,
+        phases=phases,
+        components=components,
+        slice=False,
+        tts=obs_tt,
+        t_pre=t_pre,
+        t_post=t_post,
+        filter=filter_par,
+        fmin=fmin,
+        fmax=fmax,
+        zerophase=zerophase,
+        noise_level=False,
+    )
+
+
+    fig, ax = plt.subplots(
+        nrows=1,
+        ncols=len(phases),
+        figsize=(5 * len(phases), 2 * (len(phases)+1)),
+        sharex="col",
+        sharey="all",
+    )
+    Yticks = np.arange(len(depths)+1) * 1.8
+
+    for idepth,depth in enumerate(depths):
+        if method == "GS":
+            h5_file_path = pjoin(
+                h5_file_folder,
+                f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+            )
+            depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
+                Filename=h5_file_path, amount_of_phases=len(phases)
+            )
+            Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+            n_lowest = 1
+            lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
+            MT = sdr[lowest_indices, :][0]
+            print("strike", sdr[0][0], "dip", sdr[0][1], "rake", sdr[0][2])
+            depth_GS = depth_GS[lowest_indices]
+            M0 = M0_GS[lowest_indices][0]
+        else:
+            h5_file_path = pjoin(
+                h5_file_folder,
+                f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+            )
+            (
+                depth_Direct,
+                MT,
+                misfit_L2_Direct,
+                Epsilon,
+                M0,
+            ) = _ReadH5.Read_Direct_Inversion(
+                h5_file_path, amount_of_phases=len(phases)
+            )
+            Total_L2_Direct = np.sum(misfit_L2_Direct)
+
+        """ Generate Green's functions per depth """
+        st_syn = obspy.Stream()
+        for i, phase in enumerate(phases):
+            syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
+            extra_phases = ["pP","sS","SS","PP","SSS","PPP"] 
+            extra_arrs = []
+            for j, extraphase in enumerate(extra_phases):
+                extra_arr = fwd.get_phase_tt(
+                                phase=extraphase, depth=depth, distance=event.distance
+                            )
+                if extra_arr:
+                    extra_arrs.append(extra_arr - syn_tt)
+                else:
+                    extra_arrs.append(extra_arr)
+
+            syn_GF = fwd.get_greens_functions(
+                comp=components[i],
+                depth=depth,
+                distance=event.distance,
+                lat_src=event.latitude,
+                lon_src=event.longitude,
+                rec=rec,
+                tstar=tstars[i],
+                LQT=LQT_value,
+                inc=inc,
+                baz=baz,
+                M0=M0,
+                filter=filter_par,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
+            )
+            tr_syn = fwd.generate_synthetic_data(
+                st_GF=syn_GF,
+                focal_mech=MT,
+                M0=M0,
+                slice=True,
+                tt=syn_tt,
+                t_pre=t_pre[i],
+                t_post=t_post[i],
+            )
+            
+            st_syn += tr_syn
+
+        fig, ax = Plot_trace_vs_depth_copy(
+                stream=st_syn,
+                depth=depth,
+                total_depths=len(depths)+1,
+                Ytick=Yticks[idepth],
+                phase=phase,
+                phase_arr=syn_tt,
+                t_pre=t_pre[0],
+                t_post=t_post[0],
+                fig=fig,
+                ax=ax,
+                extra_phases=extra_phases,
+                extra_arrs=extra_arrs,
+                phase_colors=None,
+                phase_labels=None,
+            )
+    delta = Yticks[1] - Yticks[0]
+    vlines = True
+    
+    if vlines:
+        pass
+    else:
+        for j in range(len(list(components))):
+            if phase == "P" and j == 2:
+                continue
+            for k in range(len(extra_phases)):
+                x = np.asarray([arr[k] for arr in extra_arrs], dtype=np.float)
+                y = np.asarray(Yticks)
+                y = y[~np.isnan(x)]
+                x = x[~np.isnan(x)]
+                if x.size == 0:
+                    continue
+                rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
+                if rotn.size == 0:
+                    trans_angle = 90
+                    ax[iphase][j].plot(
+                        [x[0], x[0]], [y[0] - 0.8, y[0] + 0.8], extra_phase_colors[k],
+                    )
+                else:
+                    l2 = np.array((x[-1], y[-1]))
+                    rotation = rotn[-1]
+                    trans_angle = plt.gca().transData.transform_angles(
+                        np.array((rotation,)), l2.reshape((1, 2))
+                    )[0]
+                    ax[iphase][j].plot(x, y, "-", c=extra_phase_colors[k])
+
+                ax[iphase][j].text(
+                    x[-1],
+                    y[-1],
+                    extra_phases[k],
+                    verticalalignment="center",
+                    color=extra_phase_colors[k],
+                    fontsize=6,
+                    rotation=trans_angle,
+                )
+
+    ax[0].yaxis.set_ticks(Yticks)
+    ax[0].set_yticklabels(depths)
+    ax[0].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
+    fig.text(
+        0.5,
+        0.95,
+        f"Velocity model: {fwd.veloc_name}",
+        ha="center",
+        va="bottom",
+        size="x-large",
+        color="blue",
+    )
+    plt.show()
+    # fig.savefig(os.path.join(h5_file_path, f"Depth_vs_Obs_{model_name}.pdf"))
+    plt.close(fig[iphase])
+
+    pass
 

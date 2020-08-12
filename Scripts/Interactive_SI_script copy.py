@@ -5,6 +5,7 @@ __author__ = "Nienke Brinkman"
 
 from os.path import join as pjoin
 from os.path import exists as exist
+from os.path import getsize as gsize
 import instaseis
 import numpy as np
 import matplotlib.pyplot as plt
@@ -105,16 +106,18 @@ for i, v in event_input.items():
     db_path = v["db_path"]
 
     mnt_folder = "/mnt/marshost/"
-    SS_MTI.DataGetter.mnt_remote_folder(
-        host_ip="marshost.ethz.ch",
-        host_usr="sysop",
-        remote_folder="/data/",
-        mnt_folder=mnt_folder,
-    )
+    if not gsize(mnt_folder):
+        print(f'{local_folder} is still empty, mounting now...')        
+        SS_MTI.DataGetter.mnt_remote_folder(
+            host_ip="marshost.ethz.ch",
+            host_usr="sysop",
+            remote_folder="/data/",
+            mnt_folder=mnt_folder,
+        )
 
     db = instaseis.open_db(db_path)
 
-    SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
+    # SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
 
     npz_file = v["npz_file"]
 
@@ -224,30 +227,53 @@ for i, v in event_input.items():
     """ Post-processing """
 
     """ (misfit vs depth analysis)"""
-    DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
-    Moho_d = 30
-    fig = _PostProcessing.plot_misfit_vs_depth(
-        save_paths=[output_folder],
-        event_name=event.name,
-        DOF=DOF,
-        depths=depths,
-        misfit_name=misfit.name,
-        veloc_model=fwd.veloc_name,
-        true_depth=None,
-        Moho=Moho_d,
-        fmin=fmin,
-        fmax=fmax,
-        amount_of_phases=len(v["phases"]),
-    )
-    plt.tight_layout()
-    plt.savefig(
-        pjoin(
-            save_folder,
-            f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        ),
-        dpi=600,
-    )
-    plt.close()
+    # DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
+    # Moho_d = 30
+    # fig = _PostProcessing.plot_misfit_vs_depth(
+    #     save_paths=[output_folder],
+    #     event_name=event.name,
+    #     DOF=DOF,
+    #     depths=depths,
+    #     misfit_name=misfit.name,
+    #     veloc_model=fwd.veloc_name,
+    #     true_depth=None,
+    #     Moho=Moho_d,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     amount_of_phases=len(v["phases"]),
+    # )
+    # plt.tight_layout()
+    # plt.savefig(
+    #     pjoin(
+    #         save_folder,
+    #         f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    #     ),
+    #     dpi=600,
+    # )
+    # plt.close()
 
     """ (best MT vs depth phase arrivals) """
+    depths = np.array([23,26,29])
+    _PostProcessing.plot_phases_vs_depth(
+    h5_file_folder=output_folder,
+    method="GS",
+    misfit_name="L2",
+    fwd=fwd,
+    event=event,
+    rec=rec,
+    phases=phases,
+    components=components,
+    t_pre=t_pre,
+    t_post=t_post,
+    depths=depths,
+    phase_corrs=phase_corrs,
+    fmin=fmin,
+    fmax=fmax,
+    zerophase=zerophase,
+    tstars=tstars,
+    color_plot="blue",
+)
+
+    
+
 
