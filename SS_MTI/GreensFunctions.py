@@ -165,12 +165,12 @@ def from_GF(st_in: obspy.Stream, focal_mech: [float], M0: float):
     if len(focal_mech) == 3:
         focal_mech = convert_SDR(focal_mech[0], focal_mech[1], focal_mech[2], M0)
 
-    m_rr = focal_mech[0] / M0
-    m_pp = focal_mech[1] / M0
-    m_tt = focal_mech[2] / M0
-    m_rp = focal_mech[3] / M0
-    m_rt = focal_mech[4] / M0
-    m_tp = focal_mech[5] / M0
+    m_rr = focal_mech[0]  # / M0
+    m_pp = focal_mech[1]  # / M0
+    m_tt = focal_mech[2]  # / M0
+    m_rp = focal_mech[3]  # / M0
+    m_rt = focal_mech[4]  # / M0
+    m_tp = focal_mech[5]  # / M0
 
     data = (
         st_in[0].data * m_rr

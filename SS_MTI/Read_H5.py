@@ -33,4 +33,4 @@ def Read_Direct_Inversion(Filename, amount_of_phases=5):
     M0_DC = f["samples"][0, 3]
     M0_CLVD = f["samples"][0, 4]
 
-    return depth, MT, misfit_L2, Epsilon, M0
+    return depth, MT, DC_MT, CLVD_MT, misfit_L2, Epsilon, M0, M0_DC, M0_CLVD, angles

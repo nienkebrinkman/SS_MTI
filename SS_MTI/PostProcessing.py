@@ -56,16 +56,10 @@ def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
                 event_vp = int_vp(depth_syn[i])
                 if i == 0:
                     ax[0].plot(
-                        event_vp,
-                        depth_syn[i],
-                        "r*",
-                        markersize=15,
-                        label="Synthetic Depth",
+                        event_vp, depth_syn[i], "r*", markersize=15, label="Synthetic Depth",
                     )
                 else:
-                    ax[0].plot(
-                        event_vp, depth_syn[i], "r*", markersize=15, label="_hidden"
-                    )
+                    ax[0].plot(event_vp, depth_syn[i], "r*", markersize=15, label="_hidden")
     ax[0].set_title("VP", color="b", fontsize=20)
     ax[0].set_ylabel("Depth [km]", fontsize=20)
     ax[0].tick_params(axis="x", labelsize=18)
@@ -85,16 +79,10 @@ def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
                 event_vs = int_vs(depth_syn[i])
                 if i == 0:
                     ax[1].plot(
-                        event_vs,
-                        depth_syn[i],
-                        "r*",
-                        markersize=15,
-                        label="Synthetic Depth",
+                        event_vs, depth_syn[i], "r*", markersize=15, label="Synthetic Depth",
                     )
                 else:
-                    ax[1].plot(
-                        event_vs, depth_syn[i], "r*", markersize=15, label="_hidden"
-                    )
+                    ax[1].plot(event_vs, depth_syn[i], "r*", markersize=15, label="_hidden")
     # ax[1].legend()
     ax[1].set_title("VS", color="b", fontsize=20)
     ax[1].tick_params(axis="x", labelsize=18)
@@ -113,16 +101,10 @@ def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
                 event_dens = int_dens(depth_syn[i])
                 if i == 0:
                     ax[2].plot(
-                        event_dens,
-                        depth_syn[i],
-                        "r*",
-                        markersize=15,
-                        label="Synthetic Depth",
+                        event_dens, depth_syn[i], "r*", markersize=15, label="Synthetic Depth",
                     )
                 else:
-                    ax[2].plot(
-                        event_dens, depth_syn[i], "r*", markersize=15, label="_hidden"
-                    )
+                    ax[2].plot(event_dens, depth_syn[i], "r*", markersize=15, label="_hidden")
         ax[2].legend()
     ax[2].set_title("Density", color="b", fontsize=20)
     ax[2].tick_params(axis="x", labelsize=18)
@@ -218,14 +200,10 @@ def Plot_trace_vs_depth_copy(
         unique_colors = list(set(phase_colors))
         # unique_list = [mpatches.Patch(color=c, label=phase_labels[c]) for c in phase_labels]
         unique_list = [
-            Line2D([0], [0], color=c, linewidth=3, label=phase_labels[c])
-            for c in phase_labels
+            Line2D([0], [0], color=c, linewidth=3, label=phase_labels[c]) for c in phase_labels
         ]
         ax[0].legend(
-            handles=unique_list,
-            prop={"size": 6},
-            loc="upper left",
-            bbox_to_anchor=(0.0, 1.07),
+            handles=unique_list, prop={"size": 6}, loc="upper left", bbox_to_anchor=(0.0, 1.07),
         )
 
     # fig.legend(handles=unique_list, prop={"size": 6}, loc="upper left")
@@ -288,11 +266,7 @@ def Plot_phases_vs_comp(
         if not len(extra_phases) == len(extra_arrs):
             raise ValueError("extra_phases and extra_arrs should have same length")
     fig, ax = plt.subplots(
-        nrows=len(stream),
-        ncols=len(phase_cuts),
-        figsize=(18, 8),
-        sharex="col",
-        sharey="all",
+        nrows=len(stream), ncols=len(phase_cuts), figsize=(18, 8), sharex="col", sharey="all",
     )
     for j in range(len(phase_cuts)):
 
@@ -309,12 +283,7 @@ def Plot_phases_vs_comp(
             y = ax[i, j].get_ylim()[1] * 0.8
             ax[i, j].axvline(x=0, c="grey")
             ax[i, j].text(
-                0,
-                y,
-                phase_cuts[j],
-                verticalalignment="center",
-                color="grey",
-                fontsize=6,
+                0, y, phase_cuts[j], verticalalignment="center", color="grey", fontsize=6,
             )
             if extra_phases is not None:
                 for k in range(len(extra_phases)):
@@ -347,14 +316,10 @@ def Plot_phases_vs_comp(
         unique_colors = list(set(phase_colors))
         # unique_list = [mpatches.Patch(color=c, label=phase_labels[c]) for c in phase_labels]
         unique_list = [
-            Line2D([0], [0], color=c, linewidth=3, label=phase_labels[c])
-            for c in phase_labels
+            Line2D([0], [0], color=c, linewidth=3, label=phase_labels[c]) for c in phase_labels
         ]
     ax[0, 0].legend(
-        handles=unique_list,
-        prop={"size": 6},
-        loc="upper left",
-        bbox_to_anchor=(0.0, 1.4),
+        handles=unique_list, prop={"size": 6}, loc="upper left", bbox_to_anchor=(0.0, 1.4),
     )
     fig.text(0.04, 0.5, "Displacement (m)", va="center", rotation="vertical")
     fig.text(0.5, 0.04, "Time after arrival (s)", va="center")
@@ -373,12 +338,7 @@ def Plot_event_location(
 
     # m = Basemap(projection='moll', lon_0=round(0.0))
     m = Basemap(
-        projection="merc",
-        llcrnrlat=-80,
-        urcrnrlat=80,
-        llcrnrlon=0,
-        urcrnrlon=200,
-        resolution="c",
+        projection="merc", llcrnrlat=-80, urcrnrlat=80, llcrnrlon=0, urcrnrlon=200, resolution="c",
     )
 
     # draw parallels and meridians.
@@ -424,13 +384,7 @@ def Get_bb_img(MT, color, alpha=1.0):
         pass
     else:
         b = beach(
-            fm=MT,
-            width=990,
-            linewidth=0,
-            facecolor=color,
-            xy=(0, 0),
-            axes=ax_bb_1,
-            alpha=alpha,
+            fm=MT, width=990, linewidth=0, facecolor=color, xy=(0, 0), axes=ax_bb_1, alpha=alpha,
         )
         ax_bb_1.add_collection(b)
     ax_bb_1.set_xlim((-1, 1))
@@ -494,8 +448,7 @@ def Plot_Direct_BB(
         ax_X = fig.add_axes([0.0, 0.0, axis_width, axis_height], label="Circle_ray")
     else:
         ax_X = fig.add_axes(
-            [0.0, 2 * (axis_height + title_height), 1.0, axis_height],
-            label="Circle_ray",
+            [0.0, 2 * (axis_height + title_height), 1.0, axis_height], label="Circle_ray",
         )
     ax_X.set_xlim((-1, 1))
     ax_X.set_ylim((-1, 1))
@@ -510,13 +463,7 @@ def Plot_Direct_BB(
                 x = np.sin(np.deg2rad(a)) * i / 90.0
                 y = np.cos(np.deg2rad(a)) * i / 90.0
             p = Circle(
-                (x, y),
-                0.015,
-                linewidth=2,
-                edgecolor="k",
-                zorder=0,
-                facecolor="k",
-                fill=True,
+                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True,
             )
             ax_X.add_patch(p)
             ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
@@ -528,9 +475,7 @@ def Plot_Direct_BB(
     if horizontal:
         title_1 = fig.add_axes([0.0, axis_height, axis_width, title_height])
     else:
-        title_1 = fig.add_axes(
-            [0.0, 3 * axis_height + 2 * title_height, 1.0, title_height]
-        )
+        title_1 = fig.add_axes([0.0, 3 * axis_height + 2 * title_height, 1.0, title_height])
     title_1.set_xticks([])
     title_1.set_yticks([])
     title_1.axis("off")
@@ -556,9 +501,7 @@ def Plot_Direct_BB(
     if img2 is not None:
         ax_2.imshow(img2 / np.max(img2.flatten()))
     if horizontal:
-        ax_X = fig.add_axes(
-            [axis_width, 0.0, axis_width, axis_height], label="Circle_ray"
-        )
+        ax_X = fig.add_axes([axis_width, 0.0, axis_width, axis_height], label="Circle_ray")
     else:
         ax_X = fig.add_axes(
             [0.0, axis_height + title_height, 1.0, axis_height], label="Circle_ray"
@@ -576,13 +519,7 @@ def Plot_Direct_BB(
                 x = np.sin(np.deg2rad(a)) * i / 90.0
                 y = np.cos(np.deg2rad(a)) * i / 90.0
             p = Circle(
-                (x, y),
-                0.015,
-                linewidth=2,
-                edgecolor="k",
-                zorder=0,
-                facecolor="k",
-                fill=True,
+                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True,
             )
             ax_X.add_patch(p)
             ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
@@ -619,9 +556,7 @@ def Plot_Direct_BB(
     if img3 is not None:
         ax_3.imshow(img3 / np.max(img3.flatten()))
     if horizontal:
-        ax_X = fig.add_axes(
-            [2 * (axis_width), 0.0, axis_width, axis_height], label="Circle_ray"
-        )
+        ax_X = fig.add_axes([2 * (axis_width), 0.0, axis_width, axis_height], label="Circle_ray")
     else:
         ax_X = fig.add_axes([0.0, 0.0, 1.0, axis_height], label="Circle_ray")
     ax_X.set_xlim((-1, 1))
@@ -637,13 +572,7 @@ def Plot_Direct_BB(
                 x = np.sin(np.deg2rad(a)) * i / 90.0
                 y = np.cos(np.deg2rad(a)) * i / 90.0
             p = Circle(
-                (x, y),
-                0.015,
-                linewidth=2,
-                edgecolor="k",
-                zorder=0,
-                facecolor="k",
-                fill=True,
+                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True,
             )
             ax_X.add_patch(p)
             ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
@@ -673,15 +602,7 @@ def Plot_Direct_BB(
 
 
 def Plot_GS_BB(
-    strikes,
-    dips,
-    rakes,
-    azimuths,
-    inc_angles,
-    phase_names,
-    color,
-    height=None,
-    horizontal=True,
+    strikes, dips, rakes, azimuths, inc_angles, phase_names, color, height=None, horizontal=True,
 ):
     if horizontal:
         width = 5.0
@@ -747,8 +668,7 @@ def Plot_GS_BB(
         ax_X = fig.add_axes([0.0, 0.0, axis_width, axis_height], label="Circle_ray")
     else:
         ax_X = fig.add_axes(
-            [0.0, 2 * (axis_height + title_height), 1.0, axis_height],
-            label="Circle_ray",
+            [0.0, 2 * (axis_height + title_height), 1.0, axis_height], label="Circle_ray",
         )
     ax_X.set_xlim((-1, 1))
     ax_X.set_ylim((-1, 1))
@@ -763,13 +683,7 @@ def Plot_GS_BB(
                 x = np.sin(np.deg2rad(a)) * i / 90.0
                 y = np.cos(np.deg2rad(a)) * i / 90.0
             p = Circle(
-                (x, y),
-                0.015,
-                linewidth=2,
-                edgecolor="k",
-                zorder=0,
-                facecolor="k",
-                fill=True,
+                (x, y), 0.015, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True,
             )
             ax_X.add_patch(p)
             ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=17)
@@ -781,15 +695,11 @@ def Plot_GS_BB(
     if horizontal:
         title_1 = fig.add_axes([0.0, axis_height, axis_width, title_height])
     else:
-        title_1 = fig.add_axes(
-            [0.0, 3 * axis_height + 2 * title_height, 1.0, title_height]
-        )
+        title_1 = fig.add_axes([0.0, 3 * axis_height + 2 * title_height, 1.0, title_height])
     title_1.set_xticks([])
     title_1.set_yticks([])
     title_1.axis("off")
-    title_1.text(
-        0.5, 0.2, "Grid-Search", ha="center", va="bottom", size="x-large", fontsize=40
-    )
+    title_1.text(0.5, 0.2, "Grid-Search", ha="center", va="bottom", size="x-large", fontsize=40)
     return fig
 
 
@@ -813,11 +723,7 @@ def plot_misfit_vs_depth(
     n_lowest = 1
 
     fig, ax = plt.subplots(
-        nrows=2,
-        ncols=1,
-        sharex="all",
-        figsize=(8, 6),
-        gridspec_kw={"height_ratios": [3, 1]},
+        nrows=2, ncols=1, sharex="all", figsize=(8, 6), gridspec_kw={"height_ratios": [3, 1]},
     )
     # from matplotlib import gridspec
     # gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
@@ -877,12 +783,15 @@ def plot_misfit_vs_depth(
             (
                 depth_Direct,
                 MT_Direct,
+                DC_MT,
+                CLVD_MT,
                 misfit_L2_Direct,
                 Epsilon,
-                M0_Direct,
-            ) = _ReadH5.Read_Direct_Inversion(
-                Direct_File, amount_of_phases=amount_of_phases
-            )
+                M0,
+                M0_DC,
+                M0_CLVD,
+                angles,
+            ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
             Total_L2_Direct = np.sum(misfit_L2_Direct)
             # Total_L2_norm_Direct = np.sum(misfit_L2_norm_Direct, axis=1)
             # GOF_Direct = (Total_L2_norm_Direct / DOF) * 100
@@ -917,14 +826,7 @@ def plot_misfit_vs_depth(
                 + 2 * M_DC[0, 1] ** 2
             ) ** 0.5 * 0.5 ** 0.5
             DC_MT = np.array(
-                [
-                    M_DC[2, 2],
-                    M_DC[0, 0],
-                    M_DC[1, 1],
-                    M_DC[0, 2],
-                    -M_DC[1, 2],
-                    -M_DC[0, 1],
-                ]
+                [M_DC[2, 2], M_DC[0, 0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1],]
             )
             CLVD_MT = np.array(
                 [
@@ -1012,9 +914,7 @@ def plot_misfit_vs_depth(
             ax[0].axvline(x=Moho, c="grey", ls="dashed", label="Moho", lw=3)
             # true_depth = 45.
             if true_depth is not None:
-                ax[0].axvline(
-                    x=true_depth, c="green", ls="dotted", label="True Depth", lw=2
-                )
+                ax[0].axvline(x=true_depth, c="green", ls="dotted", label="True Depth", lw=2)
 
         ax[1].plot(depths, Eps, "--ko", label="Epsilon %s" % labels[i], lw=0.5)
         if i == 0:
@@ -1087,9 +987,7 @@ def plot_phases_vs_depth(
     tstars: _Union[_List[float], _List[str]] = None,
     color_plot: str = None,
 ):
-    assert (
-        method == "GS" or method == "Direct"
-    ), "method needs to be either GS or Direct"
+    assert method == "GS" or method == "Direct", "method needs to be either GS or Direct"
 
     if tstars is None:
         tstars = [None] * len(phases)
@@ -1116,7 +1014,7 @@ def plot_phases_vs_depth(
         event=event,
         phases=phases,
         components=components,
-        slice=False,
+        slice=True,
         tts=obs_tt,
         t_pre=t_pre,
         t_post=t_post,
@@ -1127,30 +1025,34 @@ def plot_phases_vs_depth(
         noise_level=False,
     )
 
-
+    widths = [5] * len(phases) + [1]
     fig, ax = plt.subplots(
         nrows=1,
-        ncols=len(phases),
-        figsize=(5 * len(phases), 2 * (len(phases)+1)),
+        ncols=len(phases) + 1,
+        figsize=(4 * len(phases), 4 * (len(phases) + 1)),
         sharex="col",
-        sharey="all",
+        sharey="col",
+        gridspec_kw={"width_ratios": widths},
     )
-    Yticks = np.arange(len(depths)+1) * 1.8
-
-    for idepth,depth in enumerate(depths):
+    Yticks = np.arange(len(depths) + 1) * 1.8
+    BB = []
+    extra_arrs = [[] for _ in range(len(depths))]
+    syn_tts = [[] for _ in range(len(depths))]
+    for idepth, depth in enumerate(depths):
+        print(depth)
         if method == "GS":
             h5_file_path = pjoin(
                 h5_file_folder,
                 f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
             )
             depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
-                Filename=h5_file_path, amount_of_phases=len(phases)
+                Filename=h5_file_path, amount_of_phases=5
             )
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
             n_lowest = 1
             lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
             MT = sdr[lowest_indices, :][0]
-            print("strike", sdr[0][0], "dip", sdr[0][1], "rake", sdr[0][2])
+            print("strike", MT[0], "dip", MT[1], "rake", MT[2])
             depth_GS = depth_GS[lowest_indices]
             M0 = M0_GS[lowest_indices][0]
         else:
@@ -1161,28 +1063,46 @@ def plot_phases_vs_depth(
             (
                 depth_Direct,
                 MT,
+                DC_MT,
+                CLVD_MT,
                 misfit_L2_Direct,
                 Epsilon,
                 M0,
-            ) = _ReadH5.Read_Direct_Inversion(
-                h5_file_path, amount_of_phases=len(phases)
-            )
+                M0_DC,
+                M0_CLVD,
+                angles,
+            ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
             Total_L2_Direct = np.sum(misfit_L2_Direct)
 
+            MT = DC_MT
+
+        BB.append(
+            beach(
+                MT,
+                xy=(0, Yticks[idepth]),
+                width=20,
+                linewidth=1,
+                alpha=0.5,
+                facecolor="r",
+                axes=ax[-1],
+            )
+        )
+
         """ Generate Green's functions per depth """
-        st_syn = obspy.Stream()
+
         for i, phase in enumerate(phases):
             syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
-            extra_phases = ["pP","sS","SS","PP","SSS","PPP"] 
-            extra_arrs = []
+            syn_tts[idepth].append(syn_tt)
+            extra_phases = ["pP", "sS", "sP", "pS", "SS", "PP", "SSS", "PPP"]
+
             for j, extraphase in enumerate(extra_phases):
                 extra_arr = fwd.get_phase_tt(
-                                phase=extraphase, depth=depth, distance=event.distance
-                            )
+                    phase=extraphase, depth=depth, distance=event.distance
+                )
                 if extra_arr:
-                    extra_arrs.append(extra_arr - syn_tt)
+                    extra_arrs[idepth].append(extra_arr)
                 else:
-                    extra_arrs.append(extra_arr)
+                    extra_arrs[idepth].append(extra_arr)
 
             syn_GF = fwd.get_greens_functions(
                 comp=components[i],
@@ -1195,7 +1115,7 @@ def plot_phases_vs_depth(
                 LQT=LQT_value,
                 inc=inc,
                 baz=baz,
-                M0=M0,
+                M0=1.0,
                 filter=filter_par,
                 fmin=fmin,
                 fmax=fmax,
@@ -1210,80 +1130,527 @@ def plot_phases_vs_depth(
                 t_pre=t_pre[i],
                 t_post=t_post[i],
             )
-            
-            st_syn += tr_syn
 
-        fig, ax = Plot_trace_vs_depth_copy(
-                stream=st_syn,
+            fig, ax[i] = Plot_phase_vs_depth_copy(
+                tr=tr_syn,
                 depth=depth,
-                total_depths=len(depths)+1,
+                total_depths=len(depths) + 1,
                 Ytick=Yticks[idepth],
                 phase=phase,
-                phase_arr=syn_tt,
-                t_pre=t_pre[0],
-                t_post=t_post[0],
+                t_pre=t_pre[i],
+                t_post=t_post[i],
                 fig=fig,
-                ax=ax,
-                extra_phases=extra_phases,
-                extra_arrs=extra_arrs,
-                phase_colors=None,
-                phase_labels=None,
+                ax=ax[i],
+                extra_phases=None,
+                extra_arrs=None,
             )
     delta = Yticks[1] - Yticks[0]
-    vlines = True
-    
-    if vlines:
-        pass
-    else:
-        for j in range(len(list(components))):
-            if phase == "P" and j == 2:
-                continue
-            for k in range(len(extra_phases)):
-                x = np.asarray([arr[k] for arr in extra_arrs], dtype=np.float)
-                y = np.asarray(Yticks)
-                y = y[~np.isnan(x)]
-                x = x[~np.isnan(x)]
-                if x.size == 0:
-                    continue
-                rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
-                if rotn.size == 0:
-                    trans_angle = 90
-                    ax[iphase][j].plot(
-                        [x[0], x[0]], [y[0] - 0.8, y[0] + 0.8], extra_phase_colors[k],
-                    )
-                else:
-                    l2 = np.array((x[-1], y[-1]))
-                    rotation = rotn[-1]
-                    trans_angle = plt.gca().transData.transform_angles(
-                        np.array((rotation,)), l2.reshape((1, 2))
-                    )[0]
-                    ax[iphase][j].plot(x, y, "-", c=extra_phase_colors[k])
 
-                ax[iphase][j].text(
-                    x[-1],
-                    y[-1],
-                    extra_phases[k],
-                    verticalalignment="center",
-                    color=extra_phase_colors[k],
-                    fontsize=6,
-                    rotation=trans_angle,
+    for i, phase in enumerate(phases):
+        fig, ax[i] = Plot_phase_vs_depth_copy(
+            tr=st_obs[i],
+            depth=depth,
+            total_depths=len(depths) + 1,
+            Ytick=Yticks[idepth + 1],
+            phase=phase,
+            t_pre=t_pre[i],
+            t_post=t_post[i],
+            fig=fig,
+            ax=ax[i],
+            extra_phases=None,
+            extra_arrs=None,
+            color="b",
+        )
+
+        ax[i].axvline(0.0, c="grey")
+        ax[i].text(
+            0.1,
+            Yticks[-1] + 0.5 * delta,
+            phase,
+            verticalalignment="center",
+            color="grey",
+            fontsize=10,
+        )
+
+        for k in range(len(extra_phases)):
+            syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
+            x = np.asarray([arr[k] for arr in extra_arrs], dtype=np.float)
+            x = x - syn_tt_depth
+            x[x > t_post[i]] = None
+            x[x < -t_pre[i]] = None
+            y = np.asarray(Yticks[:-1])
+            y = y[~np.isnan(x)]
+            x = x[~np.isnan(x)]
+            if x.size == 0:
+                continue
+            rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
+            if rotn.size == 0:
+                trans_angle = 90
+                ax[i].plot(
+                    [x[0], x[0]], [y[0] - 0.8, y[0] + 0.8], "grey",
+                )
+            else:
+                l2 = np.array((x[-1], y[-1]))
+                rotation = rotn[-1]
+                trans_angle = plt.gca().transData.transform_angles(
+                    np.array((rotation,)), l2.reshape((1, 2))
+                )[0]
+                ax[i].plot(x, y, "-", c="grey")
+
+            ax[i].text(
+                x[-1],
+                y[-1],
+                extra_phases[k],
+                verticalalignment="center",
+                color="grey",
+                fontsize=10,
+                rotation=trans_angle,
+            )
+            ax[i].yaxis.set_ticks(Yticks)
+            ax[i].set_yticklabels(depths)
+            ax[i].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
+            if not i == 0:
+                ax[i].get_yaxis().set_visible(False)
+
+    # for i in range(len(phases)):
+
+    ax[-1].yaxis.set_ticks(Yticks)
+    ax[-1].set_yticklabels(depths)
+    ax[-1].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
+    ax[-1].axis("off")
+    ax[-1].set_xlim(-0.15, 0.15)
+    for bb in BB:
+        ax[-1].add_collection(bb)
+    fig.text(
+        0.5, 0.95, f"Event {event.name}", ha="center", va="bottom", size="x-large", color="blue",
+    )
+    fig.text(0.04, 0.5, "Source Depth (km)", va="center", rotation="vertical")
+    fig.text(0.5, 0.04, "Time after arrival (s)", va="center")
+    return fig
+
+
+def Plot_phase_vs_depth_copy(
+    tr: obspy.Trace,
+    depth: float,
+    total_depths: int,
+    Ytick: float,
+    phase: str,
+    t_pre: float = 10.0,
+    t_post: float = 50.0,
+    fig: plt.figure = None,
+    ax: plt.axes = None,
+    extra_phases: [str] = None,
+    extra_arrs: [float] = None,
+    color: str = None,
+):
+    if color is None:
+        color = "k"
+    st = tr.copy()
+    st.normalize()
+    global_max = st.data.max()
+    global_min = st.data.min()
+    y = global_max * 0.9 + Ytick
+    ymin = global_min + Ytick
+    ymax = global_max + Ytick
+
+    ax.plot(
+        st.times() - t_pre, st.data + Ytick, color,
+    )
+
+    # ax.plot(
+    #     [0, 0], [ymin, ymax], "grey",
+    # )
+    # ax.text(0, y, phase, verticalalignment="center", color="grey", fontsize=6)
+    if extra_phases is not None:
+        for k in range(len(extra_phases)):
+            if extra_arrs[k] is None or extra_arrs[k] > t_post or extra_arrs[k] < -t_pre:
+                continue
+            phase_t = extra_arrs[k]
+
+            y = global_max * 0.9 + Ytick
+            c = "grey"
+
+            ax.plot(
+                [phase_t, phase_t], [ymin, ymax], c,
+            )
+            ax.text(
+                phase_t + 0.1,
+                y,
+                extra_phases[k],
+                verticalalignment="center",
+                color=c,
+                fontsize=6,
+                rotation=90,
+            )
+    ax.set_xlim(-t_pre, t_post)
+    ax.set_ylim(ymin, ymax)
+    ax.set_title(f"{phase}-Phase channel:{st.stats.channel[-1]}")
+
+    # fig.legend(handles=unique_list, prop={"size": 6}, loc="upper left")
+
+    return fig, ax
+
+
+def post_waveform_plotting(
+    h5_file_folder: str,
+    method: str,
+    misfit_name: str,
+    misfit_weight_len: float,
+    fwd: _Forward._AbstractForward,
+    event: obspy.core.event.Event,
+    rec: instaseis.Receiver,
+    phases: [str],
+    components: [str],
+    t_pre: [float],
+    t_post: [float],
+    depths: [float],
+    phase_corrs: [float] = None,
+    fmin: float = None,
+    fmax: float = None,
+    zerophase: bool = None,
+    tstars: _Union[_List[float], _List[str]] = None,
+    plot_extra_phases: [str] = None,
+    Ylims: [float] = None,
+):
+    if tstars is None:
+        tstars = [None] * len(phases)
+
+    if phase_corrs is None:
+        phase_corrs = [0] * len(phases)
+
+    if (fmin == None) or (fmax == None):
+        print("Data will not be filtered due to fmin or fmax equal to None")
+        filter_par = False
+    else:
+        filter_par = True
+
+    # TODO: IMPLEMENT LQT COORDINATE SYSTEM
+    LQT_value = False
+    baz = None
+    inc = None
+
+    """ PRE-PROCESS THE OBSERVED Travel_times """
+    obs_tt = []
+    for i, phase in enumerate(phases):
+        obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
+
+    for idepth, depth in enumerate(depths):
+        print(depth)
+        if method == "GS":
+            color_plot = "b"
+            h5_file_path = pjoin(
+                h5_file_folder,
+                f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+            )
+            depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
+                Filename=h5_file_path, amount_of_phases=5
+            )
+            Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+            n_lowest = int(len(Total_L2_GS) * 0.05)
+            lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
+            MT = sdr[lowest_indices, :]
+            depth_GS = depth_GS[lowest_indices]
+            M0 = M0_GS[lowest_indices]
+
+            """ Calculate take-off angles"""
+            takeoff_angles = ["P", "S", "pP"]
+            angles = []
+            for phase in takeoff_angles:
+                angles.append(
+                    fwd.get_phase_tt(
+                        phase=phase, depth=depth, distance=event.distance, takeoffs=True
+                    )
+                )
+            """ Beachball plot """
+            fig = Plot_GS_BB(
+                MT[:, 0],
+                MT[:, 1],
+                MT[:, 2],
+                azimuths=[event.az, event.az, event.az],
+                inc_angles=angles,
+                phase_names=takeoff_angles,
+                color=color_plot,
+            )
+            plt.savefig(
+                pjoin(
+                    h5_file_folder,
+                    f"GS_BBB__{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
+                ),
+                dpi=300,
+            )
+            plt.close()
+        else:
+            h5_file_path = pjoin(
+                h5_file_folder,
+                f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+            )
+
+            (
+                depth_Direct,
+                MT,
+                DC_MT,
+                CLVD_MT,
+                misfit_L2_Direct,
+                Epsilon,
+                M0,
+                M0_DC,
+                M0_CLVD,
+                angles,
+            ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
+            Total_L2_Direct = np.sum(misfit_L2_Direct)
+
+            color_plot = "r"
+
+            MT_FULL_ = np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5],])
+            DC_MT_ = np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5],])
+            CLVD_MT_ = np.array(
+                [CLVD_MT[0], CLVD_MT[2], CLVD_MT[1], CLVD_MT[4], CLVD_MT[3], CLVD_MT[5],]
+            )
+
+            fig = Plot_Direct_BB(
+                MT_Full=MT_FULL_ / M0,
+                Eps=Epsilon,
+                MT_DC=DC_MT_ / M0_DC,
+                M0_DC=M0_DC,
+                MT_CLVD=CLVD_MT_ / M0_CLVD,
+                M0_CLVD=M0_CLVD,
+                azimuths=[event.az, event.az, event.az],
+                inc_angles=angles,
+                phase_names=["P", "S", "pP"],
+                color=color_plot,
+                height=19.0,
+                horizontal=True,
+            )
+
+            plt.savefig(
+                pjoin(
+                    h5_file_folder,
+                    f"Direct_BB_{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
+                ),
+                dpi=300,
+            )
+            plt.close()
+
+            MT = np.expand_dims(DC_MT, axis=0)
+            M0 = np.expand_dims(M0, axis=0)
+
+        """ Generate Green's functions per depth """
+        syn_tts = []
+        syn_GFs = []
+        for i, phase in enumerate(phases):
+            syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
+
+            syn_GF = fwd.get_greens_functions(
+                comp=components[i],
+                depth=depth,
+                distance=event.distance,
+                lat_src=event.latitude,
+                lon_src=event.longitude,
+                rec=rec,
+                tstar=tstars[i],
+                LQT=LQT_value,
+                inc=inc,
+                baz=baz,
+                M0=1.0,
+                filter=filter_par,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
+            )
+            syn_GFs.append(syn_GF)
+            syn_tts.append(syn_tt)
+
+        fig = waveform_plot(
+            syn_GFs=syn_GFs,
+            syn_tts=syn_tts,
+            obs_tts=obs_tt,
+            fwd=fwd,
+            misfit_weight_len=misfit_weight_len,
+            event=event,
+            phases=phases,
+            components=components,
+            t_pre=t_pre,
+            t_post=t_post,
+            MTs=MT,
+            M0s=M0,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+            plot_extra_phases=plot_extra_phases,
+            color_plot=color_plot,
+            Ylims=Ylims,
+        )
+        plt.savefig(
+            pjoin(
+                h5_file_folder,
+                f"{method}_waveforms_{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
+            ),
+            dpi=300,
+        )
+        plt.close()
+
+
+def waveform_plot(
+    syn_GFs: obspy.Stream,
+    syn_tts: [float],
+    obs_tts: [float],
+    fwd: _Forward._AbstractForward,
+    misfit_weight_len: float,
+    event: obspy.core.event.Event,
+    phases: [str],
+    components: [float],
+    t_pre: [float],
+    t_post: [float],
+    MTs: _List[float],
+    M0s: [float],
+    fmin: float = None,
+    fmax: float = None,
+    zerophase: bool = None,
+    plot_extra_phases: [str] = None,
+    color_plot: str = None,
+    Ylims: [float] = None,
+):
+    """ Waveform plot """
+
+    if (fmin == None) or (fmax == None):
+        print("Data will not be filtered due to fmin or fmax equal to None")
+        filter_par = False
+    else:
+        filter_par = True
+    fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(8, 6))
+
+    for i, phase in enumerate(phases):
+        for n in range(len(M0s)):
+            tr_syn_full = fwd.generate_synthetic_data(
+                st_GF=syn_GFs[i], focal_mech=MTs[n], M0=M0s[n], slice=False,
+            )
+
+            tr_slice = tr_syn_full.slice(
+                starttime=fwd.or_time + syn_tts[i] - t_pre[i],
+                endtime=fwd.or_time + syn_tts[i] + t_post[i],
+            )
+
+            if n == 0:
+                st_obs_full, sigmasPLOT = _PreProcess.prepare_event_data(
+                    event=event,
+                    phases=phases,
+                    components=components,
+                    slice=False,
+                    filter=filter_par,
+                    fmin=fmin,
+                    fmax=fmax,
+                    zerophase=zerophase,
+                    noise_level=False,
                 )
 
-    ax[0].yaxis.set_ticks(Yticks)
-    ax[0].set_yticklabels(depths)
-    ax[0].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
+                st_obs = st_obs_full.slice(
+                    starttime=fwd.or_time + obs_tts[i] - t_pre[i],
+                    endtime=fwd.or_time + obs_tts[i] + t_post[i],
+                )
+                ax[i].plot(
+                    st_obs_full[i].times() - obs_tts[i], st_obs_full[i].data, lw=1, c="k",
+                )
+                ax[i].plot(
+                    st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
+                )
+                ax[i].plot(
+                    tr_slice.times() - t_pre[i],
+                    tr_slice.data,
+                    lw=2,
+                    c=color_plot,
+                    label="Synthetic",
+                )
+            else:
+                ax[i].plot(
+                    tr_slice.times() - t_pre[i], tr_slice.data, lw=2, c=color_plot,
+                )
+            ax[i].plot(
+                tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
+                tr_syn_full.data,
+                lw=1,
+                c=color_plot,
+            )
+            # ax[i].legend()
+
+            st = obspy.Stream()
+            st += tr_slice
+            st += st_obs[i]
+            if n == len(M0s) - 1:
+                global_max = max([tr.data.max() for tr in st]) * 1.2
+                global_min = min([tr.data.min() for tr in st]) * 1.2
+                ax[i].axvline(x=t_post[i], c="grey", ls="dashed")
+                ax[i].axvline(x=-t_pre[i], c="grey", ls="dashed")
+                ax[i].axvspan(-t_pre[i], misfit_weight_len, facecolor="grey", alpha=0.2)
+                ax[i].axvline(x=0.0, c="grey")
+                ax[i].text(
+                    0 + 0.1,
+                    global_max * 0.8,
+                    phase,
+                    verticalalignment="center",
+                    color="grey",
+                    fontsize=6,
+                )
+                ax[i].text(
+                    s="%s%s" % (phases[i], components[i]),
+                    x=0.98,
+                    y=0.7,
+                    ha="right",
+                    transform=ax[i].transAxes,
+                    color="blue",
+                    fontsize=20,
+                )
+
+                # Extra phase arrivals:
+                if plot_extra_phases is not None:
+                    for j, extraphase in enumerate(plot_extra_phases):
+                        arr = fwd.get_phase_tt(
+                            phase=extraphase, depth=depth, distance=event.distance
+                        )
+                        if arr:
+                            ax[i].axvline(x=arr - syn_tts[i], c="grey")
+                            ax[i].text(
+                                arr - syn_tts[i] + 0.1,
+                                global_max * 0.8,
+                                extraphase,
+                                verticalalignment="center",
+                                color="grey",
+                                fontsize=6,
+                            )
+                if Ylims is None:
+                    ax[i].set_ylim(global_min, global_max)
+                else:
+                    ax[i].set_ylim(-Ylims[i], Ylims[i])
+                ax[i].get_yaxis().get_offset_text().set_visible(False)
+                ax_max = max(ax[i].get_yticks())
+                exponent_axis = np.floor(np.log10(ax_max)).astype(int)
+                ax[i].annotate(
+                    r"$\times$10$^{%i}$" % (exponent_axis),
+                    xy=(0.01, 0.82),
+                    xycoords="axes fraction",
+                )
+
     fig.text(
-        0.5,
-        0.95,
-        f"Velocity model: {fwd.veloc_name}",
-        ha="center",
+        0.9,
+        0.88,
+        "M0: %.2e" % (M0s[0]),
+        ha="right",
         va="bottom",
-        size="x-large",
-        color="blue",
+        size="medium",
+        color="black",
+        fontsize=14,
     )
-    plt.show()
-    # fig.savefig(os.path.join(h5_file_path, f"Depth_vs_Obs_{model_name}.pdf"))
-    plt.close(fig[iphase])
+    fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=18)
+    fig.text(
+        0.5, 0.88, event.name, ha="center", va="bottom", size="x-large", color="blue", fontsize=18,
+    )
 
-    pass
+    ax[0].legend(
+        prop={"size": 12},
+        loc="center left",
+        bbox_to_anchor=(0.12, 0.93),
+        bbox_transform=fig.transFigure,
+    )
 
+    ax[-1].set_xlim(-10.0, 60.0)
+    ax[-1].set_xlabel("time after phase (s)", fontsize=18)
+    return fig

@@ -5,7 +5,7 @@ __author__ = "Nienke Brinkman"
 
 from os.path import join as pjoin
 from os.path import exists as exist
-from os.path import getsize as gsize
+from os import listdir as lsdir
 import instaseis
 import numpy as np
 import matplotlib.pyplot as plt
@@ -99,15 +99,15 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event_nr > 1:
+    if event_nr == 1:
         continue
     """ Define forward modeler """
     forward_method = "INSTASEIS"
     db_path = v["db_path"]
 
     mnt_folder = "/mnt/marshost/"
-    if not gsize(mnt_folder):
-        print(f'{local_folder} is still empty, mounting now...')        
+    if not lsdir(mnt_folder):
+        print(f"{mnt_folder} is still empty, mounting now...")
         SS_MTI.DataGetter.mnt_remote_folder(
             host_ip="marshost.ethz.ch",
             host_usr="sysop",
@@ -173,58 +173,81 @@ for i, v in event_input.items():
 
     """ Start inversion """
     # if inv_method == "GS":
-    # SS_MTI.Inversion.Grid_Search_run(
-    #     fwd=fwd,
-    #     misfit=misfit,
-    #     event=event,
-    #     rec=rec,
-    #     phases=phases,
-    #     components=components,
-    #     t_pre=t_pre,
-    #     t_post=t_post,
-    #     depths=depths,
-    #     strikes=strikes,
-    #     dips=dips,
-    #     rakes=rakes,
-    #     phase_corrs=phase_corrs,
-    #     tstars=tstars,
-    #     fmin=fmin,
-    #     fmax=fmax,
-    #     zerophase=zerophase,
-    #     list_to_correct_M0=amplitude_correction,
-    #     output_folder=output_folder,
-    #     plot=True,
-    #     plot_extra_phases=extra_phases,
-    #     color_plot="blue",
-    #     Ylims=ylims,
-    # )
-    # # elif inv_method == "Direct":
-    # # """ Direct inversion """
-    # SS_MTI.Inversion.Direct(
-    #     fwd=fwd,
-    #     misfit=misfit,
-    #     event=event,
-    #     rec=rec,
-    #     phases=phases,
-    #     components=components,
-    #     phase_corrs=phase_corrs,
-    #     t_pre=t_pre,
-    #     t_post=t_post,
-    #     depths=depths,
-    #     tstars=tstars,
-    #     fmin=fmin,
-    #     fmax=fmax,
-    #     zerophase=zerophase,
-    #     output_folder=output_folder,
-    #     plot=True,
-    #     plot_extra_phases=extra_phases,
-    #     color_plot="red",
-    #     Ylims=ylims,
-    # )
+    SS_MTI.Inversion.Grid_Search_run(
+        fwd=fwd,
+        misfit=misfit,
+        event=event,
+        rec=rec,
+        phases=phases,
+        components=components,
+        t_pre=t_pre,
+        t_post=t_post,
+        depths=depths,
+        strikes=strikes,
+        dips=dips,
+        rakes=rakes,
+        phase_corrs=phase_corrs,
+        tstars=tstars,
+        fmin=fmin,
+        fmax=fmax,
+        zerophase=zerophase,
+        list_to_correct_M0=amplitude_correction,
+        output_folder=output_folder,
+        plot=True,
+        plot_extra_phases=extra_phases,
+        color_plot="blue",
+        Ylims=ylims,
+    )
+    # elif inv_method == "Direct":
+    # """ Direct inversion """
+    SS_MTI.Inversion.Direct(
+        fwd=fwd,
+        misfit=misfit,
+        event=event,
+        rec=rec,
+        phases=phases,
+        components=components,
+        phase_corrs=phase_corrs,
+        t_pre=t_pre,
+        t_post=t_post,
+        depths=depths,
+        tstars=tstars,
+        fmin=fmin,
+        fmax=fmax,
+        zerophase=zerophase,
+        output_folder=output_folder,
+        plot=True,
+        plot_extra_phases=extra_phases,
+        color_plot="red",
+        Ylims=ylims,
+    )
     # else:
     #     raise ValueError("inv_method is not recognized, specify: GS or Direct")
 
     """ Post-processing """
+
+    """ (waveform plotting post inversion from generated files)"""
+    # _PostProcessing.post_waveform_plotting(
+    #     h5_file_folder=output_folder,
+    #     method="GS",
+    #     misfit_name=misfit.name,
+    #     misfit_weight_len=misfit.start_weight_len,
+    #     fwd=fwd,
+    #     event=event,
+    #     rec=rec,
+    #     phases=phases,
+    #     components=components,
+    #     t_pre=t_pre,
+    #     t_post=t_post,
+    #     depths=[41],
+    #     phase_corrs=phase_corrs,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     zerophase=zerophase,
+    #     tstars=tstars,
+    #     plot_extra_phases=extra_phases,
+    #     Ylims=ylims,
+    # )
 
     """ (misfit vs depth analysis)"""
     # DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
@@ -253,27 +276,39 @@ for i, v in event_input.items():
     # plt.close()
 
     """ (best MT vs depth phase arrivals) """
-    depths = np.array([23,26,29])
-    _PostProcessing.plot_phases_vs_depth(
-    h5_file_folder=output_folder,
-    method="GS",
-    misfit_name="L2",
-    fwd=fwd,
-    event=event,
-    rec=rec,
-    phases=phases,
-    components=components,
-    t_pre=t_pre,
-    t_post=t_post,
-    depths=depths,
-    phase_corrs=phase_corrs,
-    fmin=fmin,
-    fmax=fmax,
-    zerophase=zerophase,
-    tstars=tstars,
-    color_plot="blue",
-)
-
-    
-
+    # depths = depths[::2]  # np.array([23, 26, 29])  #
+    # t_pre = [5, 5]
+    # t_post = [40, 40]
+    # phases = [phases[0], phases[1]]
+    # components = [components[0], components[1]]
+    # phase_corrs = [phase_corrs[0], phase_corrs[1]]
+    # tstars = [tstars[0], tstars[1]]
+    # fig = _PostProcessing.plot_phases_vs_depth(
+    #     h5_file_folder=output_folder,
+    #     method="GS",
+    #     misfit_name=misfit.name,
+    #     fwd=fwd,
+    #     event=event,
+    #     rec=rec,
+    #     phases=phases,
+    #     components=components,
+    #     t_pre=t_pre,
+    #     t_post=t_post,
+    #     depths=depths,
+    #     phase_corrs=phase_corrs,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     zerophase=zerophase,
+    #     tstars=tstars,
+    #     color_plot="blue",
+    # )
+    # # plt.tight_layout()
+    # plt.savefig(
+    #     pjoin(
+    #         save_folder,
+    #         f"PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    #     ),
+    #     dpi=600,
+    # )
+    # plt.close()
 

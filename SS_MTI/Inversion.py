@@ -58,7 +58,7 @@ def Grid_Search_run(
     """
     print(f"Running grid search with model: {fwd.name}")
     print(f"and with {misfit.description}")
-    M0 = 1e14
+    M0 = 1.0
 
     if tstars is None:
         tstars = [None] * len(phases)
@@ -202,7 +202,9 @@ def Grid_Search_run(
             M0_corrs_total = f["samples"][:, 5]
             M0_corrs = M0_corrs_total[lowest_indices]
             M0_total = f["samples"][:, 4]
-            M0_plot = M0_total[lowest_indices][0] * M0_corrs_total[lowest_indices][0]
+            M0_plot = _np.expand_dims(
+                M0_total[lowest_indices] * M0_corrs_total[lowest_indices], axis=1
+            )
             """ Beachball plot """
 
             fig = _PostProcessing.Plot_GS_BB(
@@ -223,154 +225,26 @@ def Grid_Search_run(
             )
             plt.close()
 
-            """ Waveform plot """
-            fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(8, 6))
-
-            for i, phase in enumerate(phases):
-                for n in range(len(lowest_indices)):
-                    tr_syn_full = fwd.generate_synthetic_data(
-                        st_GF=syn_GFs[i], focal_mech=sdrs[n], M0=M0, slice=False,
-                    )
-
-                    tr_slice = tr_syn_full.slice(
-                        starttime=fwd.or_time + syn_tts[i] - t_pre[i],
-                        endtime=fwd.or_time + syn_tts[i] + t_post[i],
-                    )
-
-                    if n == 0:
-                        st_obs_full, sigmasPLOT = _PreProcess.prepare_event_data(
-                            event=event,
-                            phases=phases,
-                            components=components,
-                            slice=False,
-                            filter=filter_par,
-                            fmin=fmin,
-                            fmax=fmax,
-                            zerophase=zerophase,
-                            noise_level=False,
-                        )
-                        ax[i].plot(
-                            st_obs_full[i].times() - obs_tt[i], st_obs_full[i].data, lw=1, c="k",
-                        )
-                        ax[i].plot(
-                            st_obs[i].times() - t_pre[i],
-                            st_obs[i].data,
-                            lw=2,
-                            c="k",
-                            label="Observed",
-                        )
-                        ax[i].plot(
-                            tr_slice.times() - t_pre[i],
-                            tr_slice.data * M0_corrs[n],
-                            lw=2,
-                            c=color_plot,
-                            label="Synthetic",
-                        )
-                    else:
-                        ax[i].plot(
-                            tr_slice.times() - t_pre[i],
-                            tr_slice.data * M0_corrs[n],
-                            lw=2,
-                            c=color_plot,
-                        )
-                    ax[i].plot(
-                        tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
-                        tr_syn_full.data * M0_corrs[n],
-                        lw=1,
-                        c=color_plot,
-                    )
-                    # ax[i].legend()
-
-                    st = obspy.Stream()
-                    st += tr_slice
-                    st += st_obs[i]
-                    if n == len(lowest_indices) - 1:
-                        global_max = max([tr.data.max() for tr in st]) * 1.2
-                        global_min = min([tr.data.min() for tr in st]) * 1.2
-                        ax[i].axvline(x=t_post[i], c="grey", ls="dashed")
-                        ax[i].axvline(x=-t_pre[i], c="grey", ls="dashed")
-                        ax[i].axvspan(
-                            -t_pre[i], misfit.start_weight_len, facecolor="grey", alpha=0.2
-                        )
-                        ax[i].axvline(x=0.0, c="grey")
-                        ax[i].text(
-                            0 + 0.1,
-                            global_max * 0.8,
-                            phase,
-                            verticalalignment="center",
-                            color="grey",
-                            fontsize=6,
-                        )
-                        ax[i].text(
-                            s="%s%s" % (phases[i], components[i]),
-                            x=0.98,
-                            y=0.7,
-                            ha="right",
-                            transform=ax[i].transAxes,
-                            color="blue",
-                            fontsize=20,
-                        )
-
-                        # Extra phase arrivals:
-                        if plot_extra_phases is not None:
-                            for j, extraphase in enumerate(extra_phases):
-                                arr = fwd.get_phase_tt(
-                                    phase=extraphase, depth=depth, distance=event.distance
-                                )
-                                if arr:
-                                    ax[i].axvline(x=arr - syn_tts[i], c="grey")
-                                    ax[i].text(
-                                        arr - syn_tts[i] + 0.1,
-                                        global_max * 0.8,
-                                        extraphase,
-                                        verticalalignment="center",
-                                        color="grey",
-                                        fontsize=6,
-                                    )
-                        if Ylims is None:
-                            ax[i].set_ylim(global_min, global_max)
-                        else:
-                            ax[i].set_ylim(-Ylims[i], Ylims[i])
-                        ax[i].get_yaxis().get_offset_text().set_visible(False)
-                        ax_max = max(ax[i].get_yticks())
-                        exponent_axis = _np.floor(_np.log10(ax_max)).astype(int)
-                        ax[i].annotate(
-                            r"$\times$10$^{%i}$" % (exponent_axis),
-                            xy=(0.01, 0.82),
-                            xycoords="axes fraction",
-                        )
-
-            fig.text(
-                0.9,
-                0.88,
-                "M0: %.2e" % (M0_plot),
-                ha="right",
-                va="bottom",
-                size="medium",
-                color="black",
-                fontsize=14,
+            fig = _PostProcessing.waveform_plot(
+                syn_GFs=syn_GFs,
+                syn_tts=syn_tts,
+                obs_tts=obs_tt,
+                fwd=fwd,
+                misfit_weight_len=misfit.start_weight_len,
+                event=event,
+                phases=phases,
+                components=components,
+                t_pre=t_pre,
+                t_post=t_post,
+                MTs=sdrs,
+                M0s=M0_plot,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
+                plot_extra_phases=plot_extra_phases,
+                color_plot=color_plot,
+                Ylims=Ylims,
             )
-            fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=18)
-            fig.text(
-                0.5,
-                0.88,
-                event.name,
-                ha="center",
-                va="bottom",
-                size="x-large",
-                color="blue",
-                fontsize=18,
-            )
-
-            ax[0].legend(
-                prop={"size": 12},
-                loc="center left",
-                bbox_to_anchor=(0.12, 0.93),
-                bbox_transform=fig.transFigure,
-            )
-
-            ax[-1].set_xlim(-10.0, 60.0)
-            ax[-1].set_xlabel("time after phase (s)", fontsize=18)
             plt.savefig(
                 pjoin(
                     output_folder,
@@ -682,146 +556,33 @@ def Direct(
             )
             plt.close()
 
-            fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(8, 6))
+            MT = _np.expand_dims(DC_MT, axis=0)
+            M0 = _np.expand_dims(M0, axis=0)
 
-            for i, phase in enumerate(phases):
-                """ Plot is generated with the DC solution """
-                tr_syn_full = fwd.generate_synthetic_data(
-                    st_GF=syn_GFs[i], focal_mech=DC_MT, M0=1.0, slice=False,
-                )
-
-                tr_slice = tr_syn_full.slice(
-                    starttime=fwd.or_time + syn_tts[i] - t_pre[i],
-                    endtime=fwd.or_time + syn_tts[i] + t_post[i],
-                )
-
-                st_obs_full, sigmasPLOT = _PreProcess.prepare_event_data(
-                    event=event,
-                    phases=phases,
-                    components=components,
-                    slice=False,
-                    filter=filter_par,
-                    fmin=fmin,
-                    fmax=fmax,
-                    zerophase=zerophase,
-                    noise_level=False,
-                )
-                ax[i].plot(
-                    st_obs_full[i].times() - obs_tt[i], st_obs_full[i].data, lw=1, c="k",
-                )
-                ax[i].plot(
-                    st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
-                )
-                ax[i].plot(
-                    tr_slice.times() - t_pre[i],
-                    tr_slice.data,
-                    lw=2,
-                    c=color_plot,
-                    label="Synthetic",
-                )
-
-                ax[i].plot(
-                    tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
-                    tr_syn_full.data,
-                    lw=1,
-                    c=color_plot,
-                )
-                # ax[i].legend()
-
-                st = obspy.Stream()
-                st += tr_slice
-                st += st_obs[i]
-                global_max = max([tr.data.max() for tr in st]) * 1.2
-                global_min = min([tr.data.min() for tr in st]) * 1.2
-
-                ax[i].axvline(x=0.0, c="grey")
-                ax[i].axvline(x=t_post[i], c="grey", ls="dashed")
-                ax[i].axvline(x=-t_pre[i], c="grey", ls="dashed")
-                ax[i].text(
-                    0 + 0.1,
-                    global_max * 0.8,
-                    phase,
-                    verticalalignment="center",
-                    color="grey",
-                    fontsize=6,
-                )
-
-                ax[i].text(
-                    s="%s%s" % (phases[i], components[i]),
-                    x=0.98,
-                    y=0.7,
-                    ha="right",
-                    transform=ax[i].transAxes,
-                    color="blue",
-                    fontsize=20,
-                )
-
-                # Extra phase arrivals:
-                if plot_extra_phases is not None:
-                    for j, extraphase in enumerate(extra_phases):
-                        arr = fwd.get_phase_tt(
-                            phase=extraphase, depth=depth, distance=event.distance
-                        )
-                        if arr:
-                            ax[i].axvline(x=arr - syn_tts[i], c="grey")
-                            ax[i].text(
-                                arr - syn_tts[i] + 0.1,
-                                global_max * 0.8,
-                                extraphase,
-                                verticalalignment="center",
-                                color="grey",
-                                fontsize=6,
-                            )
-
-                if Ylims is None:
-                    ax[i].set_ylim(global_min, global_max)
-                else:
-                    ax[i].set_ylim(-Ylims[i], Ylims[i])
-
-                ax[i].get_yaxis().get_offset_text().set_visible(False)
-                ax_max = max(ax[i].get_yticks())
-                exponent_axis = _np.floor(_np.log10(ax_max)).astype(int)
-                ax[i].annotate(
-                    r"$\times$10$^{%i}$" % (exponent_axis),
-                    xy=(0.01, 0.82),
-                    xycoords="axes fraction",
-                )
-                ax[i].axvspan(-t_pre[i], misfit.start_weight_len, facecolor="grey", alpha=0.2)
-
-            fig.text(
-                0.9,
-                0.88,
-                "M0: %.2e" % (M0),
-                ha="right",
-                va="bottom",
-                size="medium",
-                color="black",
-                fontsize=14,
+            fig = _PostProcessing.waveform_plot(
+                syn_GFs=syn_GFs,
+                syn_tts=syn_tts,
+                obs_tts=obs_tt,
+                fwd=fwd,
+                misfit_weight_len=misfit.start_weight_len,
+                event=event,
+                phases=phases,
+                components=components,
+                t_pre=t_pre,
+                t_post=t_post,
+                MTs=MT,
+                M0s=M0,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
+                plot_extra_phases=plot_extra_phases,
+                color_plot=color_plot,
+                Ylims=Ylims,
             )
-            fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=18)
-            fig.text(
-                0.5,
-                0.88,
-                event.name,
-                ha="center",
-                va="bottom",
-                size="x-large",
-                color="blue",
-                fontsize=18,
-            )
-
-            ax[0].legend(
-                prop={"size": 12},
-                loc="center left",
-                bbox_to_anchor=(0.12, 0.93),
-                bbox_transform=fig.transFigure,
-            )
-            ax[-1].set_xlim(-10.0, 60.0)
-            ax[-1].set_xlabel("time after phase (s)", fontsize=18)
             plt.savefig(
                 pjoin(
                     output_folder,
-                    f"Direct_waveforms__{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                    f"Direct_waveforms_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
                 ),
                 dpi=300,
             )
