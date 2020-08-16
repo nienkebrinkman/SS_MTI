@@ -26,6 +26,7 @@ name = "Test_Event"
 
 lat_rec = 4.502384
 lon_rec = 135.623447
+rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 fig = PP.Plot_event_location(lat_src, lon_src, lat_rec, lon_rec, "test event")
 plt.savefig("/home/nienke/Documents/Research/Data/MTI/Phase_tracking/source_location.pdf")
@@ -44,7 +45,7 @@ kind = "displacement"
 noise = True
 
 epi, az, baz = EventObj.Get_location(lat_src, lon_src, lat_rec, lon_rec)
-
+epi = 25
 fmin = 1.0 / 10.0
 fmax = 1.0 / 3.0
 zerophase = False
@@ -124,7 +125,7 @@ for npz_file, db_path in zip(npz_file_names, db_names):
 
         Conversion_src.append("S" + interface + "P")
         Conversion_src.append("P" + interface + "S")
-        # Conversion_rec.append("P" + interface + "p")
+        Conversion_rec.append("P" + interface + "p")
         Conversion_rec.append("P" + interface + "s")
 
     Direct_phases = ["P"]
@@ -170,14 +171,7 @@ for npz_file, db_path in zip(npz_file_names, db_names):
     """ Define forward solver """
 
     fwd = SS_MTI.Forward.Instaseis(
-        instaseis_db=db,
-        taup_model=npz_file,
-        rec_lat=lat_rec,
-        rec_lon=lon_rec,
-        or_time=or_time,
-        dt=dt,
-        start_cut=0.0,
-        end_cut=800.0,
+        instaseis_db=db, taup_model=npz_file, or_time=or_time, dt=dt, start_cut=0.0, end_cut=800.0,
     )
 
     fig = [None] * len(Direct_phases)
@@ -207,6 +201,7 @@ for npz_file, db_path in zip(npz_file_names, db_names):
                 comp=comp,
                 depth=depth,
                 distance=epi,
+                rec=rec,
                 lat_src=lat_src,
                 lon_src=lon_src,
                 tstar=None,

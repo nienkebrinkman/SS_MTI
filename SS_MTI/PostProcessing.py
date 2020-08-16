@@ -17,6 +17,7 @@ from os.path import join as pjoin
 from typing import List as _List, Union as _Union
 import instaseis
 from obspy import UTCDateTime as utct
+from obspy.imaging.beachball import aux_plane
 
 pyproj_datadir = os.environ["PROJ_LIB"]
 
@@ -27,6 +28,7 @@ from SS_MTI import Read_H5 as _ReadH5
 from SS_MTI import MTDecompose as _MTDecompose
 from SS_MTI import Forward as _Forward
 from SS_MTI import PreProcess as _PreProcess
+from SS_MTI import GreensFunctions as _GreensFunctions
 
 
 def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
@@ -754,7 +756,9 @@ def plot_misfit_vs_depth(
             )[0]
 
             ## ================ READ GS =============================
-            (depth_GS, sdr, M0_GS, misfit_L2_GS,) = _ReadH5.Read_GS_h5(Filename=GS_File)
+            (depth_GS, sdr, M0_GS, misfit_L2_GS,) = _ReadH5.Read_GS_h5(
+                Filename=GS_File, amount_of_phases=amount_of_phases
+            )
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
             # Total_L2_norm_GS = np.sum(misfit_L2_norm_GS, axis=1)
             # GOF = ( (Total_L2_GS - DOF ) * 100 ) / DOF
@@ -960,7 +964,7 @@ def plot_misfit_vs_depth(
     ax[1].set_yticks(list(ax[1].get_yticks()) + extraticks)
     ax[1].legend(prop={"size": 15}, loc="upper right")
     ax[1].set_xlabel("Depth (km)", fontsize=20)
-    ax[1].set_ylabel("Epsilon", fontsize=20)
+    ax[1].set_ylabel(r"$\epsilon$", fontsize=20)
     ax[1].tick_params(axis="both", which="major", labelsize=18)
     ax[1].tick_params(axis="both", which="minor", labelsize=10)
     ax[1].set_ylim(-0.05, 0.5)
@@ -1089,21 +1093,54 @@ def plot_phases_vs_depth(
         )
 
         """ Generate Green's functions per depth """
+        extra_phases = ["pP", "sS", "sP", "pS", "SS", "PP", "SSS", "PPP", "s^10P"]
+        for j, extraphase in enumerate(extra_phases):
+            extra_arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+            if extra_arr:
+                extra_arrs[idepth].append(extra_arr)
+            else:
+                extra_arrs[idepth].append(extra_arr)
 
         for i, phase in enumerate(phases):
             syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
             syn_tts[idepth].append(syn_tt)
-            extra_phases = ["pP", "sS", "sP", "pS", "SS", "PP", "SSS", "PPP"]
+            """ With instaseis"""
+            # stf_len_sec = 30.0
+            # from SS_MTI import SourceTimeFunction as STF_
 
-            for j, extraphase in enumerate(extra_phases):
-                extra_arr = fwd.get_phase_tt(
-                    phase=extraphase, depth=depth, distance=event.distance
-                )
-                if extra_arr:
-                    extra_arrs[idepth].append(extra_arr)
-                else:
-                    extra_arrs[idepth].append(extra_arr)
+            # stf = STF_.stf_tstar(
+            #     tstar=tstars[i], dt=fwd.db.info.dt, npts=int(stf_len_sec / fwd.db.info.dt)
+            # )[0]
+            # src = instaseis.Source.from_strike_dip_rake(
+            #     latitude=event.latitude,
+            #     longitude=event.longitude,
+            #     depth_in_m=depth * 1000,
+            #     strike=MT[0],
+            #     dip=MT[1],
+            #     rake=MT[2],
+            #     M0=M0,
+            #     origin_time=event.origin_time,
+            #     time_shift=None,
+            #     sliprate=None,
+            # )
 
+            # src.set_sliprate(stf, dt=fwd.db.info.dt)
+            # tr_syn = fwd.db.get_seismograms(
+            #     source=src,
+            #     receiver=rec,
+            #     components=[components[i]],
+            #     kind="displacement",
+            #     dt=0.05,
+            #     reconvolve_stf=True,
+            #     remove_source_shift=False,
+            # )[0]
+
+            # _PreProcess.filter_tr(tr_syn, fmin=fmin, fmax=fmax, zerophase=zerophase)
+            # tr_syn.trim(
+            #     starttime=fwd.or_time + syn_tt - t_pre[i],
+            #     endtime=fwd.or_time + syn_tt + t_post[i],
+            # )
+            """ with my code"""
             syn_GF = fwd.get_greens_functions(
                 comp=components[i],
                 depth=depth,
@@ -1141,8 +1178,8 @@ def plot_phases_vs_depth(
                 t_post=t_post[i],
                 fig=fig,
                 ax=ax[i],
-                extra_phases=None,
-                extra_arrs=None,
+                extra_phases=extra_phases,
+                extra_arrs=extra_arrs[idepth],
             )
     delta = Yticks[1] - Yticks[0]
 
@@ -1176,8 +1213,10 @@ def plot_phases_vs_depth(
             syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
             x = np.asarray([arr[k] for arr in extra_arrs], dtype=np.float)
             x = x - syn_tt_depth
-            x[x > t_post[i]] = None
-            x[x < -t_pre[i]] = None
+            if np.any(x > t_post[i]):
+                x[x > t_post[i]] = None
+            if np.any(x < -t_pre[i]):
+                x[x < -t_pre[i]] = None
             y = np.asarray(Yticks[:-1])
             y = y[~np.isnan(x)]
             x = x[~np.isnan(x)]
@@ -1212,7 +1251,7 @@ def plot_phases_vs_depth(
             if not i == 0:
                 ax[i].get_yaxis().set_visible(False)
 
-    # for i in range(len(phases)):
+    # # for i in range(len(phases)):
 
     ax[-1].yaxis.set_ticks(Yticks)
     ax[-1].set_yticklabels(depths)
@@ -1653,4 +1692,195 @@ def waveform_plot(
 
     ax[-1].set_xlim(-10.0, 60.0)
     ax[-1].set_xlabel("time after phase (s)", fontsize=18)
+    return fig
+
+
+def Source_Uncertainty(
+    h5_file_folder: str,
+    event_name: str,
+    method: str,
+    misfit_name: str,
+    fwd: _Forward._AbstractForward,
+    phases: [str],
+    components: [str],
+    depths: [float],
+    DOF: float,
+    fmin: float = None,
+    fmax: float = None,
+):
+
+    for idepth, depth in enumerate(depths):
+        print(depth)
+        # if method == "GS":
+        color_plot = "b"
+        h5_file_path = pjoin(
+            h5_file_folder,
+            f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+        )
+        depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
+            Filename=h5_file_path, amount_of_phases=5
+        )
+        Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+        n_lowest = 50
+        # n_lowest = int(len(Total_L2_GS) * 0.05)
+        # lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
+        lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
+
+        GOF_GS = (Total_L2_GS / DOF)[lowest_indices]
+        M0 = M0_GS[lowest_indices]
+
+        sdrs = sdr[lowest_indices, :]
+        MT_Full = np.zeros((sdrs.shape[0], 6))
+        for i in range(MT_Full.shape[0]):
+            MT_Full[i, :] = (
+                _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i]) / M0[i]
+            )
+
+        if idepth == 0:
+            MT_GS = MT_Full
+            MT_sdrs = sdrs
+            weights_GS = np.exp(-GOF_GS)
+        else:
+            MT_GS = np.vstack((MT_GS, MT_Full))
+            MT_sdrs = np.vstack((MT_sdrs, sdrs))
+            weights_GS = np.hstack((weights_GS, np.exp(-GOF_GS)))
+        (values, counts) = np.unique(sdrs[:, 0], return_counts=True)
+        ind = np.argmax(counts)
+        print("Strike:", values[ind])
+        (values, counts) = np.unique(sdrs[:, 1], return_counts=True)
+        ind = np.argmax(counts)
+        print("Dip:", values[ind])
+        (values, counts) = np.unique(sdrs[:, 2], return_counts=True)
+        ind = np.argmax(counts)
+        print("Rake:", values[ind])
+
+        # else:
+
+        h5_file_path = pjoin(
+            h5_file_folder,
+            f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+        )
+
+        (
+            depth_Direct,
+            MT_Full,
+            DC_MT,
+            CLVD_MT,
+            misfit_L2_Direct,
+            Epsilon,
+            M0_Direct,
+            M0_DC,
+            M0_CLVD,
+            angles,
+        ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
+        Total_L2_Direct = np.sum(misfit_L2_Direct)
+        GOF_Direct = Total_L2_Direct / DOF
+        DC_MT = np.expand_dims(DC_MT, axis=0)
+        DC_MT = DC_MT / M0_DC
+        if idepth == 0:
+            MT_Direct = DC_MT
+            weights_Direct = np.exp(-GOF_Direct)
+        else:
+            MT_Direct = np.vstack((MT_Direct, DC_MT))
+            weights_Direct = np.hstack((weights_Direct, np.exp(-GOF_Direct)))
+
+        color_plot = "r"
+    fig, ax = plt.subplots(
+        nrows=2, ncols=6, figsize=(12, 6), sharey="row", gridspec_kw={"height_ratios": [3, 1]}
+    )
+    MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
+    for i in range(6):
+        ax[0, i].hist(
+            MT_GS[:, i],
+            bins=18,
+            alpha=0.4,
+            color="steelblue",
+            edgecolor="none",
+            label="GS",
+            weights=weights_GS,
+            density=True,
+        )
+        ax[0, i].hist(
+            MT_Direct[:, i],
+            bins=18,
+            alpha=0.4,
+            color="red",
+            edgecolor="none",
+            label="Direct",
+            weights=weights_Direct,
+            density=True,
+        )
+        ax[0, i].set_xlabel(MT_names[i], fontsize=18)
+        ax[0, i].tick_params(axis="x", labelsize=15)
+        ax[0, i].tick_params(axis="y", labelsize=15)
+        ax[0, i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+        ax[0, i].set_xlim(-1, 1)
+        n_GS, bins_GS = np.histogram(MT_GS[:, i], bins=18, weights=weights_GS, density=True)
+        mids = 0.5 * (bins_GS[1:] + bins_GS[:-1])
+        mean_GS = np.average(mids, weights=n_GS)
+        # (values, counts) = np.unique(MT_GS[:, i], return_counts=True)
+        # ind = np.argmax(counts)
+        # mean_GS = values[ind]
+        var_GS = np.sqrt(np.average((mids - mean_GS) ** 2, weights=n_GS))
+        # ax[0, i].axvline(x=mean_GS, c="steelblue", lw=1)
+        # ax[0, i].axvline(x=mean_GS + var_GS, c="steelblue", lw=1, ls="--")
+        # ax[0, i].axvline(x=mean_GS - var_GS, c="steelblue", lw=1, ls="--")
+
+        n_Direct, bins_Direct = np.histogram(
+            MT_Direct[:, i], bins=18, weights=weights_Direct, density=True
+        )
+        mids = 0.5 * (bins_Direct[1:] + bins_Direct[:-1])
+        mean_Direct = np.average(mids, weights=n_Direct)
+        var_Direct = np.sqrt(np.average((mids - mean_Direct) ** 2, weights=n_Direct))
+        # ax[0, i].axvline(x=mean_Direct, c="red", lw=1)
+        # ax[0, i].axvline(x=mean_Direct + var_Direct, c="red", lw=1, ls="--")
+        # ax[0, i].axvline(x=mean_Direct - var_Direct, c="red", lw=1, ls="--")
+
+    ax[0, 0].set_ylabel("Frequency", fontsize=18)
+    # ax[0,0].set_ylim(0, 10)
+    ax[0, 0].legend()
+
+    sdr_names = ["strike", "dip", "rake"]
+    sdr_mins = [0, 0, -180]
+    sdr_maxs = [360, 90, 180]
+
+    (values, counts) = np.unique(MT_sdrs[:, 0], return_counts=True)
+    ind = np.argmax(counts)
+    strike_max = values[ind]
+    (values, counts) = np.unique(MT_sdrs[:, 1], return_counts=True)
+    ind = np.argmax(counts)
+    dip_max = values[ind]
+    (values, counts) = np.unique(MT_sdrs[:, 2], return_counts=True)
+    ind = np.argmax(counts)
+    rake_max = values[ind]
+    strike_aux, dip_aux, rake_aux = aux_plane(strike_max, dip_max, rake_max)
+    f_planes = [strike_max, dip_max, rake_max]
+    aux_planes = [strike_aux, dip_aux, rake_aux]
+    for axs in ax[1, :]:
+        axs.remove()
+    for i in range(3):
+        plot_nr = i * 2
+
+        gs = ax[1, plot_nr].get_gridspec()
+        # remove the underlying axes
+
+        axbig = fig.add_subplot(gs[1, plot_nr : plot_nr + 2])
+        # axbig.annotate('Big Axes \nGridSpec[1:, -1]', (0.1, 0.5)
+        axbig.hist(
+            MT_sdrs[:, i],
+            bins=18,
+            alpha=0.4,
+            color="steelblue",
+            edgecolor="none",
+            label="GS",
+            weights=weights_GS,
+            density=True,
+        )
+        axbig.axvline(x=f_planes[i], c="red", lw=1)
+        axbig.axvline(x=aux_planes[i], c="red", lw=1)
+        axbig.set_xlabel(sdr_names[i], fontsize=18)
+        axbig.tick_params(axis="x", labelsize=15)
+        axbig.tick_params(axis="y", labelsize=15)
+        axbig.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+        axbig.set_xlim(sdr_mins[i], sdr_maxs[i])
     return fig

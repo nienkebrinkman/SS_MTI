@@ -393,8 +393,10 @@ def Direct(
         A = G_tot.T @ Wd_tot @ G_tot
         B = G_tot.T @ Wd_tot @ d_tot
 
-        M = _np.linalg.solve(A, B)
-        # M = _np.linalg.lstsq(A, B)[0]
+        try:
+            M = _np.linalg.solve(A, B)
+        except _np.linalg.LinAlgError:
+            M = _np.linalg.lstsq(A, B)[0]
 
         # --- transform to r, theta, phi system ---
         mxx = M[0]
@@ -557,7 +559,7 @@ def Direct(
             plt.close()
 
             MT = _np.expand_dims(DC_MT, axis=0)
-            M0 = _np.expand_dims(M0, axis=0)
+            M0 = _np.expand_dims(M0_DC, axis=0)
 
             fig = _PostProcessing.waveform_plot(
                 syn_GFs=syn_GFs,

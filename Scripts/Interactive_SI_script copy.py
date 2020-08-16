@@ -14,7 +14,7 @@ import SS_MTI
 import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Test"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Trial_2"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -37,7 +37,7 @@ event_input = {
         "fmin": 0.1,
         "fmax": 0.9,
         "zerophase": False,
-        "amplitude_correction": ["PZ", "ST"],
+        "amplitude_correction": ["PZ"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [30, 30, 30, 30, 30],
         "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
@@ -55,7 +55,7 @@ event_input = {
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
-        "amplitude_correction": ["PZ", "ST"],
+        "amplitude_correction": ["PZ"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [17, 30, 30, 17, 30],
         "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
@@ -64,6 +64,24 @@ event_input = {
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
         "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
         "ylims": [2e-9, 4e-9, 4e-9, 2e-9, 4e-9],
+    },
+    "S0183a": {
+        "phases": ["P", "P"],
+        "components": ["Z", "R"],
+        "phase_corrs": [2.1, 2.1, 2.0, -0.8, 2.0],
+        "tstars": [1.2, 1.2],
+        "fmin": 0.2,
+        "fmax": 0.4,
+        "zerophase": False,
+        "amplitude_correction": ["PZ"],
+        "t_pre": [1, 1],
+        "t_post": [30, 30],
+        "weights": [[1, 3], [1, 3]],
+        "start_weight_len": 7.0,
+        "dt": 0.05,
+        "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
+        "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
+        "ylims": [2e-10, 4e-10],
     },
 }
 
@@ -86,7 +104,15 @@ rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
 depths = np.arange(5, 90, 3)
-# depths = [41]
+# depths = [20]
+
+# strikes = np.arange(0, 360, 20)
+# dips = np.arange(0, 91, 15)
+# rakes = np.arange(-180, 180, 15)
+
+# strikes = [255]
+# dips = [55]
+# rakes = [-85]
 
 strikes = np.arange(0, 360, 5)
 dips = np.arange(0, 91, 5)
@@ -99,7 +125,7 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event_nr == 1:
+    if event_nr < 2:
         continue
     """ Define forward modeler """
     forward_method = "INSTASEIS"
@@ -250,30 +276,30 @@ for i, v in event_input.items():
     # )
 
     """ (misfit vs depth analysis)"""
-    # DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
-    # Moho_d = 30
-    # fig = _PostProcessing.plot_misfit_vs_depth(
-    #     save_paths=[output_folder],
-    #     event_name=event.name,
-    #     DOF=DOF,
-    #     depths=depths,
-    #     misfit_name=misfit.name,
-    #     veloc_model=fwd.veloc_name,
-    #     true_depth=None,
-    #     Moho=Moho_d,
-    #     fmin=fmin,
-    #     fmax=fmax,
-    #     amount_of_phases=len(v["phases"]),
-    # )
-    # plt.tight_layout()
-    # plt.savefig(
-    #     pjoin(
-    #         save_folder,
-    #         f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-    #     ),
-    #     dpi=600,
-    # )
-    # plt.close()
+    DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
+    Moho_d = 30
+    fig = _PostProcessing.plot_misfit_vs_depth(
+        save_paths=[output_folder],
+        event_name=event.name,
+        DOF=DOF,
+        depths=depths,
+        misfit_name=misfit.name,
+        veloc_model=fwd.veloc_name,
+        true_depth=None,
+        Moho=Moho_d,
+        fmin=fmin,
+        fmax=fmax,
+        amount_of_phases=len(v["phases"]),
+    )
+    plt.tight_layout()
+    plt.savefig(
+        pjoin(
+            save_folder,
+            f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+        ),
+        dpi=600,
+    )
+    plt.close()
 
     """ (best MT vs depth phase arrivals) """
     # depths = depths[::2]  # np.array([23, 26, 29])  #
@@ -307,6 +333,30 @@ for i, v in event_input.items():
     #     pjoin(
     #         save_folder,
     #         f"PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    #     ),
+    #     dpi=600,
+    # )
+    # plt.close()
+
+    """ Uncertainty estimates:"""
+    # fig = _PostProcessing.Source_Uncertainty(
+    #     h5_file_folder=output_folder,
+    #     event_name=event.name,
+    #     method="GS",
+    #     misfit_name=misfit.name,
+    #     fwd=fwd,
+    #     phases=phases,
+    #     components=components,
+    #     depths=depths,
+    #     DOF=DOF,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    # )
+    # plt.tight_layout()
+    # plt.savefig(
+    #     pjoin(
+    #         save_folder,
+    #         f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
     #     ),
     #     dpi=600,
     # )

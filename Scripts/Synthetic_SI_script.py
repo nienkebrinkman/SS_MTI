@@ -8,9 +8,11 @@ from os.path import exists as exist
 from obspy.taup import TauPyModel
 import obspy
 import instaseis
+import matplotlib.pyplot as plt
 
 import SS_MTI
 from EventInterface import EventObj
+from SS_MTI import PostProcessing as _PostProcessing
 
 
 ## Step 1: Define parameters
@@ -115,15 +117,15 @@ amplitude_correction = ["PZ", "ST"]
 t_pre = [1, 1]
 t_post = [20, 20]
 depths = [depth]
-strikes = [180, strike]
-dips = [dip, 10, 20, 30]
+strikes = [strike]
+dips = [dip]
 rakes = [rake]
 phase_corrs = None
 tstars = None
 fmin = 1.0 / 8.0
 fmax = 1.0 / 5.0
 zerophase = False
-output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/"
+output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Synthetic/"
 
 """ Grid-Search inversion """
 # SS_MTI.Inversion.Grid_Search_run(
@@ -149,22 +151,48 @@ output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/"
 #     plot=True,
 # )
 
-# """ Direct inversion """
-SS_MTI.Inversion.Direct(
-    fwd=fwd,
-    misfit=misfit,
-    event=event,
-    rec=rec,
-    phases=phases,
-    components=components,
-    t_pre=t_pre,
-    t_post=t_post,
+# # """ Direct inversion """
+# SS_MTI.Inversion.Direct(
+#     fwd=fwd,
+#     misfit=misfit,
+#     event=event,
+#     rec=rec,
+#     phases=phases,
+#     components=components,
+#     t_pre=t_pre,
+#     t_post=t_post,
+#     depths=depths,
+#     tstars=tstars,
+#     fmin=fmin,
+#     fmax=fmax,
+#     zerophase=zerophase,
+#     output_folder=output_folder,
+#     plot=True,
+# )
+
+""" (misfit vs depth analysis)"""
+DOF = sum([int((x + y) / dt) for x, y in zip(t_pre, t_post)])
+Moho_d = 30
+fig = _PostProcessing.plot_misfit_vs_depth(
+    save_paths=[output_folder],
+    event_name=event.name,
+    DOF=DOF,
     depths=depths,
-    tstars=tstars,
+    misfit_name=misfit.name,
+    veloc_model=fwd.veloc_name,
+    true_depth=None,
+    Moho=Moho_d,
     fmin=fmin,
     fmax=fmax,
-    zerophase=zerophase,
-    output_folder=output_folder,
-    plot=True,
+    amount_of_phases=len(phases),
 )
+plt.tight_layout()
+plt.savefig(
+    pjoin(
+        output_folder,
+        f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    ),
+    dpi=600,
+)
+plt.close()
 

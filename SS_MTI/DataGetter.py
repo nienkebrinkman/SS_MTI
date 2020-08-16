@@ -3,6 +3,7 @@ import obspy
 from os.path import join as pjoin
 from os.path import exists as exist
 from os.path import isdir as isdir
+from os import listdir as lsdir
 from mqs_reports.catalog import Catalog
 from typing import Union as _Union, Tuple as _Tuple
 
@@ -119,11 +120,11 @@ def read_events_from_cat(
     else:
         if host_name is not None:
             # Check if your mount folder already exists from previous runs for example:
-            if not os.path.getsize(local_folder):
-                print(f'{local_folder} is still empty, mounting now...')
+            if not lsdir(local_folder):
+                print(f"{local_folder} is still empty, mounting now...")
                 mnt_remote_folder(host_name, user_name, remote_folder, local_folder)
             # TOO: check if local folder exists, otherwise raise error.
-    local_folder =pjoin( local_folder , "sc3data")
+    local_folder = pjoin(local_folder, "sc3data")
     for i, v in event_params.items():
         try:
             event = cat.select(name=i).events[0]
@@ -135,7 +136,7 @@ def read_events_from_cat(
             elif event.waveforms_VBB is not None:
                 pass
             else:
-                # 
+                #
                 event.read_waveforms(inv=inv, sc3dir=local_folder)
 
             events.append(event)
