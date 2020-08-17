@@ -21,7 +21,7 @@ def get_traveltime(
         if take_off:
             return tt[0].takeoff_angle
         else:
-            return tt[0].time
+            return tt[0].time #- 0.1 # TODO: CHANGE THIS
     except IndexError as e:
         # raise e("{} not arriving at {}km depth and {} degrees".format(phase, depth, distance))
         print("{} not arriving at {}km depth and {} degrees".format(phase, depth, distance))

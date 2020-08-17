@@ -68,12 +68,12 @@ event_input = {
     "S0183a": {
         "phases": ["P", "P"],
         "components": ["Z", "R"],
-        "phase_corrs": [2.1, 2.1, 2.0, -0.8, 2.0],
+        "phase_corrs": [2.1, 2.1],
         "tstars": [1.2, 1.2],
-        "fmin": 0.2,
-        "fmax": 0.4,
+        "fmin": 1./5.,
+        "fmax": 1./2.5,
         "zerophase": False,
-        "amplitude_correction": ["PZ"],
+        "amplitude_correction": ["PZ","PR"],
         "t_pre": [1, 1],
         "t_post": [30, 30],
         "weights": [[1, 3], [1, 3]],
@@ -81,7 +81,7 @@ event_input = {
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
         "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
-        "ylims": [2e-10, 4e-10],
+        "ylims": [2e-10, 2e-10],
     },
 }
 
@@ -104,7 +104,7 @@ rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
 depths = np.arange(5, 90, 3)
-# depths = [20]
+# depths = [29,41]
 
 # strikes = np.arange(0, 360, 20)
 # dips = np.arange(0, 91, 15)
@@ -125,8 +125,18 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event_nr < 2:
+    if event.name == "S0235b" or event.name == "S0173a":
+        pass
+    else:
         continue
+
+    if event.name == "S0183a":
+        event.distance = 44.5
+        event.baz = 73
+        event.az = 253
+        event.latitude = 15.09
+        event.longitude = 179.59
+
     """ Define forward modeler """
     forward_method = "INSTASEIS"
     db_path = v["db_path"]
@@ -199,54 +209,54 @@ for i, v in event_input.items():
 
     """ Start inversion """
     # if inv_method == "GS":
-    SS_MTI.Inversion.Grid_Search_run(
-        fwd=fwd,
-        misfit=misfit,
-        event=event,
-        rec=rec,
-        phases=phases,
-        components=components,
-        t_pre=t_pre,
-        t_post=t_post,
-        depths=depths,
-        strikes=strikes,
-        dips=dips,
-        rakes=rakes,
-        phase_corrs=phase_corrs,
-        tstars=tstars,
-        fmin=fmin,
-        fmax=fmax,
-        zerophase=zerophase,
-        list_to_correct_M0=amplitude_correction,
-        output_folder=output_folder,
-        plot=True,
-        plot_extra_phases=extra_phases,
-        color_plot="blue",
-        Ylims=ylims,
-    )
-    # elif inv_method == "Direct":
-    # """ Direct inversion """
-    SS_MTI.Inversion.Direct(
-        fwd=fwd,
-        misfit=misfit,
-        event=event,
-        rec=rec,
-        phases=phases,
-        components=components,
-        phase_corrs=phase_corrs,
-        t_pre=t_pre,
-        t_post=t_post,
-        depths=depths,
-        tstars=tstars,
-        fmin=fmin,
-        fmax=fmax,
-        zerophase=zerophase,
-        output_folder=output_folder,
-        plot=True,
-        plot_extra_phases=extra_phases,
-        color_plot="red",
-        Ylims=ylims,
-    )
+    # SS_MTI.Inversion.Grid_Search_run(
+    #     fwd=fwd,
+    #     misfit=misfit,
+    #     event=event,
+    #     rec=rec,
+    #     phases=phases,
+    #     components=components,
+    #     t_pre=t_pre,
+    #     t_post=t_post,
+    #     depths=depths,
+    #     strikes=strikes,
+    #     dips=dips,
+    #     rakes=rakes,
+    #     phase_corrs=phase_corrs,
+    #     tstars=tstars,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     zerophase=zerophase,
+    #     list_to_correct_M0=amplitude_correction,
+    #     output_folder=output_folder,
+    #     plot=True,
+    #     plot_extra_phases=extra_phases,
+    #     color_plot="blue",
+    #     Ylims=ylims,
+    # )
+    # # elif inv_method == "Direct":
+    # # """ Direct inversion """
+    # SS_MTI.Inversion.Direct(
+    #     fwd=fwd,
+    #     misfit=misfit,
+    #     event=event,
+    #     rec=rec,
+    #     phases=phases,
+    #     components=components,
+    #     phase_corrs=phase_corrs,
+    #     t_pre=t_pre,
+    #     t_post=t_post,
+    #     depths=depths,
+    #     tstars=tstars,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     zerophase=zerophase,
+    #     output_folder=output_folder,
+    #     plot=True,
+    #     plot_extra_phases=extra_phases,
+    #     color_plot="red",
+    #     Ylims=ylims,
+    # )
     # else:
     #     raise ValueError("inv_method is not recognized, specify: GS or Direct")
 
@@ -265,7 +275,29 @@ for i, v in event_input.items():
     #     components=components,
     #     t_pre=t_pre,
     #     t_post=t_post,
-    #     depths=[41],
+    #     depths=depths,
+    #     phase_corrs=phase_corrs,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     zerophase=zerophase,
+    #     tstars=tstars,
+    #     plot_extra_phases=extra_phases,
+    #     Ylims=ylims,
+    # )
+
+    # _PostProcessing.post_waveform_plotting(
+    #     h5_file_folder=output_folder,
+    #     method="Direct",
+    #     misfit_name=misfit.name,
+    #     misfit_weight_len=misfit.start_weight_len,
+    #     fwd=fwd,
+    #     event=event,
+    #     rec=rec,
+    #     phases=phases,
+    #     components=components,
+    #     t_pre=t_pre,
+    #     t_post=t_post,
+    #     depths=depths,
     #     phase_corrs=phase_corrs,
     #     fmin=fmin,
     #     fmax=fmax,
@@ -277,29 +309,29 @@ for i, v in event_input.items():
 
     """ (misfit vs depth analysis)"""
     DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
-    Moho_d = 30
-    fig = _PostProcessing.plot_misfit_vs_depth(
-        save_paths=[output_folder],
-        event_name=event.name,
-        DOF=DOF,
-        depths=depths,
-        misfit_name=misfit.name,
-        veloc_model=fwd.veloc_name,
-        true_depth=None,
-        Moho=Moho_d,
-        fmin=fmin,
-        fmax=fmax,
-        amount_of_phases=len(v["phases"]),
-    )
-    plt.tight_layout()
-    plt.savefig(
-        pjoin(
-            save_folder,
-            f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        ),
-        dpi=600,
-    )
-    plt.close()
+    # Moho_d = 24
+    # fig = _PostProcessing.plot_misfit_vs_depth(
+    #     save_paths=[output_folder],
+    #     event_name=event.name,
+    #     DOF=DOF,
+    #     depths=depths,
+    #     misfit_name=misfit.name,
+    #     veloc_model=fwd.veloc_name,
+    #     true_depth=None,
+    #     Moho=Moho_d,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     amount_of_phases=len(v["phases"]),
+    # )
+    # plt.tight_layout()
+    # plt.savefig(
+    #     pjoin(
+    #         save_folder,
+    #         f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    #     ),
+    #     dpi=600,
+    # )
+    # plt.close()
 
     """ (best MT vs depth phase arrivals) """
     # depths = depths[::2]  # np.array([23, 26, 29])  #
@@ -339,26 +371,26 @@ for i, v in event_input.items():
     # plt.close()
 
     """ Uncertainty estimates:"""
-    # fig = _PostProcessing.Source_Uncertainty(
-    #     h5_file_folder=output_folder,
-    #     event_name=event.name,
-    #     method="GS",
-    #     misfit_name=misfit.name,
-    #     fwd=fwd,
-    #     phases=phases,
-    #     components=components,
-    #     depths=depths,
-    #     DOF=DOF,
-    #     fmin=fmin,
-    #     fmax=fmax,
-    # )
-    # plt.tight_layout()
-    # plt.savefig(
-    #     pjoin(
-    #         save_folder,
-    #         f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-    #     ),
-    #     dpi=600,
-    # )
-    # plt.close()
+    fig = _PostProcessing.Source_Uncertainty(
+        h5_file_folder=output_folder,
+        event_name=event.name,
+        method="GS",
+        misfit_name=misfit.name,
+        fwd=fwd,
+        phases=phases,
+        components=components,
+        depths=depths,
+        DOF=DOF,
+        fmin=fmin,
+        fmax=fmax,
+    )
+    plt.tight_layout()
+    plt.savefig(
+        pjoin(
+            save_folder,
+            f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+        ),
+        dpi=600,
+    )
+    plt.close()
 

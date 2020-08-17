@@ -951,13 +951,14 @@ def plot_misfit_vs_depth(
     # ax[0].ticklabel_format(style="sci", axis='y', scilimits=(-2, 2))
     ax[0].tick_params(axis="both", which="major", labelsize=18)
     ax[0].tick_params(axis="both", which="minor", labelsize=10)
-    # ax[0].axvspan(26, 44, facecolor='purple', alpha=0.3)
+    # ax[0].axvspan(50, 65, facecolor='purple', alpha=0.3)
     # # y = ax[0].get_ylim()[0] * 0.8
-    # ax[0].text(26, 1.7, 'Preferred depth range',
+    # ax[0].text(48, 9, 'Preferred depth range',
     #                 verticalalignment='center', color='purple', fontsize=8)
     # ax[0].set_yscale('log')
     ax[0].grid(True)
-    ax[0].set_ylim(10, 30)
+    # ax[0].set_ylim(1.5, 5)
+    # ax[0].set_ylim(8, 30)
     # ax[0].set_xlabel('Depth (km)', fontsize=20)
 
     extraticks = [0.1, 0.2, 0.3, 0.4]
@@ -1387,6 +1388,8 @@ def post_waveform_plotting(
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
             n_lowest = int(len(Total_L2_GS) * 0.05)
             lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
+            # n_lowest = 10
+            # lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
             MT = sdr[lowest_indices, :]
             depth_GS = depth_GS[lowest_indices]
             M0 = M0_GS[lowest_indices]
@@ -1471,7 +1474,7 @@ def post_waveform_plotting(
             plt.close()
 
             MT = np.expand_dims(DC_MT, axis=0)
-            M0 = np.expand_dims(M0, axis=0)
+            M0 = np.expand_dims(M0_DC, axis=0)
 
         """ Generate Green's functions per depth """
         syn_tts = []
@@ -1592,13 +1595,6 @@ def waveform_plot(
                 ax[i].plot(
                     st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
                 )
-                ax[i].plot(
-                    tr_slice.times() - t_pre[i],
-                    tr_slice.data,
-                    lw=2,
-                    c=color_plot,
-                    label="Synthetic",
-                )
             else:
                 ax[i].plot(
                     tr_slice.times() - t_pre[i], tr_slice.data, lw=2, c=color_plot,
@@ -1613,17 +1609,30 @@ def waveform_plot(
 
             st = obspy.Stream()
             st += tr_slice
-            st += st_obs[i]
+            
             if n == len(M0s) - 1:
+                st += st_obs[i]
+                if Ylims is None:
+                    ax[i].set_ylim(global_min, global_max)
+                else:
+                    ax[i].set_ylim(-Ylims[i], Ylims[i])
+
                 global_max = max([tr.data.max() for tr in st]) * 1.2
                 global_min = min([tr.data.min() for tr in st]) * 1.2
                 ax[i].axvline(x=t_post[i], c="grey", ls="dashed")
                 ax[i].axvline(x=-t_pre[i], c="grey", ls="dashed")
                 ax[i].axvspan(-t_pre[i], misfit_weight_len, facecolor="grey", alpha=0.2)
+                ymin = ax[i].get_ylim()[0]
+                ymax = ax[i].get_ylim()[1]              
+                if event.name == "S0173a" and phase == "P":
+                    ax[i].axvspan(17, 40, facecolor='green', alpha=0.1)                    
+                    ax[i].text(35, ymin * 0.8, 'Glitch',
+                                    verticalalignment='center', color='green', fontsize=8)
+
                 ax[i].axvline(x=0.0, c="grey")
                 ax[i].text(
                     0 + 0.1,
-                    global_max * 0.8,
+                    ymax * 0.8,
                     phase,
                     verticalalignment="center",
                     color="grey",
@@ -1635,7 +1644,7 @@ def waveform_plot(
                     y=0.7,
                     ha="right",
                     transform=ax[i].transAxes,
-                    color="blue",
+                    color=color_plot,
                     fontsize=20,
                 )
 
@@ -1655,10 +1664,9 @@ def waveform_plot(
                                 color="grey",
                                 fontsize=6,
                             )
-                if Ylims is None:
-                    ax[i].set_ylim(global_min, global_max)
-                else:
-                    ax[i].set_ylim(-Ylims[i], Ylims[i])
+                ax[i].tick_params(axis='both', which='major', labelsize=18)
+                ax[i].tick_params(axis='both', which='minor', labelsize=10)                
+
                 ax[i].get_yaxis().get_offset_text().set_visible(False)
                 ax_max = max(ax[i].get_yticks())
                 exponent_axis = np.floor(np.log10(ax_max)).astype(int)
@@ -1680,7 +1688,7 @@ def waveform_plot(
     )
     fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=18)
     fig.text(
-        0.5, 0.88, event.name, ha="center", va="bottom", size="x-large", color="blue", fontsize=18,
+        0.5, 0.88, event.name, ha="center", va="bottom", size="x-large", color=color_plot, fontsize=18,
     )
 
     ax[0].legend(
@@ -1693,6 +1701,7 @@ def waveform_plot(
     ax[-1].set_xlim(-10.0, 60.0)
     ax[-1].set_xlabel("time after phase (s)", fontsize=18)
     return fig
+
 
 
 def Source_Uncertainty(
@@ -1735,6 +1744,8 @@ def Source_Uncertainty(
             MT_Full[i, :] = (
                 _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i]) / M0[i]
             )
+            MT_Full[i,3] = -MT_Full[i,3]
+            MT_Full[i,5] = -MT_Full[i,5]
 
         if idepth == 0:
             MT_GS = MT_Full
@@ -1777,6 +1788,8 @@ def Source_Uncertainty(
         GOF_Direct = Total_L2_Direct / DOF
         DC_MT = np.expand_dims(DC_MT, axis=0)
         DC_MT = DC_MT / M0_DC
+        DC_MT[0,3] = - DC_MT[0,3]
+        DC_MT[0,5] = - DC_MT[0,5]
         if idepth == 0:
             MT_Direct = DC_MT
             weights_Direct = np.exp(-GOF_Direct)
@@ -1788,7 +1801,8 @@ def Source_Uncertainty(
     fig, ax = plt.subplots(
         nrows=2, ncols=6, figsize=(12, 6), sharey="row", gridspec_kw={"height_ratios": [3, 1]}
     )
-    MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
+    # MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
+    MT_names = ["mzz", "myy", "mxx", "myz", "mxz", "mxy"]
     for i in range(6):
         ax[0, i].hist(
             MT_GS[:, i],
@@ -1844,18 +1858,42 @@ def Source_Uncertainty(
     sdr_mins = [0, 0, -180]
     sdr_maxs = [360, 90, 180]
 
-    (values, counts) = np.unique(MT_sdrs[:, 0], return_counts=True)
-    ind = np.argmax(counts)
-    strike_max = values[ind]
-    (values, counts) = np.unique(MT_sdrs[:, 1], return_counts=True)
-    ind = np.argmax(counts)
-    dip_max = values[ind]
-    (values, counts) = np.unique(MT_sdrs[:, 2], return_counts=True)
-    ind = np.argmax(counts)
-    rake_max = values[ind]
+    if event_name == "S0235b":
+        strike_max= 40
+        dip_max= 32
+        rake_max= -115
+
+    elif event_name == "S0173a":
+        strike_max= 320
+        dip_max= 58
+        rake_max= -20
+
+    else:
+        (values, counts) = np.unique(MT_sdrs[:, 0], return_counts=True)
+        ind = np.argmax(counts)
+        strike_max = values[ind]
+        (values, counts) = np.unique(MT_sdrs[:, 1], return_counts=True)
+        ind = np.argmax(counts)
+        dip_max = values[ind]
+        (values, counts) = np.unique(MT_sdrs[:, 2], return_counts=True)
+        ind = np.argmax(counts)
+        rake_max = values[ind]
+
+
     strike_aux, dip_aux, rake_aux = aux_plane(strike_max, dip_max, rake_max)
     f_planes = [strike_max, dip_max, rake_max]
+    print(f"plane 1: {f_planes}")
     aux_planes = [strike_aux, dip_aux, rake_aux]
+    print(f"plane 2: {aux_planes}")
+
+    MT_planes = (
+        _GreensFunctions.convert_SDR(strike_max, dip_max,rake_max,M0_DC) /M0_DC
+    )
+    MT_planes[3] = -MT_planes[3]
+    MT_planes[5] = -MT_planes[5]
+    for i in range(6):
+        ax[0, i].axvline(x=MT_planes[i], c="red", lw=1,label = "Fault planes")
+
     for axs in ax[1, :]:
         axs.remove()
     for i in range(3):
@@ -1872,15 +1910,17 @@ def Source_Uncertainty(
             alpha=0.4,
             color="steelblue",
             edgecolor="none",
-            label="GS",
             weights=weights_GS,
             density=True,
         )
-        axbig.axvline(x=f_planes[i], c="red", lw=1)
+        axbig.axvline(x=f_planes[i], c="red", lw=1,label = "Fault planes")
         axbig.axvline(x=aux_planes[i], c="red", lw=1)
         axbig.set_xlabel(sdr_names[i], fontsize=18)
         axbig.tick_params(axis="x", labelsize=15)
         axbig.tick_params(axis="y", labelsize=15)
         axbig.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
         axbig.set_xlim(sdr_mins[i], sdr_maxs[i])
+        if i == 2:
+            axbig.legend()
+    # fig.text(0.01, 0.5, "Frequency", va="center", rotation="vertical", fontsize=18)
     return fig
