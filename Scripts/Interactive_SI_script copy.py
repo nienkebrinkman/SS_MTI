@@ -14,6 +14,8 @@ import SS_MTI
 import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
+
+
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Trial_2"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
@@ -103,20 +105,20 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-# depths = np.arange(5, 90, 3)
-depths = [29]
+depths = np.arange(5, 90, 3)
+# depths = [29]
 
 # strikes = np.arange(0, 360, 20)
 # dips = np.arange(0, 91, 15)
 # rakes = np.arange(-180, 180, 15)
 
-strikes = [260]
-dips = [15]
-rakes = [-90]
+# strikes = [260]
+# dips = [15]
+# rakes = [-90]
 
-# strikes = np.arange(0, 360, 5)
-# dips = np.arange(0, 91, 5)
-# rakes = np.arange(-180, 180, 5)
+strikes = np.arange(0, 360, 5)
+dips = np.arange(0, 91, 5)
+rakes = np.arange(-180, 180, 5)
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -125,10 +127,10 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event.name == "S0235b" or event.name == "S0173a":
-        continue
-    else:
+    if event.name == "S0235b": #or event.name == "S0173a":
         pass
+    else:
+        continue
 
     if event.name == "S0183a":
         event.distance = 44.5
@@ -213,31 +215,31 @@ for i, v in event_input.items():
 
     """ Start inversion """
     # if inv_method == "GS":
-    SS_MTI.Inversion.Grid_Search_run(
-        fwd=fwd,
-        misfit=misfit,
-        event=event,
-        rec=rec,
-        phases=phases,
-        components=components,
-        t_pre=t_pre,
-        t_post=t_post,
-        depths=depths,
-        strikes=strikes,
-        dips=dips,
-        rakes=rakes,
-        phase_corrs=phase_corrs,
-        tstars=tstars,
-        fmin=fmin,
-        fmax=fmax,
-        zerophase=zerophase,
-        list_to_correct_M0=amplitude_correction,
-        output_folder=output_folder,
-        plot=True,
-        plot_extra_phases=extra_phases,
-        color_plot="blue",
-        Ylims=ylims,
-    )
+    # SS_MTI.Inversion.Grid_Search_run(
+    #     fwd=fwd,
+    #     misfit=misfit,
+    #     event=event,
+    #     rec=rec,
+    #     phases=phases,
+    #     components=components,
+    #     t_pre=t_pre,
+    #     t_post=t_post,
+    #     depths=depths,
+    #     strikes=strikes,
+    #     dips=dips,
+    #     rakes=rakes,
+    #     phase_corrs=phase_corrs,
+    #     tstars=tstars,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    #     zerophase=zerophase,
+    #     list_to_correct_M0=amplitude_correction,
+    #     output_folder=output_folder,
+    #     plot=True,
+    #     plot_extra_phases=extra_phases,
+    #     color_plot="blue",
+    #     Ylims=ylims,
+    # )
     # # elif inv_method == "Direct":
     # # """ Direct inversion """
     # SS_MTI.Inversion.Direct(
@@ -339,8 +341,8 @@ for i, v in event_input.items():
 
     """ (best MT vs depth phase arrivals) """
     # depths = depths[::2]  # np.array([23, 26, 29])  #
-    # t_pre = [5, 5]
-    # t_post = [40, 40]
+    # t_pre = [t_pre[0], t_pre[1]]
+    # t_post = [t_post[0], t_post[0]]
     # phases = [phases[0], phases[1]]
     # components = [components[0], components[1]]
     # phase_corrs = [phase_corrs[0], phase_corrs[1]]
@@ -375,26 +377,37 @@ for i, v in event_input.items():
     # plt.close()
 
     """ Uncertainty estimates:"""
-    # fig = _PostProcessing.Source_Uncertainty(
-    #     h5_file_folder=output_folder,
-    #     event_name=event.name,
-    #     method="GS",
-    #     misfit_name=misfit.name,
-    #     fwd=fwd,
-    #     phases=phases,
-    #     components=components,
-    #     depths=depths,
-    #     DOF=DOF,
-    #     fmin=fmin,
-    #     fmax=fmax,
-    # )
-    # plt.tight_layout()
-    # plt.savefig(
-    #     pjoin(
-    #         save_folder,
-    #         f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-    #     ),
-    #     dpi=600,
-    # )
-    # plt.close()
+    fig,fig_sdr = _PostProcessing.Source_Uncertainty(
+        h5_file_folder=output_folder,
+        event_name=event.name,
+        method="GS",
+        misfit_name=misfit.name,
+        fwd=fwd,
+        phases=phases,
+        components=components,
+        depths=np.arange(50,68,3),
+        DOF=DOF,
+        fmin=fmin,
+        fmax=fmax,
+    )
+    fig.tight_layout()
+    fig.savefig(
+        pjoin(
+            save_folder,
+            f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+        ),
+        dpi=600,
+    )
+    plt.close(fig) 
+    fig_sdr.tight_layout()
+    fig_sdr.savefig(
+        pjoin(
+            save_folder,
+            f"Uncertainties_SDR_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+        ),
+        dpi=600,
+    )
+    plt.close(fig_sdr)
+
+
 

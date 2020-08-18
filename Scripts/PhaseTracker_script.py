@@ -21,7 +21,7 @@ import SS_MTI.PostProcessing as PP
 """ Define parameters """
 or_time = obspy.UTCDateTime("2020-3-10T12:00:00")
 lat_src = 10.99032013
-lon_src = 170
+lon_src = 160.94
 name = "Test_Event"
 
 lat_rec = 4.502384
@@ -32,9 +32,9 @@ fig = PP.Plot_event_location(lat_src, lon_src, lat_rec, lon_rec, "test event")
 plt.savefig("/home/nienke/Documents/Research/Data/MTI/Phase_tracking/source_location.pdf")
 plt.close()
 
-strike = 60
-dip = 90
-rake = 0
+strike = 70
+dip = 30
+rake =-95
 focal_mech = [strike, dip, rake]
 M0 = 5.62e13
 
@@ -45,7 +45,7 @@ kind = "displacement"
 noise = True
 
 epi, az, baz = EventObj.Get_location(lat_src, lon_src, lat_rec, lon_rec)
-epi = 25
+epi = 25.89
 fmin = 1.0 / 10.0
 fmax = 1.0 / 3.0
 zerophase = False
@@ -67,14 +67,14 @@ npz_file_name_4 = "/home/nienke/Documents/Research/Data/npz_files/DWAK.npz"
 db_name_5 = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/MAAK_1s"
 npz_file_name_5 = "/home/nienke/Documents/Research/Data/npz_files/MAAK.npz"
 
-db_names = [db_name_1, db_name_2, db_name_3, db_name_4, db_name_5]
+db_names = [db_name_1]#, db_name_2, db_name_3, db_name_4, db_name_5]
 npz_file_names = [
-    npz_file_name_1,
-    npz_file_name_2,
-    npz_file_name_3,
-    npz_file_name_4,
-    npz_file_name_5,
-]
+    npz_file_name_1]#,
+#     npz_file_name_2,
+#     npz_file_name_3,
+#     npz_file_name_4,
+#     npz_file_name_5,
+# ]
 
 mnt_folder = "/mnt/marshost/"
 
@@ -158,7 +158,7 @@ for npz_file, db_path in zip(npz_file_names, db_names):
     if not os.path.exists(os.path.join(save_path, "ray_paths")):
         os.mkdir(os.path.join(save_path, "ray_paths"))
         for depth in depths:
-            for phase in phases:
+            for phase in extra_phases:
                 arrivals = model.get_ray_paths(
                     source_depth_in_km=depth, distance_in_degree=epi, phase_list=[phase]
                 )
