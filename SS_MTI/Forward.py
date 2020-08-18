@@ -84,12 +84,13 @@ class Instaseis(_AbstractForward):
             baz=baz,
             M0=M0,
         )
+
+        st_GF.trim(starttime=self.or_time + self.start_cut, endtime=self.or_time + self.end_cut)
         if filter:
             assert (
                 fmin is not None and fmax is not None
             ), "if filter == True, specify fmin, fmax and zerophase"
             _PreProcess.filter_tr(st_GF, fmin=fmin, fmax=fmax, zerophase=zerophase)
-        st_GF.trim(starttime=self.or_time + self.start_cut, endtime=self.or_time + self.end_cut)
 
         return st_GF
 

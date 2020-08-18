@@ -1502,6 +1502,11 @@ def post_waveform_plotting(
             syn_GFs.append(syn_GF)
             syn_tts.append(syn_tt)
 
+        extra_arrs = []
+        for j, extraphase in enumerate(plot_extra_phases):
+            arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+            extra_arrs.append(arr)
+
         fig = waveform_plot(
             syn_GFs=syn_GFs,
             syn_tts=syn_tts,
@@ -1519,6 +1524,7 @@ def post_waveform_plotting(
             fmax=fmax,
             zerophase=zerophase,
             plot_extra_phases=plot_extra_phases,
+            extra_arrs=extra_arrs,
             color_plot=color_plot,
             Ylims=Ylims,
         )
@@ -1549,6 +1555,7 @@ def waveform_plot(
     fmax: float = None,
     zerophase: bool = None,
     plot_extra_phases: [str] = None,
+    extra_arrs: [float] = None,
     color_plot: str = None,
     Ylims: [float] = None,
 ):
@@ -1609,7 +1616,7 @@ def waveform_plot(
 
             st = obspy.Stream()
             st += tr_slice
-            
+
             if n == len(M0s) - 1:
                 st += st_obs[i]
                 if Ylims is None:
@@ -1623,11 +1630,17 @@ def waveform_plot(
                 ax[i].axvline(x=-t_pre[i], c="grey", ls="dashed")
                 ax[i].axvspan(-t_pre[i], misfit_weight_len, facecolor="grey", alpha=0.2)
                 ymin = ax[i].get_ylim()[0]
-                ymax = ax[i].get_ylim()[1]              
+                ymax = ax[i].get_ylim()[1]
                 if event.name == "S0173a" and phase == "P":
-                    ax[i].axvspan(17, 40, facecolor='green', alpha=0.1)                    
-                    ax[i].text(35, ymin * 0.8, 'Glitch',
-                                    verticalalignment='center', color='green', fontsize=8)
+                    ax[i].axvspan(17, 40, facecolor="green", alpha=0.1)
+                    ax[i].text(
+                        35,
+                        ymin * 0.8,
+                        "Glitch",
+                        verticalalignment="center",
+                        color="green",
+                        fontsize=8,
+                    )
 
                 ax[i].axvline(x=0.0, c="grey")
                 ax[i].text(
@@ -1651,9 +1664,7 @@ def waveform_plot(
                 # Extra phase arrivals:
                 if plot_extra_phases is not None:
                     for j, extraphase in enumerate(plot_extra_phases):
-                        arr = fwd.get_phase_tt(
-                            phase=extraphase, depth=depth, distance=event.distance
-                        )
+                        arr = extra_arrs[j]
                         if arr:
                             ax[i].axvline(x=arr - syn_tts[i], c="grey")
                             ax[i].text(
@@ -1664,8 +1675,8 @@ def waveform_plot(
                                 color="grey",
                                 fontsize=6,
                             )
-                ax[i].tick_params(axis='both', which='major', labelsize=18)
-                ax[i].tick_params(axis='both', which='minor', labelsize=10)                
+                ax[i].tick_params(axis="both", which="major", labelsize=18)
+                ax[i].tick_params(axis="both", which="minor", labelsize=10)
 
                 ax[i].get_yaxis().get_offset_text().set_visible(False)
                 ax_max = max(ax[i].get_yticks())
@@ -1688,7 +1699,14 @@ def waveform_plot(
     )
     fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=18)
     fig.text(
-        0.5, 0.88, event.name, ha="center", va="bottom", size="x-large", color=color_plot, fontsize=18,
+        0.5,
+        0.88,
+        event.name,
+        ha="center",
+        va="bottom",
+        size="x-large",
+        color=color_plot,
+        fontsize=18,
     )
 
     ax[0].legend(
@@ -1700,8 +1718,7 @@ def waveform_plot(
 
     ax[-1].set_xlim(-10.0, 60.0)
     ax[-1].set_xlabel("time after phase (s)", fontsize=18)
-    return fig
-
+    return fig, ax
 
 
 def Source_Uncertainty(
@@ -1744,8 +1761,8 @@ def Source_Uncertainty(
             MT_Full[i, :] = (
                 _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i]) / M0[i]
             )
-            MT_Full[i,3] = -MT_Full[i,3]
-            MT_Full[i,5] = -MT_Full[i,5]
+            MT_Full[i, 3] = -MT_Full[i, 3]
+            MT_Full[i, 5] = -MT_Full[i, 5]
 
         if idepth == 0:
             MT_GS = MT_Full
@@ -1788,8 +1805,8 @@ def Source_Uncertainty(
         GOF_Direct = Total_L2_Direct / DOF
         DC_MT = np.expand_dims(DC_MT, axis=0)
         DC_MT = DC_MT / M0_DC
-        DC_MT[0,3] = - DC_MT[0,3]
-        DC_MT[0,5] = - DC_MT[0,5]
+        DC_MT[0, 3] = -DC_MT[0, 3]
+        DC_MT[0, 5] = -DC_MT[0, 5]
         if idepth == 0:
             MT_Direct = DC_MT
             weights_Direct = np.exp(-GOF_Direct)
@@ -1859,14 +1876,14 @@ def Source_Uncertainty(
     sdr_maxs = [360, 90, 180]
 
     if event_name == "S0235b":
-        strike_max= 40
-        dip_max= 32
-        rake_max= -115
+        strike_max = 40
+        dip_max = 32
+        rake_max = -115
 
     elif event_name == "S0173a":
-        strike_max= 320
-        dip_max= 58
-        rake_max= -20
+        strike_max = 320
+        dip_max = 58
+        rake_max = -20
 
     else:
         (values, counts) = np.unique(MT_sdrs[:, 0], return_counts=True)
@@ -1879,20 +1896,17 @@ def Source_Uncertainty(
         ind = np.argmax(counts)
         rake_max = values[ind]
 
-
     strike_aux, dip_aux, rake_aux = aux_plane(strike_max, dip_max, rake_max)
     f_planes = [strike_max, dip_max, rake_max]
     print(f"plane 1: {f_planes}")
     aux_planes = [strike_aux, dip_aux, rake_aux]
     print(f"plane 2: {aux_planes}")
 
-    MT_planes = (
-        _GreensFunctions.convert_SDR(strike_max, dip_max,rake_max,M0_DC) /M0_DC
-    )
+    MT_planes = _GreensFunctions.convert_SDR(strike_max, dip_max, rake_max, M0_DC) / M0_DC
     MT_planes[3] = -MT_planes[3]
     MT_planes[5] = -MT_planes[5]
     for i in range(6):
-        ax[0, i].axvline(x=MT_planes[i], c="red", lw=1,label = "Fault planes")
+        ax[0, i].axvline(x=MT_planes[i], c="red", lw=1, label="Fault planes")
 
     for axs in ax[1, :]:
         axs.remove()
@@ -1913,7 +1927,7 @@ def Source_Uncertainty(
             weights=weights_GS,
             density=True,
         )
-        axbig.axvline(x=f_planes[i], c="red", lw=1,label = "Fault planes")
+        axbig.axvline(x=f_planes[i], c="red", lw=1, label="Fault planes")
         axbig.axvline(x=aux_planes[i], c="red", lw=1)
         axbig.set_xlabel(sdr_names[i], fontsize=18)
         axbig.tick_params(axis="x", labelsize=15)

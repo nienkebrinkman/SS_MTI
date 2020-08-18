@@ -37,7 +37,7 @@ event_input = {
         "fmin": 0.1,
         "fmax": 0.9,
         "zerophase": False,
-        "amplitude_correction": ["PZ"],
+        "amplitude_correction": ["PZ", "PR"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [30, 30, 30, 30, 30],
         "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
@@ -69,11 +69,11 @@ event_input = {
         "phases": ["P", "P"],
         "components": ["Z", "R"],
         "phase_corrs": [2.1, 2.1],
-        "tstars": [1.2, 1.2],
-        "fmin": 1./5.,
-        "fmax": 1./2.5,
+        "tstars": [1.5, 1.5],
+        "fmin": 1.0 / 5.0,
+        "fmax": 1.0 / 2.5,
         "zerophase": False,
-        "amplitude_correction": ["PZ","PR"],
+        "amplitude_correction": ["PZ", "PR"],
         "t_pre": [1, 1],
         "t_post": [30, 30],
         "weights": [[1, 3], [1, 3]],
@@ -98,25 +98,25 @@ events = SS_MTI.DataGetter.read_events_from_cat(
 )
 
 """ Specify receiver """
-lat_rec = 4.502384
+lat_rec = 4.5  # 02384
 lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-depths = np.arange(5, 90, 3)
-# depths = [29,41]
+# depths = np.arange(5, 90, 3)
+depths = [29]
 
 # strikes = np.arange(0, 360, 20)
 # dips = np.arange(0, 91, 15)
 # rakes = np.arange(-180, 180, 15)
 
-# strikes = [255]
-# dips = [55]
-# rakes = [-85]
+strikes = [260]
+dips = [15]
+rakes = [-90]
 
-strikes = np.arange(0, 360, 5)
-dips = np.arange(0, 91, 5)
-rakes = np.arange(-180, 180, 5)
+# strikes = np.arange(0, 360, 5)
+# dips = np.arange(0, 91, 5)
+# rakes = np.arange(-180, 180, 5)
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -126,9 +126,9 @@ for i, v in event_input.items():
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
     if event.name == "S0235b" or event.name == "S0173a":
-        pass
-    else:
         continue
+    else:
+        pass
 
     if event.name == "S0183a":
         event.distance = 44.5
@@ -180,7 +180,11 @@ for i, v in event_input.items():
     ylims = v["ylims"]
 
     """ Extra phases to plot:"""
-    extra_phases = None  # ["PP", "SS", "pP", "sP", "PPP", "SSS"]
+    extra_phases = [
+        "PP",
+        "sP",
+        "pP",
+    ]
 
     if forward_method == "INSTASEIS":
         fwd = SS_MTI.Forward.Instaseis(
@@ -209,31 +213,31 @@ for i, v in event_input.items():
 
     """ Start inversion """
     # if inv_method == "GS":
-    # SS_MTI.Inversion.Grid_Search_run(
-    #     fwd=fwd,
-    #     misfit=misfit,
-    #     event=event,
-    #     rec=rec,
-    #     phases=phases,
-    #     components=components,
-    #     t_pre=t_pre,
-    #     t_post=t_post,
-    #     depths=depths,
-    #     strikes=strikes,
-    #     dips=dips,
-    #     rakes=rakes,
-    #     phase_corrs=phase_corrs,
-    #     tstars=tstars,
-    #     fmin=fmin,
-    #     fmax=fmax,
-    #     zerophase=zerophase,
-    #     list_to_correct_M0=amplitude_correction,
-    #     output_folder=output_folder,
-    #     plot=True,
-    #     plot_extra_phases=extra_phases,
-    #     color_plot="blue",
-    #     Ylims=ylims,
-    # )
+    SS_MTI.Inversion.Grid_Search_run(
+        fwd=fwd,
+        misfit=misfit,
+        event=event,
+        rec=rec,
+        phases=phases,
+        components=components,
+        t_pre=t_pre,
+        t_post=t_post,
+        depths=depths,
+        strikes=strikes,
+        dips=dips,
+        rakes=rakes,
+        phase_corrs=phase_corrs,
+        tstars=tstars,
+        fmin=fmin,
+        fmax=fmax,
+        zerophase=zerophase,
+        list_to_correct_M0=amplitude_correction,
+        output_folder=output_folder,
+        plot=True,
+        plot_extra_phases=extra_phases,
+        color_plot="blue",
+        Ylims=ylims,
+    )
     # # elif inv_method == "Direct":
     # # """ Direct inversion """
     # SS_MTI.Inversion.Direct(
@@ -371,26 +375,26 @@ for i, v in event_input.items():
     # plt.close()
 
     """ Uncertainty estimates:"""
-    fig = _PostProcessing.Source_Uncertainty(
-        h5_file_folder=output_folder,
-        event_name=event.name,
-        method="GS",
-        misfit_name=misfit.name,
-        fwd=fwd,
-        phases=phases,
-        components=components,
-        depths=depths,
-        DOF=DOF,
-        fmin=fmin,
-        fmax=fmax,
-    )
-    plt.tight_layout()
-    plt.savefig(
-        pjoin(
-            save_folder,
-            f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        ),
-        dpi=600,
-    )
-    plt.close()
+    # fig = _PostProcessing.Source_Uncertainty(
+    #     h5_file_folder=output_folder,
+    #     event_name=event.name,
+    #     method="GS",
+    #     misfit_name=misfit.name,
+    #     fwd=fwd,
+    #     phases=phases,
+    #     components=components,
+    #     depths=depths,
+    #     DOF=DOF,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    # )
+    # plt.tight_layout()
+    # plt.savefig(
+    #     pjoin(
+    #         save_folder,
+    #         f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    #     ),
+    #     dpi=600,
+    # )
+    # plt.close()
 

@@ -77,8 +77,8 @@ def prepare_event_data(
 
         if noise_level:
             tr_noise = tr_orig.slice(
-                starttime=event.origin_time + tts[i] - t_pre[i] - 40.0,
-                endtime=event.origin_time + tts[i] - t_pre[i] - 10.0,
+                starttime=event.origin_time + tts[i] - 30.0,
+                endtime=event.origin_time + tts[i] - 10.0,
             )
             sigmas.append(_np.std(tr_noise.data))
         else:

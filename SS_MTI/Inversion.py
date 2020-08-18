@@ -195,7 +195,7 @@ def Grid_Search_run(
                 color_plot = "blue"
 
             sum_misfits = _np.sum(f["samples"][:, -len(phases) :], axis=1)
-            nlowest = 50
+            nlowest = 1
             lowest_indices = sum_misfits.argsort()[0:nlowest]
             sdrs_total = f["samples"][:, 1:4]
             sdrs = sdrs_total[lowest_indices, :]
@@ -205,6 +205,8 @@ def Grid_Search_run(
             M0_plot = _np.expand_dims(
                 M0_total[lowest_indices] * M0_corrs_total[lowest_indices], axis=1
             )
+            depth_post = f["samples"][:, 0]
+            depth_plot = depth_post[lowest_indices]
             """ Beachball plot """
 
             fig = _PostProcessing.Plot_GS_BB(
@@ -225,7 +227,12 @@ def Grid_Search_run(
             )
             plt.close()
 
-            fig = _PostProcessing.waveform_plot(
+            extra_arrs = []
+            for j, extraphase in enumerate(plot_extra_phases):
+                arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+                extra_arrs.append(arr)
+
+            fig, ax = _PostProcessing.waveform_plot(
                 syn_GFs=syn_GFs,
                 syn_tts=syn_tts,
                 obs_tts=obs_tt,
@@ -242,9 +249,47 @@ def Grid_Search_run(
                 fmax=fmax,
                 zerophase=zerophase,
                 plot_extra_phases=plot_extra_phases,
+                extra_arrs=extra_arrs,
                 color_plot=color_plot,
                 Ylims=Ylims,
             )
+
+            for i, phase in enumerate(phases):
+                for n in range(len(M0_plot)):
+                    st = make_GF(
+                        event=event,
+                        depth=depth_plot[n],
+                        rec=rec,
+                        db=fwd.db,
+                        dt=fwd.dt,
+                        tstar=tstars[i],
+                        comp=[components[i]],
+                        LQT=False,
+                        inc=None,
+                    )
+                    st.trim(
+                        starttime=fwd.or_time + fwd.start_cut, endtime=fwd.or_time + fwd.end_cut
+                    )
+                    _PreProcess.filter_tr(st, fmin=fmin, fmax=fmax, zerophase=zerophase)
+
+                    tr_syn_full = from_GF(
+                        st_in=st, strike=sdrs[n, 0], dip=sdrs[n, 1], rake=sdrs[n, 2], M0=1.0,
+                    )
+
+                    tr_slice = tr_syn_full.slice(
+                        starttime=fwd.or_time + syn_tts[i] - t_pre[i],
+                        endtime=fwd.or_time + syn_tts[i] + t_post[i],
+                    )
+
+                    ax[i].plot(
+                        tr_slice.times() - t_pre[i], tr_slice.data * M0_corrs[n], lw=0.5, c="r",
+                    )
+                    ax[i].plot(
+                        tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
+                        tr_syn_full.data * M0_corrs[n],
+                        lw=0.5,
+                        c="r",
+                    )
             plt.savefig(
                 pjoin(
                     output_folder,
@@ -254,6 +299,149 @@ def Grid_Search_run(
             )
             plt.close()
         f.close()
+
+
+def make_GF(event, depth, rec, db, dt, tstar, comp, LQT=False, inc=None):
+
+    """  Put tstar = None if you do not want to use a STF"""
+    import SS_MTI.SourceTimeFunction as _STF
+
+    if tstar is not None and not isinstance(tstar, str):
+        stf_len_sec = 30.0
+        stf = _STF.stf_tstar(tstar=tstar, dt=db.info.dt, npts=int(stf_len_sec / db.info.dt))[0]
+    elif isinstance(tstar, str):
+        stf = _STF.Create_stf_from_file(tstar, db.info.dt)
+
+    mts = [
+        [1e14, 0e14, 0e14, 0e14, 0e14, 0e14],
+        [0e14, 1e14, 0e14, 0e14, 0e14, 0e14],
+        [0e14, 0e14, 1e14, 0e14, 0e14, 0e14],
+        [0e14, 0e14, 0e14, 1e14, 0e14, 0e14],
+        [0e14, 0e14, 0e14, 0e14, 1e14, 0e14],
+        [0e14, 0e14, 0e14, 0e14, 0e14, 1e14],
+    ]
+
+    st = obspy.Stream()
+    for mt in mts:
+        src = instaseis.Source(
+            latitude=event.latitude,
+            longitude=event.longitude,
+            depth_in_m=depth * 1e3,
+            origin_time=event.origin_time,
+            m_rr=mt[0],
+            m_pp=mt[1],
+            m_tt=mt[2],
+            m_rp=mt[3],
+            m_rt=mt[4],
+            m_tp=mt[5],
+        )
+
+        reconvolve_stf = False
+        remove_source_shift = True
+        if tstar is not None and not isinstance(tstar, str):
+            reconvolve_stf = True
+            remove_source_shift = False
+            src.set_sliprate(stf, dt=db.info.dt)
+            reconvolve_stf = True
+            remove_source_shift = False
+        elif isinstance(tstar, str):
+            reconvolve_stf = True
+            remove_source_shift = False
+            src.set_sliprate(stf, dt=db.info.dt, normalize=True)
+
+        if LQT:
+            st_rot = db.get_seismograms(
+                src,
+                rec,
+                dt=dt,
+                components="ZNE",
+                kind="displacement",
+                reconvolve_stf=reconvolve_stf,
+                remove_source_shift=remove_source_shift,
+            )
+            st_rot.rotate(method="ZNE->LQT", back_azimuth=event.baz, inclination=inc)
+            tr_rot = st_rot.select(channel="BX" + comp[0])[0]
+            st += tr_rot
+        else:
+            st += db.get_seismograms(
+                src,
+                rec,
+                dt=dt,
+                components=comp,
+                kind="displacement",
+                reconvolve_stf=reconvolve_stf,
+                remove_source_shift=remove_source_shift,
+            )[0]
+    return st
+
+
+def from_GF(st_in, strike, dip, rake, M0=1e14):
+    import numpy as np
+
+    phi = np.deg2rad(strike)
+    delta = np.deg2rad(dip)
+    lambd = np.deg2rad(rake)
+
+    m_rr = (np.sin(2.0 * delta) * np.sin(lambd)) * M0 / 1e14
+
+    m_pp = (
+        (
+            np.sin(delta) * np.cos(lambd) * np.sin(2.0 * phi)
+            - np.sin(2.0 * delta) * np.cos(phi) ** 2.0 * np.sin(lambd)
+        )
+        * M0
+        / 1e14
+    )
+
+    m_tt = (
+        (
+            -np.sin(delta) * np.cos(lambd) * np.sin(2.0 * phi)
+            - np.sin(2.0 * delta) * np.sin(phi) ** 2.0 * np.sin(lambd)
+        )
+        * M0
+        / 1e14
+    )
+
+    m_rp = (
+        (
+            -np.cos(phi) * np.sin(lambd) * np.cos(2.0 * delta)
+            + np.cos(delta) * np.cos(lambd) * np.sin(phi)
+        )
+        * M0
+        / 1e14
+    )
+
+    m_rt = (
+        (
+            -np.sin(lambd) * np.sin(phi) * np.cos(2.0 * delta)
+            - np.cos(delta) * np.cos(lambd) * np.cos(phi)
+        )
+        * M0
+        / 1e14
+    )
+
+    m_tp = (
+        (
+            -np.sin(delta) * np.cos(lambd) * np.cos(2.0 * phi)
+            - np.sin(2.0 * delta) * np.sin(2.0 * phi) * np.sin(lambd) / 2.0
+        )
+        * M0
+        / 1e14
+    )
+
+    data = (
+        st_in[0].data * m_rr
+        + st_in[1].data * m_pp
+        + st_in[2].data * m_tt
+        + st_in[3].data * m_rp
+        + st_in[4].data * m_rt
+        + st_in[5].data * m_tp
+    )
+
+    tr = st_in[0].copy()
+    tr.data = data
+
+    return tr
 
 
 def Direct(
@@ -561,6 +749,11 @@ def Direct(
             MT = _np.expand_dims(DC_MT, axis=0)
             M0 = _np.expand_dims(M0_DC, axis=0)
 
+            extra_arrs = []
+            for j, extraphase in enumerate(plot_extra_phases):
+                arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+                extra_arrs.append(arr)
+
             fig = _PostProcessing.waveform_plot(
                 syn_GFs=syn_GFs,
                 syn_tts=syn_tts,
@@ -578,6 +771,7 @@ def Direct(
                 fmax=fmax,
                 zerophase=zerophase,
                 plot_extra_phases=plot_extra_phases,
+                extra_arrs=extra_arrs,
                 color_plot=color_plot,
                 Ylims=Ylims,
             )
