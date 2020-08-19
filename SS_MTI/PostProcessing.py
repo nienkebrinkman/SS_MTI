@@ -1094,7 +1094,19 @@ def plot_phases_vs_depth(
         )
 
         """ Generate Green's functions per depth """
-        extra_phases = ["pP", "sS", "sP", "pS", "SS", "PP", "SSS", "PPP", "s^10P"]
+        extra_phases = [
+            "pP",
+            "sS",
+            "sP",
+            "pS",
+            "SS",
+            "PP",
+            "SSS",
+            "PPP",
+            "s^10P",
+            "s^10S",
+            "s^24S",
+        ]
         for j, extraphase in enumerate(extra_phases):
             extra_arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
             if extra_arr:
@@ -1168,6 +1180,10 @@ def plot_phases_vs_depth(
                 t_pre=t_pre[i],
                 t_post=t_post[i],
             )
+            if depth > 55 and depth < 66:
+                color = "purple"
+            else:
+                color = "k"
 
             fig, ax[i] = Plot_phase_vs_depth_copy(
                 tr=tr_syn,
@@ -1181,6 +1197,7 @@ def plot_phases_vs_depth(
                 ax=ax[i],
                 extra_phases=extra_phases,
                 extra_arrs=extra_arrs[idepth],
+                color=color,
             )
     delta = Yticks[1] - Yticks[0]
 
@@ -1201,6 +1218,11 @@ def plot_phases_vs_depth(
         )
 
         ax[i].axvline(0.0, c="grey")
+        # if phase == "S":
+        #     ax[i].axvline(15.8, c="black", alpha=0.4, ls="--")
+        # if phase == "P":
+        #     ax[i].axvline(12, c="black", alpha=0.4, ls="--")
+
         ax[i].text(
             0.1,
             Yticks[-1] + 0.5 * delta,
@@ -1249,6 +1271,12 @@ def plot_phases_vs_depth(
             ax[i].yaxis.set_ticks(Yticks)
             ax[i].set_yticklabels(depths)
             ax[i].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
+            # ax[i].axhspan(
+            #     Yticks[np.where(depths == 56)],
+            #     Yticks[np.where(depths == 68)],
+            #     facecolor="purple",
+            #     alpha=0.3,
+            # )
             if not i == 0:
                 ax[i].get_yaxis().set_visible(False)
 
@@ -1875,33 +1903,44 @@ def Source_Uncertainty(
     sdr_mins = [0, 0, -180]
     sdr_maxs = [360, 90, 180]
 
-    
     def k_mean_distance(data, cx, i_centroid, cluster_labels):
-        distances = [np.sqrt((x-cx)**2) for x in data[cluster_labels == i_centroid]]
-        return np.mean(distances)
-    def k_mean_distance_2d(data, cx,cy, i_centroid, cluster_labels):
-        distances = [np.sqrt((x-cx)**2+(y-cy)**2) for (x, y) in data[cluster_labels == i_centroid]]
-        return np.mean(distances)
-    def k_mean_distance_3d(data, cx,cy,cz, i_centroid, cluster_labels):
-        distances = [np.sqrt((x-cx)**2+(y-cy)**2+(z-cz)**2) for (x, y,z) in data[cluster_labels == i_centroid]]
+        distances = [np.sqrt((x - cx) ** 2) for x in data[cluster_labels == i_centroid]]
         return np.mean(distances)
 
-    
+    def k_mean_distance_2d(data, cx, cy, i_centroid, cluster_labels):
+        distances = [
+            np.sqrt((x - cx) ** 2 + (y - cy) ** 2) for (x, y) in data[cluster_labels == i_centroid]
+        ]
+        return np.mean(distances)
+
+    def k_mean_distance_3d(data, cx, cy, cz, i_centroid, cluster_labels):
+        distances = [
+            np.sqrt((x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2)
+            for (x, y, z) in data[cluster_labels == i_centroid]
+        ]
+        return np.mean(distances)
+
     from sklearn.cluster import KMeans
+
     strike_rad = MT_sdrs[:, 0]
     dip_rad = MT_sdrs[:, 1]
     n = np.array(
-        [-np.sin(dip_rad) * np.sin(strike_rad), -np.sin(dip_rad) * np.cos(strike_rad), np.cos(dip_rad)])
-    x = n[0,:]
-    y = n[1,:]
-    z = n[2,:]
+        [
+            -np.sin(dip_rad) * np.sin(strike_rad),
+            -np.sin(dip_rad) * np.cos(strike_rad),
+            np.cos(dip_rad),
+        ]
+    )
+    x = n[0, :]
+    y = n[1, :]
+    z = n[2, :]
 
     km_xyz = KMeans(n_clusters=2).fit(n.T)
     clusters_xyz = km_xyz.predict(n.T)
     kmeans_xyz = km_xyz.cluster_centers_
-    c_mean_distances_xyz=[]
-    for i, (cx,cy,cz) in enumerate(kmeans_xyz):
-        mean_distance = k_mean_distance_3d(n.T, cx,cy,cz,i,clusters_xyz)
+    c_mean_distances_xyz = []
+    for i, (cx, cy, cz) in enumerate(kmeans_xyz):
+        mean_distance = k_mean_distance_3d(n.T, cx, cy, cz, i, clusters_xyz)
         c_mean_distances_xyz.append(mean_distance)
 
     dips = []
@@ -1911,7 +1950,6 @@ def Source_Uncertainty(
         wrap = s % 360
         st = 360.0 - 90.0 - wrap
         s_new = st % 360.0
-        
 
         dip = np.rad2deg(np.arctan2(np.sqrt(cluster[0] ** 2 + cluster[1] ** 2), cluster[2]))
         if dip >= 90 or dip < 0:
@@ -1933,68 +1971,62 @@ def Source_Uncertainty(
 
         dips.append(dip)
         strikes.append(strike)
-        
-
-
-
-
 
     # h = np.histogram(MT_sdrs[:, 0],bins=18)
-    # h = np.vstack((0.5*(h[1][:-1]+h[1][1:]),h[0])).T 
+    # h = np.vstack((0.5*(h[1][:-1]+h[1][1:]),h[0])).T
     # array_convt = h
     # strike_rad = np.deg2rad(MT_sdrs[:, 0])
     # strike_unwrap = np.unwrap(strike_rad)
 
     # array_convt=strike_rad.reshape(len(strike_rad),1)
-    array_convt=MT_sdrs[:, 0].reshape(len(MT_sdrs[:, 0]),1)
+    array_convt = MT_sdrs[:, 0].reshape(len(MT_sdrs[:, 0]), 1)
     km_s = KMeans(n_clusters=2).fit(array_convt)
     clusters_s = km_s.predict(array_convt)
-    kmeans_s = km_s.cluster_centers_    
-    c_mean_distances_s=[]
+    kmeans_s = km_s.cluster_centers_
+    c_mean_distances_s = []
     # for i, (cx,cy) in enumerate(kmeans_s):
     #         mean_distance = k_mean_distance_2d(h, cx,cy,i, clusters_s)
     #         c_mean_distances_s.append(mean_distance)
     for i, cx in enumerate(kmeans_s):
-        mean_distance = k_mean_distance(array_convt, cx,i, clusters_s)
-        c_mean_distances_s.append(mean_distance)   
+        mean_distance = k_mean_distance(array_convt, cx, i, clusters_s)
+        c_mean_distances_s.append(mean_distance)
 
-
-    
-    array_convt=MT_sdrs[:, 1].reshape(len(MT_sdrs[:, 1]),1)
+    array_convt = MT_sdrs[:, 1].reshape(len(MT_sdrs[:, 1]), 1)
     km_d = KMeans(n_clusters=2).fit(array_convt)
     clusters_d = km_d.predict(array_convt)
     kmeans_d = km_d.cluster_centers_
-    c_mean_distances_d=[]
+    c_mean_distances_d = []
     for i, cx in enumerate(kmeans_d):
-            mean_distance = k_mean_distance(array_convt, cx,i, clusters_d)
-            c_mean_distances_d.append(mean_distance)
+        mean_distance = k_mean_distance(array_convt, cx, i, clusters_d)
+        c_mean_distances_d.append(mean_distance)
 
-    
-    array_convt=MT_sdrs[:, 2]
-    array_convt=array_convt[array_convt<0]
-    array_convt=array_convt.reshape(len(array_convt),1)
+    array_convt = MT_sdrs[:, 2]
+    array_convt = array_convt[array_convt < 0]
+    array_convt = array_convt.reshape(len(array_convt), 1)
     km_r = KMeans(n_clusters=2).fit(array_convt)
     clusters_r = km_r.predict(array_convt)
     kmeans_r = km_r.cluster_centers_
-    c_mean_distances_r=[]
+    c_mean_distances_r = []
     for i, cx in enumerate(kmeans_r):
-            mean_distance = k_mean_distance(array_convt, cx,i, clusters_r)
-            c_mean_distances_r.append(mean_distance)
+        mean_distance = k_mean_distance(array_convt, cx, i, clusters_r)
+        c_mean_distances_r.append(mean_distance)
 
-    c_mean_distances=[c_mean_distances_s,c_mean_distances_d,c_mean_distances_r]
+    c_mean_distances = [c_mean_distances_s, c_mean_distances_d, c_mean_distances_r]
     print(c_mean_distances)
 
     strike_aux, dip_aux, rake_aux = aux_plane(kmeans_s[0][0], kmeans_d[0][0], kmeans_r[0][0])
     # strike_aux, dip_aux, rake_aux = aux_plane(strikes[0], dips[0], kmeans_r[0][0])
     f_planes = [kmeans_s[0][0], kmeans_d[0][0], kmeans_r[0][0]]
     # f_planes = [strikes[0], dips[0], kmeans_r[0][0]]
-    kmeans_tot = [kmeans_s[1][0],kmeans_d[1][0], kmeans_r[1][0]]
+    kmeans_tot = [kmeans_s[1][0], kmeans_d[1][0], kmeans_r[1][0]]
     # kmeans_tot = [strikes[1],dips[1], kmeans_r[1][0]]
     print(f"plane 1: {f_planes}")
     aux_planes = [strike_aux, dip_aux, rake_aux]
     print(f"plane 2: {aux_planes}")
 
-    MT_planes = _GreensFunctions.convert_SDR(kmeans_s[0][0], kmeans_d[0][0], kmeans_r[0][0], M0_DC) / M0_DC
+    MT_planes = (
+        _GreensFunctions.convert_SDR(kmeans_s[0][0], kmeans_d[0][0], kmeans_r[0][0], M0_DC) / M0_DC
+    )
     MT_planes[3] = -MT_planes[3]
     MT_planes[5] = -MT_planes[5]
     for i in range(6):
@@ -2021,12 +2053,12 @@ def Source_Uncertainty(
         )
         axbig.axvline(x=f_planes[i], c="blue", lw=1, label="K-means + fault plane")
         axbig.axvline(x=kmeans_tot[i], c="green", lw=1, label="K-means")
-        axbig.axvline(x=aux_planes[i], c="red", lw=1, label = "Aux plane")
+        axbig.axvline(x=aux_planes[i], c="red", lw=1, label="Aux plane")
 
-        axbig.axvline(x=f_planes[i] + c_mean_distances[i][0], c="blue", lw=1, ls = "--")
-        axbig.axvline(x=f_planes[i] - c_mean_distances[i][0], c="blue", lw=1, ls = "--")
-        axbig.axvline(x=kmeans_tot[i] + c_mean_distances[i][1], c="green", lw=1, ls = "--")
-        axbig.axvline(x=kmeans_tot[i] - c_mean_distances[i][1], c="green", lw=1, ls = "--")
+        axbig.axvline(x=f_planes[i] + c_mean_distances[i][0], c="blue", lw=1, ls="--")
+        axbig.axvline(x=f_planes[i] - c_mean_distances[i][0], c="blue", lw=1, ls="--")
+        axbig.axvline(x=kmeans_tot[i] + c_mean_distances[i][1], c="green", lw=1, ls="--")
+        axbig.axvline(x=kmeans_tot[i] - c_mean_distances[i][1], c="green", lw=1, ls="--")
 
         axbig.set_xlabel(sdr_names[i], fontsize=18)
         axbig.tick_params(axis="x", labelsize=15)
@@ -2035,8 +2067,7 @@ def Source_Uncertainty(
         axbig.set_xlim(sdr_mins[i], sdr_maxs[i])
         if i == 2:
             axbig.legend()
-    fig1, ax1 = plt.subplots(
-        nrows=1, ncols=3, figsize=(12, 3), sharey="row")
+    fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3), sharey="row")
     for i in range(3):
         ax1[i].hist(
             MT_sdrs[:, i],
@@ -2051,10 +2082,10 @@ def Source_Uncertainty(
         ax1[i].axvline(x=kmeans_tot[i], c="green", lw=1, label="fault plane 2")
         # ax1[i].axvline(x=aux_planes[i], c="red", lw=1, label = "Aux plane")
 
-        ax1[i].axvline(x=f_planes[i] + c_mean_distances[i][0], c="blue", lw=1, ls = "--")
-        ax1[i].axvline(x=f_planes[i] - c_mean_distances[i][0], c="blue", lw=1, ls = "--")
-        ax1[i].axvline(x=kmeans_tot[i] + c_mean_distances[i][1], c="green", lw=1, ls = "--")
-        ax1[i].axvline(x=kmeans_tot[i] - c_mean_distances[i][1], c="green", lw=1, ls = "--")
+        ax1[i].axvline(x=f_planes[i] + c_mean_distances[i][0], c="blue", lw=1, ls="--")
+        ax1[i].axvline(x=f_planes[i] - c_mean_distances[i][0], c="blue", lw=1, ls="--")
+        ax1[i].axvline(x=kmeans_tot[i] + c_mean_distances[i][1], c="green", lw=1, ls="--")
+        ax1[i].axvline(x=kmeans_tot[i] - c_mean_distances[i][1], c="green", lw=1, ls="--")
 
         ax1[i].set_xlabel(sdr_names[i], fontsize=18)
         ax1[i].tick_params(axis="x", labelsize=15)

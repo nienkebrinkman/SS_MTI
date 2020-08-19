@@ -15,7 +15,6 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Trial_2"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
@@ -127,7 +126,7 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event.name == "S0235b": #or event.name == "S0173a":
+    if event.name == "S0235b":  # or event.name == "S0173a":
         pass
     else:
         continue
@@ -340,74 +339,72 @@ for i, v in event_input.items():
     # plt.close()
 
     """ (best MT vs depth phase arrivals) """
-    # depths = depths[::2]  # np.array([23, 26, 29])  #
-    # t_pre = [t_pre[0], t_pre[1]]
-    # t_post = [t_post[0], t_post[0]]
-    # phases = [phases[0], phases[1]]
-    # components = [components[0], components[1]]
-    # phase_corrs = [phase_corrs[0], phase_corrs[1]]
-    # tstars = [tstars[0], tstars[1]]
-    # fig = _PostProcessing.plot_phases_vs_depth(
-    #     h5_file_folder=output_folder,
-    #     method="GS",
-    #     misfit_name=misfit.name,
-    #     fwd=fwd,
-    #     event=event,
-    #     rec=rec,
-    #     phases=phases,
-    #     components=components,
-    #     t_pre=t_pre,
-    #     t_post=t_post,
-    #     depths=depths,
-    #     phase_corrs=phase_corrs,
-    #     fmin=fmin,
-    #     fmax=fmax,
-    #     zerophase=zerophase,
-    #     tstars=tstars,
-    #     color_plot="blue",
-    # )
-    # # plt.tight_layout()
-    # plt.savefig(
-    #     pjoin(
-    #         save_folder,
-    #         f"PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-    #     ),
-    #     dpi=600,
-    # )
-    # plt.close()
-
-    """ Uncertainty estimates:"""
-    fig,fig_sdr = _PostProcessing.Source_Uncertainty(
+    depths = depths[1::2]  # np.array([23, 26, 29])  #
+    t_pre = [t_pre[0], t_pre[1]]
+    t_post = [t_post[0], t_post[0]]
+    phases = [phases[0], phases[1]]
+    components = [components[0], components[1]]
+    phase_corrs = [phase_corrs[0], phase_corrs[1]]
+    tstars = [tstars[0], tstars[1]]
+    fig = _PostProcessing.plot_phases_vs_depth(
         h5_file_folder=output_folder,
-        event_name=event.name,
         method="GS",
         misfit_name=misfit.name,
         fwd=fwd,
+        event=event,
+        rec=rec,
         phases=phases,
         components=components,
-        depths=np.arange(50,68,3),
-        DOF=DOF,
+        t_pre=t_pre,
+        t_post=t_post,
+        depths=depths,
+        phase_corrs=phase_corrs,
         fmin=fmin,
         fmax=fmax,
+        zerophase=zerophase,
+        tstars=tstars,
+        color_plot="blue",
     )
-    fig.tight_layout()
-    fig.savefig(
+    # plt.tight_layout()
+    plt.savefig(
         pjoin(
             save_folder,
-            f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+            f"PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
         ),
         dpi=600,
     )
-    plt.close(fig) 
-    fig_sdr.tight_layout()
-    fig_sdr.savefig(
-        pjoin(
-            save_folder,
-            f"Uncertainties_SDR_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        ),
-        dpi=600,
-    )
-    plt.close(fig_sdr)
+    plt.close()
 
-
+    """ Uncertainty estimates:"""
+    # fig,fig_sdr = _PostProcessing.Source_Uncertainty(
+    #     h5_file_folder=output_folder,
+    #     event_name=event.name,
+    #     method="GS",
+    #     misfit_name=misfit.name,
+    #     fwd=fwd,
+    #     phases=phases,
+    #     components=components,
+    #     depths=np.arange(50,68,3),
+    #     DOF=DOF,
+    #     fmin=fmin,
+    #     fmax=fmax,
+    # )
+    # fig.tight_layout()
+    # fig.savefig(
+    #     pjoin(
+    #         save_folder,
+    #         f"Uncertainties_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    #     ),
+    #     dpi=600,
+    # )
+    # plt.close(fig)
+    # fig_sdr.tight_layout()
+    # fig_sdr.savefig(
+    #     pjoin(
+    #         save_folder,
+    #         f"Uncertainties_SDR_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+    #     ),
+    #     dpi=600,
+    # )
+    # plt.close(fig_sdr)
 

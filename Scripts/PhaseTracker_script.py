@@ -34,7 +34,7 @@ plt.close()
 
 strike = 70
 dip = 30
-rake =-95
+rake = -95
 focal_mech = [strike, dip, rake]
 M0 = 5.62e13
 
@@ -67,9 +67,8 @@ npz_file_name_4 = "/home/nienke/Documents/Research/Data/npz_files/DWAK.npz"
 db_name_5 = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/MAAK_1s"
 npz_file_name_5 = "/home/nienke/Documents/Research/Data/npz_files/MAAK.npz"
 
-db_names = [db_name_1]#, db_name_2, db_name_3, db_name_4, db_name_5]
-npz_file_names = [
-    npz_file_name_1]#,
+db_names = [db_name_1]  # , db_name_2, db_name_3, db_name_4, db_name_5]
+npz_file_names = [npz_file_name_1]  # ,
 #     npz_file_name_2,
 #     npz_file_name_3,
 #     npz_file_name_4,
@@ -128,7 +127,7 @@ for npz_file, db_path in zip(npz_file_names, db_names):
         Conversion_rec.append("P" + interface + "p")
         Conversion_rec.append("P" + interface + "s")
 
-    Direct_phases = ["P"]
+    Direct_phases = ["S"]
     Depth_phases = ["pP", "sP", "sS"]
     Double_phases = ["PP", "PPP", "SSS"]
     extra_phases = (
