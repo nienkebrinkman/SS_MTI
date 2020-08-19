@@ -18,6 +18,7 @@ from typing import List as _List, Union as _Union
 import instaseis
 from obspy import UTCDateTime as utct
 from obspy.imaging.beachball import aux_plane
+from sklearn.cluster import KMeans
 
 pyproj_datadir = os.environ["PROJ_LIB"]
 
@@ -1022,7 +1023,7 @@ def plot_phases_vs_depth(
         slice=True,
         tts=obs_tt,
         t_pre=t_pre,
-        t_post=t_post,
+        t_post=t_post + 2.5,
         filter=filter_par,
         fmin=fmin,
         fmax=fmax,
@@ -1178,7 +1179,7 @@ def plot_phases_vs_depth(
                 slice=True,
                 tt=syn_tt,
                 t_pre=t_pre[i],
-                t_post=t_post[i],
+                t_post=t_post[i]+2.5,
             )
             if depth > 55 and depth < 66:
                 color = "purple"
@@ -1322,7 +1323,7 @@ def Plot_phase_vs_depth_copy(
     ymax = global_max + Ytick
 
     ax.plot(
-        st.times() - t_pre, st.data + Ytick, color,
+        st.times() - t_pre - 2.5, st.data + Ytick, color,
     )
 
     # ax.plot(
@@ -1414,8 +1415,16 @@ def post_waveform_plotting(
                 Filename=h5_file_path, amount_of_phases=5
             )
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
-            n_lowest = int(len(Total_L2_GS) * 0.05)
-            lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
+            lowest_ind = Total_L2_GS.argsort()
+            Total_L2_GS.sort()
+            misfit_low = Total_L2_GS[:] - Total_L2_GS[0] 
+            uncert = 0.05 * Total_L2_GS[0]
+            inds = np.where(misfit_low < uncert)
+            lowest_indices = lowest_ind[inds]
+
+
+            # n_lowest = int(len(Total_L2_GS) * 0.05)
+            # lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
             # n_lowest = 10
             # lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
             MT = sdr[lowest_indices, :]
@@ -1607,7 +1616,24 @@ def waveform_plot(
                 endtime=fwd.or_time + syn_tts[i] + t_post[i],
             )
 
-            if n == 0:
+            # if n == 0:
+
+            # else:
+            ax[i].plot(
+                tr_slice.times() - t_pre[i], tr_slice.data, lw=2, c=color_plot,
+            )
+            ax[i].plot(
+                tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
+                tr_syn_full.data,
+                lw=1,
+                c=color_plot,
+            )
+            # ax[i].legend()
+
+            st = obspy.Stream()
+            st += tr_slice
+
+            if n == len(M0s) - 1:
                 st_obs_full, sigmasPLOT = _PreProcess.prepare_event_data(
                     event=event,
                     phases=phases,
@@ -1630,22 +1656,8 @@ def waveform_plot(
                 ax[i].plot(
                     st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
                 )
-            else:
-                ax[i].plot(
-                    tr_slice.times() - t_pre[i], tr_slice.data, lw=2, c=color_plot,
-                )
-            ax[i].plot(
-                tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
-                tr_syn_full.data,
-                lw=1,
-                c=color_plot,
-            )
-            # ax[i].legend()
 
-            st = obspy.Stream()
-            st += tr_slice
 
-            if n == len(M0s) - 1:
                 st += st_obs[i]
                 if Ylims is None:
                     ax[i].set_ylim(global_min, global_max)
@@ -1843,134 +1855,140 @@ def Source_Uncertainty(
             weights_Direct = np.hstack((weights_Direct, np.exp(-GOF_Direct)))
 
         color_plot = "r"
+
+    # MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
+    MT_names = ["mzz", "myy", "mxx", "myz", "mxz", "mxy"]
+
+    ## =====================BIG PLOT ===================
     fig, ax = plt.subplots(
         nrows=2, ncols=6, figsize=(12, 6), sharey="row", gridspec_kw={"height_ratios": [3, 1]}
     )
-    # MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
-    MT_names = ["mzz", "myy", "mxx", "myz", "mxz", "mxy"]
-    for i in range(6):
-        ax[0, i].hist(
-            MT_GS[:, i],
-            bins=18,
-            alpha=0.4,
-            color="steelblue",
-            edgecolor="none",
-            label="GS",
-            weights=weights_GS,
-            density=True,
-        )
-        ax[0, i].hist(
-            MT_Direct[:, i],
-            bins=18,
-            alpha=0.4,
-            color="red",
-            edgecolor="none",
-            label="Direct",
-            weights=weights_Direct,
-            density=True,
-        )
-        ax[0, i].set_xlabel(MT_names[i], fontsize=18)
-        ax[0, i].tick_params(axis="x", labelsize=15)
-        ax[0, i].tick_params(axis="y", labelsize=15)
-        ax[0, i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
-        ax[0, i].set_xlim(-1, 1)
-        n_GS, bins_GS = np.histogram(MT_GS[:, i], bins=18, weights=weights_GS, density=True)
-        mids = 0.5 * (bins_GS[1:] + bins_GS[:-1])
-        mean_GS = np.average(mids, weights=n_GS)
-        # (values, counts) = np.unique(MT_GS[:, i], return_counts=True)
-        # ind = np.argmax(counts)
-        # mean_GS = values[ind]
-        var_GS = np.sqrt(np.average((mids - mean_GS) ** 2, weights=n_GS))
-        # ax[0, i].axvline(x=mean_GS, c="steelblue", lw=1)
-        # ax[0, i].axvline(x=mean_GS + var_GS, c="steelblue", lw=1, ls="--")
-        # ax[0, i].axvline(x=mean_GS - var_GS, c="steelblue", lw=1, ls="--")
+    # for i in range(6):
+    #     hist_1 = MT_GS[:, i] / np.max(MT_GS[:, i] )
+    #     ax[0, i].hist(
+    #         hist_1,
+    #         bins=18,
+    #         alpha=0.4,
+    #         color="steelblue",
+    #         edgecolor="none",
+    #         label="GS",
+    #         weights=weights_GS,
+    #         density=True,
+    #     )
+    #     hist_2 = MT_Direct[:, i] / np.max(MT_Direct[:, i] )
+    #     ax[0, i].hist(
+    #         hist_2,
+    #         bins=18,
+    #         alpha=0.4,
+    #         color="red",
+    #         edgecolor="none",
+    #         label="Direct",
+    #         weights=weights_Direct,
+    #         density=True,
+    #     )
+    #     ax[0, i].set_xlabel(MT_names[i], fontsize=18)
+    #     ax[0, i].tick_params(axis="x", labelsize=15)
+    #     ax[0, i].tick_params(axis="y", labelsize=15)
+    #     ax[0, i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+    #     ax[0, i].set_xlim(-1, 1)
 
-        n_Direct, bins_Direct = np.histogram(
-            MT_Direct[:, i], bins=18, weights=weights_Direct, density=True
-        )
-        mids = 0.5 * (bins_Direct[1:] + bins_Direct[:-1])
-        mean_Direct = np.average(mids, weights=n_Direct)
-        var_Direct = np.sqrt(np.average((mids - mean_Direct) ** 2, weights=n_Direct))
-        # ax[0, i].axvline(x=mean_Direct, c="red", lw=1)
-        # ax[0, i].axvline(x=mean_Direct + var_Direct, c="red", lw=1, ls="--")
-        # ax[0, i].axvline(x=mean_Direct - var_Direct, c="red", lw=1, ls="--")
+    #     h = np.histogram(MT_GS[:, i],bins=18)
+    #     h = np.vstack((0.5*(h[1][:-1]+h[1][1:]),h[0])).T
+    #     array_convt = h
+    #     km = KMeans(n_clusters=1).fit(array_convt)
+    #     clusters = km.predict(array_convt)
+    #     kmeans = km.cluster_centers_
+    #     c_mean_distances = []
+    #     for i, (cx,cy) in enumerate(kmeans):
+    #             mean_distance = k_mean_distance_2d(array_convt, cx,cy,i, clusters)
+    #             c_mean_distances.append(mean_distance)
 
-    ax[0, 0].set_ylabel("Frequency", fontsize=18)
-    # ax[0,0].set_ylim(0, 10)
-    ax[0, 0].legend()
+    #     ax[0, i].axvline(x=kmeans[0][0] + c_mean_distances[0], c="blue", lw=1, ls="--")
+    #     ax[0, i].axvline(x=kmeans[0][0] - c_mean_distances[0], c="blue", lw=1, ls="--")
+    #     ax[0, i].axvline(x=kmeans[0][0] - c_mean_distances[0], c="blue", lw=1)
+
+    #     n_GS, bins_GS = np.histogram(MT_GS[:, i], bins=18, weights=weights_GS, density=True)
+    #     mids = 0.5 * (bins_GS[1:] + bins_GS[:-1])
+    #     mean_GS = np.average(mids, weights=n_GS)
+    #     # (values, counts) = np.unique(MT_GS[:, i], return_counts=True)
+    #     # ind = np.argmax(counts)
+    #     # mean_GS = values[ind]
+    #     var_GS = np.sqrt(np.average((mids - mean_GS) ** 2, weights=n_GS))
+    #     # ax[0, i].axvline(x=mean_GS, c="steelblue", lw=1)
+    #     # ax[0, i].axvline(x=mean_GS + var_GS, c="steelblue", lw=1, ls="--")
+    #     # ax[0, i].axvline(x=mean_GS - var_GS, c="steelblue", lw=1, ls="--")
+
+    #     n_Direct, bins_Direct = np.histogram(
+    #         MT_Direct[:, i], bins=18, weights=weights_Direct, density=True
+    #     )
+    #     mids = 0.5 * (bins_Direct[1:] + bins_Direct[:-1])
+    #     mean_Direct = np.average(mids, weights=n_Direct)
+    #     var_Direct = np.sqrt(np.average((mids - mean_Direct) ** 2, weights=n_Direct))
+    #     # ax[0, i].axvline(x=mean_Direct, c="red", lw=1)
+    #     # ax[0, i].axvline(x=mean_Direct + var_Direct, c="red", lw=1, ls="--")
+    #     # ax[0, i].axvline(x=mean_Direct - var_Direct, c="red", lw=1, ls="--")
+
+    # ax[0, 0].set_ylabel("Frequency", fontsize=18)
+    # # ax[0,0].set_ylim(0, 10)
+    # ax[0, 0].legend()
 
     sdr_names = ["strike", "dip", "rake"]
     sdr_mins = [0, 0, -180]
     sdr_maxs = [360, 90, 180]
+    ## ========================================
 
-    def k_mean_distance(data, cx, i_centroid, cluster_labels):
-        distances = [np.sqrt((x - cx) ** 2) for x in data[cluster_labels == i_centroid]]
-        return np.mean(distances)
 
-    def k_mean_distance_2d(data, cx, cy, i_centroid, cluster_labels):
-        distances = [
-            np.sqrt((x - cx) ** 2 + (y - cy) ** 2) for (x, y) in data[cluster_labels == i_centroid]
-        ]
-        return np.mean(distances)
+    
 
-    def k_mean_distance_3d(data, cx, cy, cz, i_centroid, cluster_labels):
-        distances = [
-            np.sqrt((x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2)
-            for (x, y, z) in data[cluster_labels == i_centroid]
-        ]
-        return np.mean(distances)
+    # strike_rad = MT_sdrs[:, 0]
+    # dip_rad = MT_sdrs[:, 1]
+    # n = np.array(
+    #     [
+    #         -np.sin(dip_rad) * np.sin(strike_rad),
+    #         -np.sin(dip_rad) * np.cos(strike_rad),
+    #         np.cos(dip_rad),
+    #     ]
+    # )
+    # x = n[0, :]
+    # y = n[1, :]
+    # z = n[2, :]
 
-    from sklearn.cluster import KMeans
+    # km_xyz = KMeans(n_clusters=2).fit(n.T)
+    # clusters_xyz = km_xyz.predict(n.T)
+    # kmeans_xyz = km_xyz.cluster_centers_
+    # c_mean_distances_xyz = []
+    # for i, (cx, cy, cz) in enumerate(kmeans_xyz):
+    #     mean_distance = k_mean_distance_3d(n.T, cx, cy, cz, i, clusters_xyz)
+    #     c_mean_distances_xyz.append(mean_distance)
 
-    strike_rad = MT_sdrs[:, 0]
-    dip_rad = MT_sdrs[:, 1]
-    n = np.array(
-        [
-            -np.sin(dip_rad) * np.sin(strike_rad),
-            -np.sin(dip_rad) * np.cos(strike_rad),
-            np.cos(dip_rad),
-        ]
-    )
-    x = n[0, :]
-    y = n[1, :]
-    z = n[2, :]
+    # dips = []
+    # strikes = []
+    # for cluster in kmeans_xyz:
+    #     s = np.rad2deg(np.arctan2(cluster[1], cluster[0]))
+    #     wrap = s % 360
+    #     st = 360.0 - 90.0 - wrap
+    #     s_new = st % 360.0
 
-    km_xyz = KMeans(n_clusters=2).fit(n.T)
-    clusters_xyz = km_xyz.predict(n.T)
-    kmeans_xyz = km_xyz.cluster_centers_
-    c_mean_distances_xyz = []
-    for i, (cx, cy, cz) in enumerate(kmeans_xyz):
-        mean_distance = k_mean_distance_3d(n.T, cx, cy, cz, i, clusters_xyz)
-        c_mean_distances_xyz.append(mean_distance)
+    #     dip = np.rad2deg(np.arctan2(np.sqrt(cluster[0] ** 2 + cluster[1] ** 2), cluster[2]))
+    #     if dip >= 90 or dip < 0:
+    #         if dip == 90:
+    #             dip = 89.0
+    #             strike = (s_new + 180.0) % 360.0
+    #             # if rake == -180:
+    #             #     pass
+    #             # else:
+    #             #     rake = -rake
+    #         else:
+    #             d_new = 90.0 - dip
+    #             dip = d_new % 90.0
+    #             strike = (s_new + 180.0) % 360.0
+    #             # if rake == -180:
+    #             #     pass
+    #             # else:
+    #             #     rake = -rake
 
-    dips = []
-    strikes = []
-    for cluster in kmeans_xyz:
-        s = np.rad2deg(np.arctan2(cluster[1], cluster[0]))
-        wrap = s % 360
-        st = 360.0 - 90.0 - wrap
-        s_new = st % 360.0
-
-        dip = np.rad2deg(np.arctan2(np.sqrt(cluster[0] ** 2 + cluster[1] ** 2), cluster[2]))
-        if dip >= 90 or dip < 0:
-            if dip == 90:
-                dip = 89.0
-                strike = (s_new + 180.0) % 360.0
-                # if rake == -180:
-                #     pass
-                # else:
-                #     rake = -rake
-            else:
-                d_new = 90.0 - dip
-                dip = d_new % 90.0
-                strike = (s_new + 180.0) % 360.0
-                # if rake == -180:
-                #     pass
-                # else:
-                #     rake = -rake
-
-        dips.append(dip)
-        strikes.append(strike)
+    #     dips.append(dip)
+    #     strikes.append(strike)
 
     # h = np.histogram(MT_sdrs[:, 0],bins=18)
     # h = np.vstack((0.5*(h[1][:-1]+h[1][1:]),h[0])).T
@@ -2029,44 +2047,45 @@ def Source_Uncertainty(
     )
     MT_planes[3] = -MT_planes[3]
     MT_planes[5] = -MT_planes[5]
-    for i in range(6):
-        ax[0, i].axvline(x=MT_planes[i], c="red", lw=1, label="Fault planes")
+    ## =====================BIG PLOT ===================
+    # for i in range(6):
+    #     ax[0, i].axvline(x=MT_planes[i], c="red", lw=1, label="Fault planes")
 
-    for axs in ax[1, :]:
-        axs.remove()
-    for i in range(3):
-        plot_nr = i * 2
+    # for axs in ax[1, :]:
+    #     axs.remove()
+    # for i in range(3):
+    #     plot_nr = i * 2
 
-        gs = ax[1, plot_nr].get_gridspec()
-        # remove the underlying axes
+    #     gs = ax[1, plot_nr].get_gridspec()
+    #     # remove the underlying axes
 
-        axbig = fig.add_subplot(gs[1, plot_nr : plot_nr + 2])
-        # axbig.annotate('Big Axes \nGridSpec[1:, -1]', (0.1, 0.5)
-        axbig.hist(
-            MT_sdrs[:, i],
-            bins=18,
-            alpha=0.4,
-            color="steelblue",
-            edgecolor="none",
-            weights=weights_GS,
-            density=True,
-        )
-        axbig.axvline(x=f_planes[i], c="blue", lw=1, label="K-means + fault plane")
-        axbig.axvline(x=kmeans_tot[i], c="green", lw=1, label="K-means")
-        axbig.axvline(x=aux_planes[i], c="red", lw=1, label="Aux plane")
+    #     axbig = fig.add_subplot(gs[1, plot_nr : plot_nr + 2])
+    #     # axbig.annotate('Big Axes \nGridSpec[1:, -1]', (0.1, 0.5)
+    #     axbig.hist(
+    #         MT_sdrs[:, i],
+    #         bins=18,
+    #         alpha=0.4,
+    #         color="steelblue",
+    #         edgecolor="none",
+    #         weights=weights_GS,
+    #         density=True,
+    #     )
+    #     axbig.axvline(x=f_planes[i], c="blue", lw=1, label="K-means + fault plane")
+    #     axbig.axvline(x=kmeans_tot[i], c="green", lw=1, label="K-means")
+    #     axbig.axvline(x=aux_planes[i], c="red", lw=1, label="Aux plane")
 
-        axbig.axvline(x=f_planes[i] + c_mean_distances[i][0], c="blue", lw=1, ls="--")
-        axbig.axvline(x=f_planes[i] - c_mean_distances[i][0], c="blue", lw=1, ls="--")
-        axbig.axvline(x=kmeans_tot[i] + c_mean_distances[i][1], c="green", lw=1, ls="--")
-        axbig.axvline(x=kmeans_tot[i] - c_mean_distances[i][1], c="green", lw=1, ls="--")
+    #     axbig.axvline(x=f_planes[i] + c_mean_distances[i][0], c="blue", lw=1, ls="--")
+    #     axbig.axvline(x=f_planes[i] - c_mean_distances[i][0], c="blue", lw=1, ls="--")
+    #     axbig.axvline(x=kmeans_tot[i] + c_mean_distances[i][1], c="green", lw=1, ls="--")
+    #     axbig.axvline(x=kmeans_tot[i] - c_mean_distances[i][1], c="green", lw=1, ls="--")
 
-        axbig.set_xlabel(sdr_names[i], fontsize=18)
-        axbig.tick_params(axis="x", labelsize=15)
-        axbig.tick_params(axis="y", labelsize=15)
-        axbig.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
-        axbig.set_xlim(sdr_mins[i], sdr_maxs[i])
-        if i == 2:
-            axbig.legend()
+    #     axbig.set_xlabel(sdr_names[i], fontsize=18)
+    #     axbig.tick_params(axis="x", labelsize=15)
+    #     axbig.tick_params(axis="y", labelsize=15)
+    #     axbig.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+    #     axbig.set_xlim(sdr_mins[i], sdr_maxs[i])
+    #     if i == 2:
+    #         axbig.legend()
     fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3), sharey="row")
     for i in range(3):
         ax1[i].hist(
@@ -2094,4 +2113,72 @@ def Source_Uncertainty(
         ax1[i].set_xlim(sdr_mins[i], sdr_maxs[i])
         if i == 2:
             ax1[i].legend()
-    return fig, fig1
+    fig2, ax2 = plt.subplots(
+        nrows=1, ncols=6, figsize=(12, 3), sharey="row"
+    )
+    # MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
+    MT_names = ["mzz", "myy", "mxx", "myz", "mxz", "mxy"]
+    for i in range(6):
+        hist_1 = MT_GS[:, i] # / np.max(MT_GS[:, i] )
+        ax2[i].hist(
+            hist_1,
+            bins=18,
+            alpha=0.4,
+            color="steelblue",
+            edgecolor="none",
+            label="GS",
+            weights=weights_GS,
+            density=True,
+        )
+        hist_2 = MT_Direct[:, i]#/ np.max(MT_Direct[:, i] )
+        ax2[i].hist(
+            hist_2,
+            bins=18,
+            alpha=0.4,
+            color="red",
+            edgecolor="none",
+            label="Direct",
+            weights=weights_Direct,
+            density=True,
+        )
+        ax2[i].set_xlabel(MT_names[i], fontsize=18)
+        ax2[i].tick_params(axis="x", labelsize=15)
+        ax2[i].tick_params(axis="y", labelsize=15)
+        ax2[i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+        ax2[i].set_xlim(-2, 2)
+
+        h = np.histogram(MT_GS[:, i],bins=18)
+        h = np.vstack((0.5*(h[1][:-1]+h[1][1:]),h[0])).T
+        array_convt = h
+        km = KMeans(n_clusters=1).fit(array_convt)
+        clusters = km.predict(array_convt)
+        kmeans = km.cluster_centers_
+        c_mean_distances = []
+        for j, (cx,cy) in enumerate(kmeans):
+                mean_distance = k_mean_distance_2d(array_convt, cx,cy,i, clusters)
+                c_mean_distances.append(mean_distance)
+
+        ax2[i].axvline(x=kmeans[0][0] + c_mean_distances[0], c="blue", lw=1, ls="--")
+        ax2[i].axvline(x=kmeans[0][0] - c_mean_distances[0], c="blue", lw=1, ls="--")
+        ax2[i].axvline(x=kmeans[0][0] - c_mean_distances[0], c="blue", lw=1)
+    ax2[0].set_ylabel("Frequency", fontsize=18)
+    # ax[0].set_ylim(0, 10)
+    ax2[0].legend()
+    return fig2, fig1
+
+def k_mean_distance(data, cx, i_centroid, cluster_labels):
+    distances = [np.sqrt((x - cx) ** 2) for x in data[cluster_labels == i_centroid]]
+    return np.mean(distances)
+
+def k_mean_distance_2d(data, cx, cy, i_centroid, cluster_labels):
+    distances = [
+        np.sqrt((x - cx) ** 2 + (y - cy) ** 2) for (x, y) in data[cluster_labels == i_centroid]
+    ]
+    return np.mean(distances)
+
+def k_mean_distance_3d(data, cx, cy, cz, i_centroid, cluster_labels):
+    distances = [
+        np.sqrt((x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2)
+        for (x, y, z) in data[cluster_labels == i_centroid]
+    ]
+    return np.mean(distances)
