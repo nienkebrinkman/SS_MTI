@@ -390,7 +390,7 @@ def Direct(
             d_weight[:samps] = start_weight
             d_weight[samps:] = end_weight
 
-            Wd = 1 / (sigmas[i] ** 2 * d_weight)
+            Wd = 1 / (sigmas[i] * d_weight)
 
             if i == 0:
                 G_tot = G
@@ -406,8 +406,8 @@ def Direct(
 
         # ---- Solve ----
         # TODO: Add weight matrix when solving the inverse
-        A = G_tot.T @ Wd_tot @ G_tot
-        B = G_tot.T @ Wd_tot @ d_tot
+        A = G_tot.T @ Wd_tot.T @ Wd_tot @ G_tot
+        B = G_tot.T @ Wd_tot.T @ Wd_tot @ d_tot
 
         try:
             M = _np.linalg.solve(A, B)
@@ -528,7 +528,7 @@ def Direct(
             # TODO: make this plot routine as a function
             MT = f["samples"][0, 5 : 5 + 6]
             DC_MT = f["samples"][0, 5 + 6 : 5 + 2 * 6]
-            CLVD_MT = f["samples"][0, 5 + 6 : 5 + 2 * 6]
+            CLVD_MT = f["samples"][0, 5 + 2 * 6 : 5 + 3 * 6]
 
             angles = f["samples"][0, 5 + 3 * 6 : -len(phases)]
             angle_names = takeoff_angles

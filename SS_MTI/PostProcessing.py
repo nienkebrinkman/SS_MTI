@@ -855,8 +855,8 @@ def plot_misfit_vs_depth(
             y_dist = np.log(np.abs(y1 - y2))
 
             if y_dist < 100:
-                # adding_value = 2e-1
-                adding_value = 2e0
+                adding_value = 2e-1
+                # adding_value = 2e0
                 Line_x.append(depth)
                 if y1 > y2:
                     y1 = y1 + adding_value
@@ -953,15 +953,22 @@ def plot_misfit_vs_depth(
     # ax[0].ticklabel_format(style="sci", axis='y', scilimits=(-2, 2))
     ax[0].tick_params(axis="both", which="major", labelsize=18)
     ax[0].tick_params(axis="both", which="minor", labelsize=10)
-    ax[0].axvspan(53, 68, facecolor="purple", alpha=0.3)
+
+    # ax[0].axvspan(53, 68, facecolor="purple", alpha=0.3)
     # y = ax[0].get_ylim()[0] * 0.8
+    # ax[0].text(
+    #     52, 9, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
+    # )
+    ax[0].axvspan(26, 44, facecolor="purple", alpha=0.3)
+    y = ax[0].get_ylim()[0] * 0.8
     ax[0].text(
-        52, 9, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
+        26, 2, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
     )
+
     # ax[0].set_yscale('log')
     ax[0].grid(True)
-    # ax[0].set_ylim(1.5, 4.5)
-    ax[0].set_ylim(8, 30)
+    ax[0].set_ylim(1.5, 5.0)
+    # ax[0].set_ylim(8, 30)
     # ax[0].set_xlabel('Depth (km)', fontsize=20)
 
     extraticks = [0.1, 0.2, 0.3, 0.4]

@@ -15,7 +15,7 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Trial_4"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Trial_6"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -56,7 +56,7 @@ event_input = {
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
-        "amplitude_correction": ["PZ"],
+        "amplitude_correction": ["PZ", "ST", "SZ", "PR", "SR"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [17, 30, 30, 17, 30],
         "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
@@ -108,17 +108,17 @@ depths = np.arange(5, 90, 3)
 # depths = np.arange(47, 90, 3)
 # depths = [29, 41]
 
-# strikes = np.arange(0, 360, 20)
-# dips = np.arange(0, 91, 15)
-# rakes = np.arange(-180, 180, 15)
+strikes = np.arange(0, 360, 20)
+dips = np.arange(0, 91, 15)
+rakes = np.arange(-180, 180, 15)
 
 # strikes = [260]
 # dips = [15]
 # rakes = [-90]
 
-strikes = np.arange(0, 360, 5)
-dips = np.arange(0, 91, 5)
-rakes = np.arange(-180, 180, 5)
+# strikes = np.arange(0, 360, 5)
+# dips = np.arange(0, 91, 5)
+# rakes = np.arange(-180, 180, 5)
 
 """ Define different velocity models"""
 db_name_1 = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
@@ -127,8 +127,8 @@ npz_file_name_1 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
 db_name_2 = "/mnt/marshost/instaseis2/databases/TAYAK_shallow"
 npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 
-db_names = [db_name_2]  # , db_name_3, db_name_4, db_name_5]
-npz_file_names = [npz_file_name_2]
+db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
+npz_file_names = [npz_file_name_1]
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -137,7 +137,7 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event.name == "S0235b":
+    if event.name == "S0173a":
         pass
     else:
         continue
@@ -226,31 +226,31 @@ for i, v in event_input.items():
 
         """ Start inversion """
         # if inv_method == "GS":
-        # SS_MTI.Inversion.Grid_Search_run(
-        #     fwd=fwd,
-        #     misfit=misfit,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     strikes=strikes,
-        #     dips=dips,
-        #     rakes=rakes,
-        #     phase_corrs=phase_corrs,
-        #     tstars=tstars,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     list_to_correct_M0=amplitude_correction,
-        #     output_folder=output_folder,
-        #     plot=True,
-        #     plot_extra_phases=extra_phases,
-        #     color_plot="blue",
-        #     Ylims=ylims,
-        # )
+        SS_MTI.Inversion.Grid_Search_run(
+            fwd=fwd,
+            misfit=misfit,
+            event=event,
+            rec=rec,
+            phases=phases,
+            components=components,
+            t_pre=t_pre,
+            t_post=t_post,
+            depths=depths,
+            strikes=strikes,
+            dips=dips,
+            rakes=rakes,
+            phase_corrs=phase_corrs,
+            tstars=tstars,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+            list_to_correct_M0=amplitude_correction,
+            output_folder=output_folder,
+            plot=True,
+            plot_extra_phases=extra_phases,
+            color_plot="blue",
+            Ylims=ylims,
+        )
         # # # elif inv_method == "Direct":
         # # # """ Direct inversion """
         # SS_MTI.Inversion.Direct(
