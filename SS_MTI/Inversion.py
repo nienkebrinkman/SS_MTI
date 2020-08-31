@@ -194,9 +194,13 @@ def Grid_Search_run(
             if color_plot is None:
                 color_plot = "blue"
 
-            sum_misfits = _np.sum(f["samples"][:, -len(phases) :], axis=1)
-            nlowest = 1
-            lowest_indices = sum_misfits.argsort()[0:nlowest]
+            Total_L2_GS = _np.sum(f["samples"][:, -len(phases) :], axis=1)
+            lowest_ind = Total_L2_GS.argsort()
+            Total_L2_GS.sort()
+            misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
+            uncert = 0.05 * Total_L2_GS[0]
+            inds = _np.where(misfit_low < uncert)
+            lowest_indices = lowest_ind[inds]
             sdrs_total = f["samples"][:, 1:4]
             sdrs = sdrs_total[lowest_indices, :]
             M0_corrs_total = f["samples"][:, 5]
@@ -227,10 +231,13 @@ def Grid_Search_run(
             )
             plt.close()
 
-            extra_arrs = []
-            for j, extraphase in enumerate(plot_extra_phases):
-                arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
-                extra_arrs.append(arr)
+            if plot_extra_phases is not None:
+                extra_arrs = []
+                for j, extraphase in enumerate(plot_extra_phases):
+                    arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+                    extra_arrs.append(arr)
+            else:
+                extra_arrs = None
 
             fig, ax = _PostProcessing.waveform_plot(
                 syn_GFs=syn_GFs,
@@ -570,10 +577,13 @@ def Direct(
             MT = _np.expand_dims(DC_MT, axis=0)
             M0 = _np.expand_dims(M0_DC, axis=0)
 
-            extra_arrs = []
-            for j, extraphase in enumerate(plot_extra_phases):
-                arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
-                extra_arrs.append(arr)
+            if plot_extra_phases is not None:
+                extra_arrs = []
+                for j, extraphase in enumerate(plot_extra_phases):
+                    arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+                    extra_arrs.append(arr)
+            else:
+                extra_arrs = None
 
             fig = _PostProcessing.waveform_plot(
                 syn_GFs=syn_GFs,

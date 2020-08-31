@@ -855,6 +855,7 @@ def plot_misfit_vs_depth(
             y_dist = np.log(np.abs(y1 - y2))
 
             if y_dist < 100:
+                # adding_value = 2e-1
                 adding_value = 2e0
                 Line_x.append(depth)
                 if y1 > y2:
@@ -952,14 +953,15 @@ def plot_misfit_vs_depth(
     # ax[0].ticklabel_format(style="sci", axis='y', scilimits=(-2, 2))
     ax[0].tick_params(axis="both", which="major", labelsize=18)
     ax[0].tick_params(axis="both", which="minor", labelsize=10)
-    # ax[0].axvspan(50, 65, facecolor='purple', alpha=0.3)
-    # # y = ax[0].get_ylim()[0] * 0.8
-    # ax[0].text(48, 9, 'Preferred depth range',
-    #                 verticalalignment='center', color='purple', fontsize=8)
+    ax[0].axvspan(53, 68, facecolor="purple", alpha=0.3)
+    # y = ax[0].get_ylim()[0] * 0.8
+    ax[0].text(
+        52, 9, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
+    )
     # ax[0].set_yscale('log')
     ax[0].grid(True)
-    # ax[0].set_ylim(1.5, 5)
-    # ax[0].set_ylim(8, 30)
+    # ax[0].set_ylim(1.5, 4.5)
+    ax[0].set_ylim(8, 30)
     # ax[0].set_xlabel('Depth (km)', fontsize=20)
 
     extraticks = [0.1, 0.2, 0.3, 0.4]
@@ -1016,6 +1018,7 @@ def plot_phases_vs_depth(
     obs_tt = []
     for i, phase in enumerate(phases):
         obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
+    t_post_new = [t + 2.5 for t in t_post]
     st_obs, sigmas = _PreProcess.prepare_event_data(
         event=event,
         phases=phases,
@@ -1023,7 +1026,7 @@ def plot_phases_vs_depth(
         slice=True,
         tts=obs_tt,
         t_pre=t_pre,
-        t_post=t_post + 2.5,
+        t_post=t_post_new,
         filter=filter_par,
         fmin=fmin,
         fmax=fmax,
@@ -1104,9 +1107,6 @@ def plot_phases_vs_depth(
             "PP",
             "SSS",
             "PPP",
-            "s^10P",
-            "s^10S",
-            "s^24S",
         ]
         for j, extraphase in enumerate(extra_phases):
             extra_arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
@@ -1179,9 +1179,9 @@ def plot_phases_vs_depth(
                 slice=True,
                 tt=syn_tt,
                 t_pre=t_pre[i],
-                t_post=t_post[i]+2.5,
+                t_post=t_post[i] + 2.5,
             )
-            if depth > 55 and depth < 66:
+            if depth > 52 and depth < 69:
                 color = "purple"
             else:
                 color = "k"
@@ -1203,6 +1203,77 @@ def plot_phases_vs_depth(
     delta = Yticks[1] - Yticks[0]
 
     for i, phase in enumerate(phases):
+
+        if phase == "S":
+            ymax = ax[i].get_ylim()[1]
+            if event.name == "S0235b":
+                ax[i].axvline(33.1 - 2.5, c="red", lw=3, alpha=0.6)
+                ax[i].axvspan(27.5 - 2.5, 40 - 2.5, facecolor="red", alpha=0.2)
+                ax[i].text(
+                    (40 - 27.5) / 2 - 2.5,
+                    ymax * 0.8,
+                    "SS",
+                    verticalalignment="center",
+                    color="red",
+                    fontsize=8,
+                )
+            elif event.name == "S0173a":
+                ax[i].axvline(23.8 - 2.5, c="red", lw=3)
+                ax[i].axvspan(18.8 - 2.5, 29.4 - 2.5, facecolor="red", alpha=0.2)
+                ax[i].text(
+                    (29.4 - 18.8) / 2 - 2.5,
+                    ymax * 0.8,
+                    "SS",
+                    verticalalignment="center",
+                    color="red",
+                    fontsize=8,
+                )
+
+                ax[i].axvline(53.1 - 2.5, c="red", lw=3)
+                ax[i].axvspan(46.8 - 2.5, 60.6 - 2.5, facecolor="red", alpha=0.2)
+                ax[i].text(
+                    (60.6 - 46.8) / 2 - 2.5,
+                    ymax * 0.8,
+                    "SSS",
+                    verticalalignment="center",
+                    color="red",
+                    fontsize=8,
+                )
+
+        if phase == "P":
+            ymax = ax[i].get_ylim()[1]
+            if event.name == "S0235b":
+                ax[i].axvline(18.7 - 2.5, c="red", lw=3)
+                ax[i].axvspan(13.8 - 2.5, 23.1 - 2.5, facecolor="red", alpha=0.2)
+
+                ax[i].text(
+                    (23.1 - 13.8) / 2 - 2.5,
+                    ymax * 0.8,
+                    "PP",
+                    verticalalignment="center",
+                    color="red",
+                    fontsize=8,
+                )
+            elif event.name == "S0173a":
+                ax[i].axvspan(17 - 2.5, 40 - 2.5, facecolor="green", alpha=0.2)
+                ax[i].text(
+                    17,
+                    ymax * 0.8,
+                    "Glitch",
+                    verticalalignment="center",
+                    color="green",
+                    fontsize=8,
+                )
+        ax[i].axvline(0.0, c="dimgrey")
+        ax[i].text(
+            0.1,
+            Yticks[-1] + 0.5 * delta,
+            phase,
+            verticalalignment="center",
+            color="dimgrey",
+            fontsize=12,
+        )
+
         fig, ax[i] = Plot_phase_vs_depth_copy(
             tr=st_obs[i],
             depth=depth,
@@ -1216,21 +1287,6 @@ def plot_phases_vs_depth(
             extra_phases=None,
             extra_arrs=None,
             color="b",
-        )
-
-        ax[i].axvline(0.0, c="grey")
-        # if phase == "S":
-        #     ax[i].axvline(15.8, c="black", alpha=0.4, ls="--")
-        # if phase == "P":
-        #     ax[i].axvline(12, c="black", alpha=0.4, ls="--")
-
-        ax[i].text(
-            0.1,
-            Yticks[-1] + 0.5 * delta,
-            phase,
-            verticalalignment="center",
-            color="grey",
-            fontsize=10,
         )
 
         for k in range(len(extra_phases)):
@@ -1250,7 +1306,7 @@ def plot_phases_vs_depth(
             if rotn.size == 0:
                 trans_angle = 90
                 ax[i].plot(
-                    [x[0], x[0]], [y[0] - 0.8, y[0] + 0.8], "grey",
+                    [x[0], x[0]], [y[0] - 0.8, y[0] + 0.8], "dimgrey",
                 )
             else:
                 l2 = np.array((x[-1], y[-1]))
@@ -1258,15 +1314,15 @@ def plot_phases_vs_depth(
                 trans_angle = plt.gca().transData.transform_angles(
                     np.array((rotation,)), l2.reshape((1, 2))
                 )[0]
-                ax[i].plot(x, y, "-", c="grey")
+                ax[i].plot(x, y, "-", c="dimgrey")
 
             ax[i].text(
                 x[-1],
                 y[-1],
                 extra_phases[k],
                 verticalalignment="center",
-                color="grey",
-                fontsize=10,
+                color="dimgrey",
+                fontsize=12,
                 rotation=trans_angle,
             )
             ax[i].yaxis.set_ticks(Yticks)
@@ -1417,11 +1473,10 @@ def post_waveform_plotting(
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
             lowest_ind = Total_L2_GS.argsort()
             Total_L2_GS.sort()
-            misfit_low = Total_L2_GS[:] - Total_L2_GS[0] 
+            misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
             uncert = 0.05 * Total_L2_GS[0]
             inds = np.where(misfit_low < uncert)
             lowest_indices = lowest_ind[inds]
-
 
             # n_lowest = int(len(Total_L2_GS) * 0.05)
             # lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
@@ -1616,12 +1671,19 @@ def waveform_plot(
                 endtime=fwd.or_time + syn_tts[i] + t_post[i],
             )
 
-            # if n == 0:
+            if n == 0:
+                ax[i].plot(
+                    tr_slice.times() - t_pre[i],
+                    tr_slice.data,
+                    lw=2,
+                    c=color_plot,
+                    label="Synthetic",
+                )
 
-            # else:
-            ax[i].plot(
-                tr_slice.times() - t_pre[i], tr_slice.data, lw=2, c=color_plot,
-            )
+            else:
+                ax[i].plot(
+                    tr_slice.times() - t_pre[i], tr_slice.data, lw=2, c=color_plot,
+                )
             ax[i].plot(
                 tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
                 tr_syn_full.data,
@@ -1657,7 +1719,6 @@ def waveform_plot(
                     st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
                 )
 
-
                 st += st_obs[i]
                 if Ylims is None:
                     ax[i].set_ylim(global_min, global_max)
@@ -1672,7 +1733,7 @@ def waveform_plot(
                 ymin = ax[i].get_ylim()[0]
                 ymax = ax[i].get_ylim()[1]
                 if event.name == "S0173a" and phase == "P":
-                    ax[i].axvspan(17, 40, facecolor="green", alpha=0.1)
+                    ax[i].axvspan(t_post[i], t_post[i] + 23, facecolor="green", alpha=0.1)
                     ax[i].text(
                         35,
                         ymin * 0.8,
@@ -1709,11 +1770,12 @@ def waveform_plot(
                             ax[i].axvline(x=arr - syn_tts[i], c="grey")
                             ax[i].text(
                                 arr - syn_tts[i] + 0.1,
-                                global_max * 0.8,
+                                ymax * 0.8,
                                 extraphase,
                                 verticalalignment="center",
                                 color="grey",
                                 fontsize=6,
+                                rotation=90,
                             )
                 ax[i].tick_params(axis="both", which="major", labelsize=18)
                 ax[i].tick_params(axis="both", which="minor", labelsize=10)
@@ -1784,7 +1846,7 @@ def Source_Uncertainty(
             f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
         )
         depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
-            Filename=h5_file_path, amount_of_phases=5
+            Filename=h5_file_path, amount_of_phases=len(phases)
         )
         Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
         n_lowest = 50
@@ -1798,17 +1860,17 @@ def Source_Uncertainty(
         sdrs = sdr[lowest_indices, :]
         MT_Full = np.zeros((sdrs.shape[0], 6))
         for i in range(MT_Full.shape[0]):
-            MT_Full[i, :] = (
-                _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i]) / M0[i]
-            )
+            MT_Full[i, :] = _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i])
             MT_Full[i, 3] = -MT_Full[i, 3]
             MT_Full[i, 5] = -MT_Full[i, 5]
 
         if idepth == 0:
+            M0_plot_GS = M0
             MT_GS = MT_Full
             MT_sdrs = sdrs
             weights_GS = np.exp(-GOF_GS)
         else:
+            M0_plot_GS = np.hstack((M0_plot_GS, M0))
             MT_GS = np.vstack((MT_GS, MT_Full))
             MT_sdrs = np.vstack((MT_sdrs, sdrs))
             weights_GS = np.hstack((weights_GS, np.exp(-GOF_GS)))
@@ -1823,38 +1885,42 @@ def Source_Uncertainty(
         print("Rake:", values[ind])
 
         # else:
-
-        h5_file_path = pjoin(
-            h5_file_folder,
-            f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
-        )
-
-        (
-            depth_Direct,
-            MT_Full,
-            DC_MT,
-            CLVD_MT,
-            misfit_L2_Direct,
-            Epsilon,
-            M0_Direct,
-            M0_DC,
-            M0_CLVD,
-            angles,
-        ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
-        Total_L2_Direct = np.sum(misfit_L2_Direct)
-        GOF_Direct = Total_L2_Direct / DOF
-        DC_MT = np.expand_dims(DC_MT, axis=0)
-        DC_MT = DC_MT / M0_DC
-        DC_MT[0, 3] = -DC_MT[0, 3]
-        DC_MT[0, 5] = -DC_MT[0, 5]
-        if idepth == 0:
-            MT_Direct = DC_MT
-            weights_Direct = np.exp(-GOF_Direct)
+        if event_name == "S0183a":
+            pass
         else:
-            MT_Direct = np.vstack((MT_Direct, DC_MT))
-            weights_Direct = np.hstack((weights_Direct, np.exp(-GOF_Direct)))
+            h5_file_path = pjoin(
+                h5_file_folder,
+                f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+            )
 
-        color_plot = "r"
+            (
+                depth_Direct,
+                MT_Full,
+                DC_MT,
+                CLVD_MT,
+                misfit_L2_Direct,
+                Epsilon,
+                M0_Direct,
+                M0_DC,
+                M0_CLVD,
+                angles,
+            ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=len(phases))
+            Total_L2_Direct = np.sum(misfit_L2_Direct)
+            GOF_Direct = Total_L2_Direct / DOF
+            DC_MT = np.expand_dims(DC_MT, axis=0)
+            # DC_MT = DC_MT / M0_DC
+            DC_MT[0, 3] = -DC_MT[0, 3]
+            DC_MT[0, 5] = -DC_MT[0, 5]
+            if idepth == 0:
+                M0_plot_Direct = M0_DC
+                MT_Direct = DC_MT
+                weights_Direct = np.exp(-GOF_Direct)
+            else:
+                M0_plot_Direct = np.hstack((M0_plot_Direct, M0_DC))
+                MT_Direct = np.vstack((MT_Direct, DC_MT))
+                weights_Direct = np.hstack((weights_Direct, np.exp(-GOF_Direct)))
+
+            color_plot = "r"
 
     # MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
     MT_names = ["mzz", "myy", "mxx", "myz", "mxz", "mxy"]
@@ -1936,9 +2002,6 @@ def Source_Uncertainty(
     sdr_mins = [0, 0, -180]
     sdr_maxs = [360, 90, 180]
     ## ========================================
-
-
-    
 
     # strike_rad = MT_sdrs[:, 0]
     # dip_rad = MT_sdrs[:, 1]
@@ -2042,11 +2105,11 @@ def Source_Uncertainty(
     aux_planes = [strike_aux, dip_aux, rake_aux]
     print(f"plane 2: {aux_planes}")
 
-    MT_planes = (
-        _GreensFunctions.convert_SDR(kmeans_s[0][0], kmeans_d[0][0], kmeans_r[0][0], M0_DC) / M0_DC
-    )
-    MT_planes[3] = -MT_planes[3]
-    MT_planes[5] = -MT_planes[5]
+    # MT_planes = (
+    #     _GreensFunctions.convert_SDR(kmeans_s[0][0], kmeans_d[0][0], kmeans_r[0][0], M0_DC) / M0_DC
+    # )
+    # MT_planes[3] = -MT_planes[3]
+    # MT_planes[5] = -MT_planes[5]
     ## =====================BIG PLOT ===================
     # for i in range(6):
     #     ax[0, i].axvline(x=MT_planes[i], c="red", lw=1, label="Fault planes")
@@ -2097,84 +2160,157 @@ def Source_Uncertainty(
             weights=weights_GS,
             density=True,
         )
-        ax1[i].axvline(x=f_planes[i], c="blue", lw=1, label="fault plane 1")
-        ax1[i].axvline(x=kmeans_tot[i], c="green", lw=1, label="fault plane 2")
-        # ax1[i].axvline(x=aux_planes[i], c="red", lw=1, label = "Aux plane")
+        # ax1[i].axvline(x=f_planes[i], c="blue", lw=1, label="fault plane 1")
+        # ax1[i].axvline(x=kmeans_tot[i], c="green", lw=1, label="fault plane 2")
+        # # ax1[i].axvline(x=aux_planes[i], c="red", lw=1, label = "Aux plane")
 
-        ax1[i].axvline(x=f_planes[i] + c_mean_distances[i][0], c="blue", lw=1, ls="--")
-        ax1[i].axvline(x=f_planes[i] - c_mean_distances[i][0], c="blue", lw=1, ls="--")
-        ax1[i].axvline(x=kmeans_tot[i] + c_mean_distances[i][1], c="green", lw=1, ls="--")
-        ax1[i].axvline(x=kmeans_tot[i] - c_mean_distances[i][1], c="green", lw=1, ls="--")
+        # ax1[i].axvline(x=f_planes[i] + c_mean_distances[i][0], c="blue", lw=1, ls="--")
+        # ax1[i].axvline(x=f_planes[i] - c_mean_distances[i][0], c="blue", lw=1, ls="--")
+        # ax1[i].axvline(x=kmeans_tot[i] + c_mean_distances[i][1], c="green", lw=1, ls="--")
+        # ax1[i].axvline(x=kmeans_tot[i] - c_mean_distances[i][1], c="green", lw=1, ls="--")
 
         ax1[i].set_xlabel(sdr_names[i], fontsize=18)
         ax1[i].tick_params(axis="x", labelsize=15)
         ax1[i].tick_params(axis="y", labelsize=15)
         ax1[i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
         ax1[i].set_xlim(sdr_mins[i], sdr_maxs[i])
-        if i == 2:
-            ax1[i].legend()
-    fig2, ax2 = plt.subplots(
-        nrows=1, ncols=6, figsize=(12, 3), sharey="row"
-    )
+        # if i == 2:
+        #     ax1[i].legend()
+    fig1.suptitle(event_name, fontsize=20)
+
+    fig2, ax2 = plt.subplots(nrows=1, ncols=6, figsize=(12, 3), sharey="row")
     # MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
     MT_names = ["mzz", "myy", "mxx", "myz", "mxz", "mxy"]
+
+    # def integrator(f, data, freq):
+    #     diffs = np.roll(data, -1) - data
+    #     return (f(data[:-1]) * freq[:-1] * diffs[:-1]).sum()
+
+    n, bins = np.histogram(M0_plot_GS, bins=18)  # , weights=weights_GS)
+    mids = 0.5 * (bins[1:] + bins[:-1])
+
+    mean = np.average(mids, weights=n)
+    std = np.sqrt(np.average((mids - mean) ** 2, weights=n))
+    print("M0", mean, std)
+    print("MW", 2.0 / 3.0 * (np.log10(mean) - 9.1), 2.0 / 3.0 * (np.log10(std) - 9.1))
+
     for i in range(6):
-        hist_1 = MT_GS[:, i] # / np.max(MT_GS[:, i] )
+        hist_1 = MT_GS[:, i]  # / np.max(MT_GS[:, i] )
+
+        # freq_norm = weights_GS / integrator(lambda x: 1, hist_1, weights_GS)
+
+        # mean = integrator(lambda x: x, hist_1, freq_norm)
+        # std = integrator(lambda x: x ** 2, hist_1, freq_norm)
+
+        # ax2[i].axvline(x=mean, c="steelblue", lw=1)
+        # ax2[i].axvline(x=mean + std, c="steelblue", lw=1, ls="--")
+        # ax2[i].axvline(x=mean - std, c="steelblue", lw=1, ls="--")
+
+        n, bins = np.histogram(hist_1, bins=18, weights=weights_GS)
+        mids = 0.5 * (bins[1:] + bins[:-1])
+
+        mean = np.average(mids, weights=n)
+        std = np.sqrt(np.average((mids - mean) ** 2, weights=n))
+        ax2[i].axvline(x=mean, c="steelblue", lw=1, label="mean", alpha=0.5)
+        ax2[i].axvline(x=mean + std, c="steelblue", lw=1, ls="--", label="std", alpha=0.5)
+        ax2[i].axvline(x=mean - std, c="steelblue", lw=1, ls="--", alpha=0.5)
+
+        print(MT_names[i], "%.2e" % mean, "%.2e" % std)
+        # print(MT_names[i], hist_1.mean(), hist_1.std())
         ax2[i].hist(
             hist_1,
             bins=18,
-            alpha=0.4,
+            alpha=0.6,
             color="steelblue",
             edgecolor="none",
             label="GS",
             weights=weights_GS,
             density=True,
         )
-        hist_2 = MT_Direct[:, i]#/ np.max(MT_Direct[:, i] )
-        ax2[i].hist(
-            hist_2,
-            bins=18,
-            alpha=0.4,
-            color="red",
-            edgecolor="none",
-            label="Direct",
-            weights=weights_Direct,
-            density=True,
-        )
+
+        if event_name == "S0183a":
+            pass
+        else:
+            hist_2 = MT_Direct[:, i]  # / np.max(MT_Direct[:, i] )
+            # ax3 = ax2[i].twinx()
+            ax2[i].hist(
+                hist_2,
+                bins=18,
+                alpha=0.6,
+                color="red",
+                edgecolor="none",
+                label="Direct",
+                weights=weights_Direct,
+                density=True,
+            )
+        # ax3.tick_params(axis="y", labelsize=15)
+        # ax3.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+        # ax3.tick_params(axis="y", labelcolor="red")
+        # if i < 5:
+        #     ax3.set_yticklabels([])
+        # else:
+        #     ax3.legend()
+
         ax2[i].set_xlabel(MT_names[i], fontsize=18)
         ax2[i].tick_params(axis="x", labelsize=15)
         ax2[i].tick_params(axis="y", labelsize=15)
         ax2[i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
-        ax2[i].set_xlim(-2, 2)
+        # ax2[i].tick_params(axis="y", labelcolor="steelblue")
+        # ax2[i].set_xlim(-1, 1)
+        # ax2[i].set_ylim(0, 0.05e-12)
+        if event_name == "S0235b":
+            ax2[i].set_ylim(0, 0.6e-12)
+        elif event_name == "S0173a":
+            ax2[i].set_ylim(0, 0.4e-12)
+        elif event_name == "S0183a":
+            ax2[i].set_ylim(0, 0.05e-12)
 
-        h = np.histogram(MT_GS[:, i],bins=18)
-        h = np.vstack((0.5*(h[1][:-1]+h[1][1:]),h[0])).T
-        array_convt = h
-        km = KMeans(n_clusters=1).fit(array_convt)
-        clusters = km.predict(array_convt)
-        kmeans = km.cluster_centers_
-        c_mean_distances = []
-        for j, (cx,cy) in enumerate(kmeans):
-                mean_distance = k_mean_distance_2d(array_convt, cx,cy,i, clusters)
-                c_mean_distances.append(mean_distance)
+        ax2[i].get_xaxis().get_offset_text().set_visible(False)
+        ax_max = max(ax2[i].get_xticks())
+        if ax_max < 1.0:
+            print("hello")
+            ax_max = np.abs(ax2[i].get_xticks()[-2])
+            print(ax_max)
+        exponent_axis = np.floor(np.log10(ax_max)).astype(int)
+        ax2[i].set_xlabel(
+            f"{MT_names[i]}\n" + r"$\times$10$^{%i}$ (Nm)" % (exponent_axis), fontsize=14
+        )
+        # ax2[i].annotate(
+        #     r"$\times$10$^{%i}$" % (exponent_axis), xy=(0.01, 0.82), xycoords="axes fraction",
+        # )
 
-        ax2[i].axvline(x=kmeans[0][0] + c_mean_distances[0], c="blue", lw=1, ls="--")
-        ax2[i].axvline(x=kmeans[0][0] - c_mean_distances[0], c="blue", lw=1, ls="--")
-        ax2[i].axvline(x=kmeans[0][0] - c_mean_distances[0], c="blue", lw=1)
+        # h = np.histogram(MT_GS[:, i], bins=18)
+        # h = np.vstack((0.5 * (h[1][:-1] + h[1][1:]), h[0])).T
+        # array_convt = h
+        # km = KMeans(n_clusters=1).fit(array_convt)
+        # clusters = km.predict(array_convt)
+        # kmeans = km.cluster_centers_
+        # c_mean_distances = []
+        # for j, (cx, cy) in enumerate(kmeans):
+        #     mean_distance = k_mean_distance_2d(array_convt, cx, cy, i, clusters)
+        #     c_mean_distances.append(mean_distance)
+
+        # ax2[i].axvline(x=kmeans[0][0] + c_mean_distances[0], c="blue", lw=1, ls="--")
+        # ax2[i].axvline(x=kmeans[0][0] - c_mean_distances[0], c="blue", lw=1, ls="--")
+        # ax2[i].axvline(x=kmeans[0][0] - c_mean_distances[0], c="blue", lw=1)
     ax2[0].set_ylabel("Frequency", fontsize=18)
     # ax[0].set_ylim(0, 10)
-    ax2[0].legend()
+    ax2[-1].legend()
+    fig2.suptitle(event_name, fontsize=20)
     return fig2, fig1
+
 
 def k_mean_distance(data, cx, i_centroid, cluster_labels):
     distances = [np.sqrt((x - cx) ** 2) for x in data[cluster_labels == i_centroid]]
     return np.mean(distances)
+
 
 def k_mean_distance_2d(data, cx, cy, i_centroid, cluster_labels):
     distances = [
         np.sqrt((x - cx) ** 2 + (y - cy) ** 2) for (x, y) in data[cluster_labels == i_centroid]
     ]
     return np.mean(distances)
+
 
 def k_mean_distance_3d(data, cx, cy, cz, i_centroid, cluster_labels):
     distances = [
