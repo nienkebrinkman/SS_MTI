@@ -5,6 +5,7 @@ __author__ = "Nienke Brinkman"
 
 from os.path import join as pjoin
 from os.path import exists as exist
+from os import listdir as lsdir
 from obspy.taup import TauPyModel
 import obspy
 import instaseis
@@ -22,13 +23,18 @@ lon_src = 170
 depth = 45.0
 name = "Test_Event"
 
-phases = ["S", "P"]
+phases = ["P", "S", "S", "P", "S"]
 
 mnt_folder = "/mnt/marshost/"
 
-SS_MTI.DataGetter.mnt_remote_folder(
-    host_ip="marshost.ethz.ch", host_usr="sysop", remote_folder="/data/", mnt_folder=mnt_folder,
-)
+if not lsdir(mnt_folder):
+    print(f"{mnt_folder} is still empty, mounting now...")
+    SS_MTI.DataGetter.mnt_remote_folder(
+        host_ip="marshost.ethz.ch",
+        host_usr="sysop",
+        remote_folder="/data/",
+        mnt_folder=mnt_folder,
+    )
 
 
 npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
@@ -96,7 +102,7 @@ fwd = SS_MTI.Forward.Instaseis(
 """ Define misfit """
 misfit_method = "L2"
 
-weights = [[1, 3], [1, 3]]
+weights = [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]]
 start_weight_len = 7.0
 
 
@@ -111,11 +117,10 @@ else:
 
 ## Step 5:
 """ Start inversion """
-components = ["T", "Z"]
-# components = ["Z"]
+components =  ["Z", "T", "Z", "R", "R"]
 amplitude_correction = ["PZ", "ST"]
-t_pre = [1, 1]
-t_post = [20, 20]
+t_pre = [1, 1,1,1,1]
+t_post = [20, 20,20,20,20]
 depths = [depth]
 strikes = [strike]
 dips = [dip]
@@ -128,47 +133,53 @@ zerophase = False
 output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Synthetic/"
 
 """ Grid-Search inversion """
-# SS_MTI.Inversion.Grid_Search_run(
-#     fwd=fwd,
-#     misfit=misfit,
-#     event=event,
-#     rec=rec,
-#     phases=phases,
-#     components=components,
-#     t_pre=t_pre,
-#     t_post=t_post,
-#     depths=depths,
-#     strikes=strikes,
-#     dips=dips,
-#     rakes=rakes,
-#     phase_corrs=phase_corrs,
-#     tstars=tstars,
-#     fmin=fmin,
-#     fmax=fmax,
-#     zerophase=zerophase,
-#     list_to_correct_M0=amplitude_correction,
-#     output_folder=output_folder,
-#     plot=True,
-# )
+SS_MTI.Inversion.Grid_Search_run(
+    fwd=fwd,
+    misfit=misfit,
+    event=event,
+    rec=rec,
+    phases=phases,
+    components=components,
+    t_pre=t_pre,
+    t_post=t_post,
+    depths=depths,
+    strikes=strikes,
+    dips=dips,
+    rakes=rakes,
+    phase_corrs=phase_corrs,
+    tstars=tstars,
+    fmin=fmin,
+    fmax=fmax,
+    zerophase=zerophase,
+    list_to_correct_M0=amplitude_correction,
+    output_folder=output_folder,
+    plot=True,
+    plot_extra_phases=extra_phases,
+    color_plot="blue",
+    Ylims=ylims,
+)
 
-# # """ Direct inversion """
-# SS_MTI.Inversion.Direct(
-#     fwd=fwd,
-#     misfit=misfit,
-#     event=event,
-#     rec=rec,
-#     phases=phases,
-#     components=components,
-#     t_pre=t_pre,
-#     t_post=t_post,
-#     depths=depths,
-#     tstars=tstars,
-#     fmin=fmin,
-#     fmax=fmax,
-#     zerophase=zerophase,
-#     output_folder=output_folder,
-#     plot=True,
-# )
+SS_MTI.Inversion.Direct(
+    fwd=fwd,
+    misfit=misfit,
+    event=event,
+    rec=rec,
+    phases=phases,
+    components=components,
+    phase_corrs=phase_corrs,
+    t_pre=t_pre,
+    t_post=t_post,
+    depths=depths,
+    tstars=tstars,
+    fmin=fmin,
+    fmax=fmax,
+    zerophase=zerophase,
+    output_folder=output_folder,
+    plot=True,
+    plot_extra_phases=extra_phases,
+    color_plot="red",
+    Ylims=ylims,
+)
 
 """ (misfit vs depth analysis)"""
 DOF = sum([int((x + y) / dt) for x, y in zip(t_pre, t_post)])

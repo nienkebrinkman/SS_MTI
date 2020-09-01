@@ -32,7 +32,7 @@ class Instaseis(_AbstractForward):
     def __init__(
         self,
         instaseis_db: instaseis.open_db,
-        taup_model: _TauPyModel,
+        taup_model: str,
         or_time: obspy.UTCDateTime,
         dt: float = 0.05,
         start_cut: float = 100.0,

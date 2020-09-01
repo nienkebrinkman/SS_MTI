@@ -155,15 +155,21 @@ def Grid_Search_run(
                         )
 
                         if phases[i] + components[i] in list_to_correct_M0:
+                            # misfit_amp.append(
+                            #     (_np.sum(_np.abs(st_obs[i].data)))
+                            #     / (_np.sum(_np.abs(tr_syn.data)))
+                            # )
                             misfit_amp.append(
-                                (_np.sum(_np.abs(st_obs[i].data)))
-                                / (_np.sum(_np.abs(tr_syn.data)))
+                                (max(abs(st_obs[i].data)))
+                                / (max(abs(tr_syn.data)))
                             )
 
                         st_syn += tr_syn
 
                     """ Multiply the data with the M0 correction"""
                     M0_corr = _np.sum(misfit_amp) / len(misfit_amp)
+                    # M0_corr = _np.exp(abs(_np.log(misfit_amp[0] /
+                    #                                    misfit_amp[1])))
                     for tr in st_syn:
                         tr.data = tr.data * M0_corr
 
@@ -171,7 +177,7 @@ def Grid_Search_run(
                     chi = misfit.run_misfit(
                         phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas
                     )
-
+                    print(_np.sum(chi))
                     """ Write into file"""
                     f["samples"][iteration, :] = [depth, strike, dip, rake, M0, M0_corr] + chi
                     iteration += 1
@@ -181,7 +187,6 @@ def Grid_Search_run(
                     # print(M0_corr * M0)
 
         if plot:
-            # TODO: make this plot routine as a function
             """ Calculate take-off angles"""
             takeoff_angles = ["P", "S", "pP"]
             angles = []
@@ -504,7 +509,7 @@ def Direct(
             st_syn += tr_syn
         ## Calculate the misfit
         chi = misfit.run_misfit(phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas)
-
+        print(_np.sum(chi))
         ## Calculate take-off angles P,S & pP
         takeoff_angles = ["P", "S", "pP"]
         angles = []

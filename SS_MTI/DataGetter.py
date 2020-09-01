@@ -96,7 +96,7 @@ def read_events_from_cat(
     """
     Read mars-events from catalog.xml and adding waveform data to events.
     If waveforms are on server host_name, user_name, remote_folder should be specified
-    :param event_params: list of event names for inversion
+    :param event_params: Dict of event names for inversion
     :param cat: obspy.Catalog including the updated events
     :param local_folder: path to waveform on local machine
     :param host_name: Host IP address
