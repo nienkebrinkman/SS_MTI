@@ -78,32 +78,16 @@ class L2(_AbstractMisfit):
             d_weight[:samps] = start_weight
             d_weight[samps:] = end_weight
 
-            misfit_L2.append(
-                0.5
-                * (
-                    (d_obs - d_syn).T
-                    @ (_np.expand_dims(1 / (sigmas[i] ** 2 * d_weight), axis=1) * (d_obs - d_syn))
-                )[0][0]
-            )
+            inv_Std = _np.diag(1 / (_np.std(d_obs) ** 2 * d_weight))
+            misfit_L2.append(0.5 * ((d_obs - d_syn).T @ inv_Std @ (d_obs - d_syn))[0][0])
 
-        # for iphase in range(len(phases)):
-        #     start_weight = self.weights[iphase][0]
-        #     end_weight = self.weights[iphase][1]
-        #     dt = self.dt
-        #     Weight_vector = _np.linspace(start_weight, end_weight, len(st_syn[iphase].data))
-        #     Weight_vector[: int(7.0 / dt)] = start_weight
-        #     Weight_vector[int(7.0 / dt) :] = end_weight
-        #     # Sigma.append(np.std(st_sigma.traces[iphase].data))
-
-        #     # start_sample = int(Pre_Display / tr_synth.stats.delta) + int(shifts[phases[iphase]])
-        #     # end_sample = start_sample + len(st_synth[iphase].data)
-        #     # shifted_corr_synt = st_synth_long[iphase].data[start_sample:end_sample] * M0_corr
-
-        #     d_obs = _np.expand_dims(st_obs[iphase].data, axis=1)
-        #     d_syn = _np.expand_dims(st_syn[iphase].data, axis=1)
-        #     inv_Cov = _np.diag(1 / (sigmas[iphase] ** 2 * Weight_vector))
-
-        #     misfit_L2.append(0.5 * ((d_obs - d_syn).T @ inv_Cov @ (d_obs - d_syn))[0][0])
+            # misfit_L2.append(
+            #     0.5
+            #     * (
+            #         (d_obs - d_syn).T
+            #         @ (_np.expand_dims(1 / (sigmas[i] ** 2 * d_weight), axis=1) * (d_obs - d_syn))
+            #     )[0][0]
+            # )
 
         return misfit_L2
 

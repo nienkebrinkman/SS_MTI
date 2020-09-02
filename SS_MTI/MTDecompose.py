@@ -51,6 +51,7 @@ def Get_CLVD_DC(Full_Moment):
     M_DC = eigenw[2] * (1 - 2 * F) * (_np.outer(a3, a3) - _np.outer(a2, a2))
     M_CLVD = M_devi - M_DC
 
+    # from obspy.imaging.beachball import beachball
     return M_CLVD, M_DC, F
 
 

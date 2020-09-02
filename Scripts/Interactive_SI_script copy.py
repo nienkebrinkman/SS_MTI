@@ -105,16 +105,16 @@ rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
 # depths = np.arange(5, 90, 3)
-# depths = np.arange(47, 90, 3)
-depths = [29]
+depths = np.arange(29, 50, 3)
+# depths = [29]
 
-# strikes = np.arange(0, 360, 20)
-# dips = np.arange(0, 91, 15)
-# rakes = np.arange(-180, 180, 15)
+strikes = np.arange(0, 360, 20)
+dips = np.arange(0, 91, 15)
+rakes = np.arange(-180, 180, 15)
 
-strikes = [320]
-dips = [60]
-rakes = [-15]
+# strikes = [320]
+# dips = [60]
+# rakes = [-15]
 
 # strikes = np.arange(0, 360, 5)
 # dips = np.arange(0, 91, 5)
@@ -226,54 +226,54 @@ for i, v in event_input.items():
 
         """ Start inversion """
         # if inv_method == "GS":
-        SS_MTI.Inversion.Grid_Search_run(
-            fwd=fwd,
-            misfit=misfit,
-            event=event,
-            rec=rec,
-            phases=phases,
-            components=components,
-            t_pre=t_pre,
-            t_post=t_post,
-            depths=depths,
-            strikes=strikes,
-            dips=dips,
-            rakes=rakes,
-            phase_corrs=phase_corrs,
-            tstars=tstars,
-            fmin=fmin,
-            fmax=fmax,
-            zerophase=zerophase,
-            list_to_correct_M0=amplitude_correction,
-            output_folder=output_folder,
-            plot=True,
-            plot_extra_phases=extra_phases,
-            color_plot="blue",
-            Ylims=ylims,
-        )
+        # SS_MTI.Inversion.Grid_Search_run(
+        #     fwd=fwd,
+        #     misfit=misfit,
+        #     event=event,
+        #     rec=rec,
+        #     phases=phases,
+        #     components=components,
+        #     t_pre=t_pre,
+        #     t_post=t_post,
+        #     depths=depths,
+        #     strikes=strikes,
+        #     dips=dips,
+        #     rakes=rakes,
+        #     phase_corrs=phase_corrs,
+        #     tstars=tstars,
+        #     fmin=fmin,
+        #     fmax=fmax,
+        #     zerophase=zerophase,
+        #     list_to_correct_M0=amplitude_correction,
+        #     output_folder=output_folder,
+        #     plot=False,
+        #     plot_extra_phases=extra_phases,
+        #     color_plot="blue",
+        #     Ylims=ylims,
+        # )
         # # # elif inv_method == "Direct":
         # # # """ Direct inversion """
-        SS_MTI.Inversion.Direct(
-            fwd=fwd,
-            misfit=misfit,
-            event=event,
-            rec=rec,
-            phases=phases,
-            components=components,
-            phase_corrs=phase_corrs,
-            t_pre=t_pre,
-            t_post=t_post,
-            depths=depths,
-            tstars=tstars,
-            fmin=fmin,
-            fmax=fmax,
-            zerophase=zerophase,
-            output_folder=output_folder,
-            plot=True,
-            plot_extra_phases=extra_phases,
-            color_plot="red",
-            Ylims=ylims,
-        )
+        # SS_MTI.Inversion.Direct(
+        #     fwd=fwd,
+        #     misfit=misfit,
+        #     event=event,
+        #     rec=rec,
+        #     phases=phases,
+        #     components=components,
+        #     phase_corrs=phase_corrs,
+        #     t_pre=t_pre,
+        #     t_post=t_post,
+        #     depths=depths,
+        #     tstars=tstars,
+        #     fmin=fmin,
+        #     fmax=fmax,
+        #     zerophase=zerophase,
+        #     output_folder=output_folder,
+        #     plot=True,
+        #     plot_extra_phases=extra_phases,
+        #     color_plot="red",
+        #     Ylims=ylims,
+        # )
         # else:
         #     raise ValueError("inv_method is not recognized, specify: GS or Direct")
 

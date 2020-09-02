@@ -10,6 +10,7 @@ from obspy.taup import TauPyModel
 import obspy
 import instaseis
 import matplotlib.pyplot as plt
+import numpy as np
 
 import SS_MTI
 from EventInterface import EventObj
@@ -61,7 +62,7 @@ dt = 0.05
 
 components = "ZRT"
 kind = "displacement"
-noise = True
+noise = False
 
 ## Step 2:
 """Create observed data and waveforms """
@@ -118,10 +119,10 @@ else:
 ## Step 5:
 """ Start inversion """
 components =  ["Z", "T", "Z", "R", "R"]
-amplitude_correction = ["PZ", "ST"]
+amplitude_correction = ["PZ","ST"]
 t_pre = [1, 1,1,1,1]
 t_post = [20, 20,20,20,20]
-depths = [depth]
+depths = [depth]#np.arange(5, 90, 3)
 strikes = [strike]
 dips = [dip]
 rakes = [rake]
@@ -131,6 +132,9 @@ fmin = 1.0 / 8.0
 fmax = 1.0 / 5.0
 zerophase = False
 output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Synthetic/"
+
+extra_phases = None
+ylims = [1e-9, 4e-9, 2e-9, 1e-9, 2e-9]
 
 """ Grid-Search inversion """
 SS_MTI.Inversion.Grid_Search_run(

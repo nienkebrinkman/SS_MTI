@@ -99,6 +99,12 @@ def Grid_Search_run(
         noise_level=misfit.noise_level,
     )
 
+    # # TODO: remove this again:
+    # if event.name == "Test_Event":
+    #     sigmas[0] = 1.7711953652440284e-11
+    #     sigmas[3] = 4.5996573530998017e-11
+    # print(sigmas)
+
     for depth in depths:
         print(depth)
         """ Open .h5 file """
@@ -155,29 +161,36 @@ def Grid_Search_run(
                         )
 
                         if phases[i] + components[i] in list_to_correct_M0:
-                            # misfit_amp.append(
-                            #     (_np.sum(_np.abs(st_obs[i].data)))
-                            #     / (_np.sum(_np.abs(tr_syn.data)))
-                            # )
                             misfit_amp.append(
-                                (max(abs(st_obs[i].data)))
-                                / (max(abs(tr_syn.data)))
+                                (_np.sum(_np.abs(st_obs[i].data)))
+                                / (_np.sum(_np.abs(tr_syn.data)))
                             )
+                            # misfit_amp.append(
+                            #     (max(abs(st_obs[i].data)))
+                            #     / (max(abs(tr_syn.data)))
+                            # )
 
                         st_syn += tr_syn
+
+
 
                     """ Multiply the data with the M0 correction"""
                     M0_corr = _np.sum(misfit_amp) / len(misfit_amp)
                     # M0_corr = _np.exp(abs(_np.log(misfit_amp[0] /
                     #                                    misfit_amp[1])))
-                    for tr in st_syn:
+                    for i,tr in enumerate(st_syn):
                         tr.data = tr.data * M0_corr
+
+                        # dat = _np.vstack((tr.data,st_obs[i].data))
+                        # with open(pjoin(output_folder, f"GS_{tr_syn.stats.channel}_{phases[i]}.txt"), 'wb') as file:
+                        #     _np.save(file, dat, allow_pickle=False)
+                        #     file.close()
 
                     """ Determine the misfit between syntetic and observed"""
                     chi = misfit.run_misfit(
                         phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas
                     )
-                    print(_np.sum(chi))
+                    # print(chi)
                     """ Write into file"""
                     f["samples"][iteration, :] = [depth, strike, dip, rake, M0, M0_corr] + chi
                     iteration += 1
@@ -342,6 +355,12 @@ def Direct(
         noise_level=misfit.noise_level,
     )
 
+    # # TODO: remove this again:
+    # if event.name == "Test_Event":
+    #     sigmas[0] = 1.7711953652440284e-11
+    #     sigmas[3] = 4.5996573530998017e-11
+    # print(sigmas)
+
     rec_in = instaseis.Receiver(
         latitude=90.0 - event.distance,
         longitude=0.0,
@@ -395,7 +414,8 @@ def Direct(
             d_weight[:samps] = start_weight
             d_weight[samps:] = end_weight
 
-            Wd = 1 / (sigmas[i] * d_weight)
+            # Wd = 1 / (sigmas[i] * d_weight)
+            Wd = 1 / (_np.std(st_obs[i].data) ** 2 * d_weight)
 
             if i == 0:
                 G_tot = G
@@ -411,8 +431,8 @@ def Direct(
 
         # ---- Solve ----
         # TODO: Add weight matrix when solving the inverse
-        A = G_tot.T @ Wd_tot.T @ Wd_tot @ G_tot
-        B = G_tot.T @ Wd_tot.T @ Wd_tot @ d_tot
+        A = G_tot.T @ Wd_tot @ G_tot
+        B = G_tot.T @ Wd_tot @ d_tot
 
         try:
             M = _np.linalg.solve(A, B)
@@ -434,21 +454,47 @@ def Direct(
         m_rt = mxz
         m_tp = -mxy
 
-        MT = [m_rr, m_pp, m_tt, m_rp, m_rt, m_tp]
+        # m_rr = -M[0] - M[1]
+        # m_pp = M[1]
+        # m_tt = M[0]
+        # m_rp = M[4]
+        # m_rt = M[3]
+        # m_tp = M[2]
+
+        MT = [m_rr, m_tt, m_pp, m_rt, m_rp, m_tp]
         M0 = (
             m_rr ** 2 + m_tt ** 2 + m_pp ** 2 + 2 * m_rt ** 2 + 2 * m_rp ** 2 + 2 * m_tp ** 2
         ) ** 0.5 * 0.5 ** 0.5
-        print("Scalar Moment: %.4e" % M0)
+        print("Full Scalar Moment: %.4e" % M0)
         MW = 2.0 / 3.0 * (_np.log10(M0) - 9.1)
-        print("Magnitude: %.2f" % MW)
+        print("Full magnitude: %.2f" % MW)
 
         ## Decompose MT into CLVD & DC:
+        # USE = _np.array(
+        #     [[MT[0], MT[4], MT[3]], [MT[4], MT[2], MT[5]], [MT[3], MT[5], MT[1]]]
+        # )
+        # USE_system  = _np.matrix([[0., -1., 0.], [0., 0., 1.], [-1., 0., 0.]],dtype=_np.float)
+        # NED_system  = _np.matrix([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
+        #                  dtype=_np.float)
+        # r = USE_system.I * NED_system.I
+        # NED = _np.dot(r, _np.dot(USE, r.I))
+        # M_CLVD_NED, M_DC_NED, F = _MTDecompose.Get_CLVD_DC(NED)
+
+        # r = NED_system.I * USE_system.I
+        # M_CLVD_USE = _np.dot(r, _np.dot(M_CLVD_NED, r.I))
+        # CLVD_MT = [M_CLVD_USE[0,0],M_CLVD_USE[2,2],M_CLVD_USE[1,1],M_CLVD_USE[0,2],M_CLVD_USE[0,1],M_CLVD_USE[1,2]]
+        # M_DC_USE = _np.dot(r, _np.dot(M_DC_NED, r.I))
+        # DC_MT = [M_DC_USE[0,0],M_DC_USE[2,2],M_DC_USE[1,1],M_DC_USE[0,2],M_DC_USE[0,1],M_DC_USE[1,2]]
+
+        # M_tensor = _np.array(
+        #     [[MT[2], -MT[5], MT[4]], [-MT[5], MT[1], -MT[3]], [MT[4], -MT[3], MT[0]]]
+        # )
         M_tensor = _np.array(
-            [[MT[2], -MT[5], MT[4]], [-MT[5], MT[1], -MT[3]], [MT[4], -MT[3], MT[0]]]
+            [[MT[1], -MT[5], MT[3]], [-MT[5], MT[2], -MT[4]], [MT[3], -MT[4], MT[0]]]
         )
         M_CLVD, M_DC, F = _MTDecompose.Get_CLVD_DC(M_tensor)
 
-        DC_MT = [M_DC[2, 2], M_DC[1, 1], M_DC[0, 0], -M_DC[1, 2], M_DC[0, 2], -M_DC[0, 1]]
+        DC_MT = [M_DC[2, 2], M_DC[0 ,0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1]]
         M0_DC = (
             M_DC[2, 2] ** 2
             + M_DC[0, 0] ** 2
@@ -457,13 +503,23 @@ def Direct(
             + 2 * M_DC[1, 2] ** 2
             + 2 * M_DC[0, 1] ** 2
         ) ** 0.5 * 0.5 ** 0.5
+        print("DC Scalar Moment: %.4e" % M0_DC)
+        print("Epsilon value: %.4e" % F)
 
+        # CLVD_MT = [
+        #     M_CLVD[2, 2],
+        #     M_CLVD[1, 1],
+        #     M_CLVD[0, 0],
+        #     -M_CLVD[1, 2],
+        #     M_CLVD[0, 2],
+        #     -M_CLVD[0, 1],
+        # ]
         CLVD_MT = [
             M_CLVD[2, 2],
-            M_CLVD[1, 1],
             M_CLVD[0, 0],
-            -M_CLVD[1, 2],
+            M_CLVD[1, 1],
             M_CLVD[0, 2],
+            -M_CLVD[1, 2],
             -M_CLVD[0, 1],
         ]
         M0_CLVD = (
@@ -497,6 +553,7 @@ def Direct(
                 zerophase=zerophase,
             )
             syn_GFs.append(syn_GF)
+            # true=[0.0 ,-4.86706276927e+13 ,4.86706276927e+13 ,-0.0017206287528, 0.00298021642082 ,2.81e+13]
             tr_syn = fwd.generate_synthetic_data(
                 st_GF=syn_GF,
                 focal_mech=DC_MT,
@@ -507,9 +564,15 @@ def Direct(
                 t_post=t_post[i],
             )
             st_syn += tr_syn
+
+            # dat = _np.vstack((tr_syn.data,st_obs[i].data))
+            # with open(pjoin(output_folder, f"Direct_{tr_syn.stats.channel}_{phase}.txt"), 'wb') as file:
+            #     _np.save(file,dat, allow_pickle=False)
+            #     file.close()
+            
         ## Calculate the misfit
         chi = misfit.run_misfit(phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas)
-        print(_np.sum(chi))
+        # print(chi)
         ## Calculate take-off angles P,S & pP
         takeoff_angles = ["P", "S", "pP"]
         angles = []
@@ -549,11 +612,11 @@ def Direct(
 
             # For the plotting you need to re-arrange the order of the Moment tensor#
             # , since obspy uses a different order
-            FULL = _np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5]])
-            DC = _np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5]])
-            CLVD = _np.array(
-                [CLVD_MT[0], CLVD_MT[2], CLVD_MT[1], CLVD_MT[4], CLVD_MT[3], CLVD_MT[5]]
-            )
+            FULL = MT#_np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5]])
+            DC = DC_MT#_np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5]])
+            CLVD = CLVD_MT#_np.array(
+            #     [CLVD_MT[0], CLVD_MT[2], CLVD_MT[1], CLVD_MT[4], CLVD_MT[3], CLVD_MT[5]]
+            # )
 
             fig = _PostProcessing.Plot_Direct_BB(
                 MT_Full=FULL / M0,

@@ -108,12 +108,12 @@ class EventObj:
             )
 
         m_rr = focal_mech[0]
-        m_pp = focal_mech[1]
-        m_tt = focal_mech[2]
-        m_rp = focal_mech[3]
-        m_rt = focal_mech[4]
+        m_tt = focal_mech[1]
+        m_pp = focal_mech[2]
+        m_rt = focal_mech[3]
+        m_rp = focal_mech[4]
         m_tp = focal_mech[5]
-        print(m_rr, m_pp, m_tt, m_rp, m_rt, m_tp)
+        print(m_rr, m_tt, m_pp, m_rt, m_rp, m_tp)
 
         src = instaseis.Source(
             latitude=self.event.latitude,

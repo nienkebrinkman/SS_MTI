@@ -73,10 +73,10 @@ def make_GF(
             depth_in_m=depth * 1e3,
             origin_time=or_time,
             m_rr=mt[0],
-            m_pp=mt[1],
-            m_tt=mt[2],
-            m_rp=mt[3],
-            m_rt=mt[4],
+            m_tt=mt[1],
+            m_pp=mt[2],
+            m_rt=mt[3],
+            m_rp=mt[4],
             m_tp=mt[5],
         )
 
@@ -151,7 +151,7 @@ def convert_SDR(strike: float, dip: float, rake: float, M0: float = 1e14):
         - np.sin(2.0 * delta) * np.sin(2.0 * phi) * np.sin(lambd) / 2.0
     ) * M0
 
-    MT = [m_rr, m_pp, m_tt, m_rp, m_rt, m_tp]
+    MT = [m_rr, m_tt, m_pp, m_rt, m_rp, m_tp]
     return MT
 
 
@@ -166,18 +166,18 @@ def from_GF(st_in: obspy.Stream, focal_mech: [float], M0: float):
         focal_mech = convert_SDR(focal_mech[0], focal_mech[1], focal_mech[2], M0)
 
     m_rr = focal_mech[0]  # / M0
-    m_pp = focal_mech[1]  # / M0
-    m_tt = focal_mech[2]  # / M0
-    m_rp = focal_mech[3]  # / M0
-    m_rt = focal_mech[4]  # / M0
+    m_tt = focal_mech[1]  # / M0
+    m_pp = focal_mech[2]  # / M0
+    m_rt = focal_mech[3]  # / M0
+    m_rp = focal_mech[4]  # / M0
     m_tp = focal_mech[5]  # / M0
 
     data = (
         st_in[0].data * m_rr
-        + st_in[1].data * m_pp
-        + st_in[2].data * m_tt
-        + st_in[3].data * m_rp
-        + st_in[4].data * m_rt
+        + st_in[1].data * m_tt
+        + st_in[2].data * m_pp
+        + st_in[3].data * m_rt
+        + st_in[4].data * m_rp
         + st_in[5].data * m_tp
     )
 
@@ -189,10 +189,10 @@ def from_GF(st_in: obspy.Stream, focal_mech: [float], M0: float):
 
 def from_GF_get_G(st_in: obspy.Stream, az: float, comp: str):
     m_rr = st_in[0].data
-    m_pp = st_in[1].data
-    m_tt = st_in[2].data
-    m_rp = st_in[3].data
-    m_rt = st_in[4].data
+    m_tt = st_in[1].data
+    m_pp = st_in[2].data
+    m_rt = st_in[3].data
+    m_rp = st_in[4].data
     m_tp = st_in[5].data
 
     m1 = -1.0 * m_tp
@@ -228,129 +228,4 @@ def from_GF_get_G(st_in: obspy.Stream, az: float, comp: str):
     else:
         raise ValueError("Component is not correctly specified")
     return G
-
-
-def Get_GF_with_STF(origin_time, baz, tstar, db, epi, depth_in_m, dt, LQT_value=False, inc=None):
-    src_latitude, src_longitude = 90.0, 0.0
-    rec_latitude, rec_longitude = 90.0 - epi, 0.0
-
-    # sources according to https://github.com/krischer/instaseis/issues/8
-    # transformed to r, theta, phi
-    #
-    # Mtt =  Mxx, Mpp = Myy, Mrr =  Mzz
-    # Mrp = -Myz, Mrt = Mxz, Mtp = -Mxy
-    #
-    # Mrr   Mtt   Mpp    Mrt    Mrp    Mtp
-    #  0     0     0      0      0     -1.0    m1
-    #  0     1.0  -1.0    0      0      0      m2
-    #  0     0     0      0     -1.0    0      m3
-    #  0     0     0      1.0    0      0      m4
-    #  1.0   1.0   1.0    0      0      0      m6
-    #  2.0  -1.0  -1.0    0      0      0      cl
-
-    m1 = instaseis.Source(
-        src_latitude, src_longitude, depth_in_m, m_tp=-1.0, origin_time=origin_time
-    )
-    m2 = instaseis.Source(
-        src_latitude, src_longitude, depth_in_m, m_tt=1.0, m_pp=-1.0, origin_time=origin_time
-    )
-    m3 = instaseis.Source(
-        src_latitude, src_longitude, depth_in_m, m_rp=-1.0, origin_time=origin_time
-    )
-    m4 = instaseis.Source(
-        src_latitude, src_longitude, depth_in_m, m_rt=1.0, origin_time=origin_time
-    )
-    m6 = instaseis.Source(
-        src_latitude,
-        src_longitude,
-        depth_in_m,
-        m_rr=1.0,
-        m_tt=1.0,
-        m_pp=1.0,
-        origin_time=origin_time,
-    )
-    cl = instaseis.Source(
-        src_latitude,
-        src_longitude,
-        depth_in_m,
-        m_rr=2.0,
-        m_tt=-1.0,
-        m_pp=-1.0,
-        origin_time=origin_time,
-    )
-
-    receiver = instaseis.Receiver(rec_latitude, rec_longitude)
-
-    if LQT_value:
-        items = [
-            ("SST", m1, "T"),
-            ("SSL", m2, "L"),
-            ("SSQ", m2, "Q"),
-            ("DST", m3, "T"),
-            ("DSL", m4, "L"),
-            ("DSQ", m4, "Q"),
-            ("DDL", cl, "L"),
-            ("DDQ", cl, "Q"),
-            ("EPL", m6, "L"),
-            ("EPQ", m6, "Q"),
-        ]
-
-    else:
-        items = [
-            ("SST", m1, "T"),
-            ("SSZ", m2, "Z"),
-            ("SSR", m2, "R"),
-            ("DST", m3, "T"),
-            ("DSZ", m4, "Z"),
-            ("DSR", m4, "R"),
-            ("DDZ", cl, "Z"),
-            ("DDR", cl, "R"),
-            ("EPZ", m6, "Z"),
-            ("EPR", m6, "R"),
-        ]
-
-    args = {"receiver": receiver, "dt": dt, "kind": "displacement", "kernelwidth": 12}
-    st = obspy.Stream()
-
-    if tstar is not None and not isinstance(tstar, str):
-        stf_len_sec = 30.0
-        stf = _STF.stf_tstar(tstar=tstar, dt=db.info.dt, npts=int(stf_len_sec / db.info.dt))[0]
-    elif isinstance(tstar, str):
-        stf = _STF.Create_stf_from_file(tstar, db.info.dt)
-
-    for name, src, comp in items:
-        reconvolve_stf = False
-        remove_source_shift = True
-        if tstar is not None and not isinstance(tstar, str):
-            src.set_sliprate(stf, dt=db.info.dt)
-            reconvolve_stf = True
-            remove_source_shift = False
-        elif isinstance(tstar, str):
-            src.set_sliprate(stf, dt=db.info.dt, normalize=True)
-            reconvolve_stf = True
-            remove_source_shift = False
-
-        if LQT_value:
-            st_rot = db.get_seismograms(
-                source=src,
-                components="ZRT",
-                reconvolve_stf=reconvolve_stf,
-                remove_source_shift=remove_source_shift,
-                **args
-            )
-            st_rot.rotate(method="RT->NE", back_azimuth=baz)
-            st_rot.rotate(method="ZNE->LQT", back_azimuth=baz, inclination=inc)
-            tr = st_rot.select(channel="BX" + comp)[0]
-        else:
-            tr = db.get_seismograms(
-                source=src,
-                components=comp,
-                reconvolve_stf=reconvolve_stf,
-                remove_source_shift=remove_source_shift,
-                **args
-            )[0]
-
-        tr.stats.channel = name
-        st.append(tr)
-    return st
 

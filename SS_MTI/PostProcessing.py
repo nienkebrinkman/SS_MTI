@@ -804,24 +804,16 @@ def plot_misfit_vs_depth(
             # L2_Direct = np.append(L2_Direct, Total_L2_Direct[0])
             L2_Direct = np.append(L2_Direct, GOF_Direct)
 
+
             M = np.array(
                 [
-                    [MT_Direct[2], -MT_Direct[5], MT_Direct[4]],
-                    [-MT_Direct[5], MT_Direct[1], -MT_Direct[3]],
-                    [MT_Direct[4], -MT_Direct[3], MT_Direct[0]],
+                    [MT_Direct[1], -MT_Direct[5], MT_Direct[3]],
+                    [-MT_Direct[5], MT_Direct[2], -MT_Direct[4]],
+                    [MT_Direct[3], -MT_Direct[4], MT_Direct[0]],
                 ]
             )
             M_CLVD, M_DC, F = _MTDecompose.Get_CLVD_DC(M)
-            FULL_MT = np.array(
-                [
-                    MT_Direct[0],
-                    MT_Direct[2],
-                    MT_Direct[1],
-                    MT_Direct[4],
-                    MT_Direct[3],
-                    MT_Direct[5],
-                ]
-            )
+            FULL_MT = MT_Direct
             M0_DC = (
                 M_DC[2, 2] ** 2
                 + M_DC[0, 0] ** 2
@@ -843,6 +835,46 @@ def plot_misfit_vs_depth(
                     -M_CLVD[0, 1],
                 ]
             )
+
+            # M = np.array(
+            #     [
+            #         [MT_Direct[2], -MT_Direct[5], MT_Direct[4]],
+            #         [-MT_Direct[5], MT_Direct[1], -MT_Direct[3]],
+            #         [MT_Direct[4], -MT_Direct[3], MT_Direct[0]],
+            #     ]
+            # )
+            # M_CLVD, M_DC, F = _MTDecompose.Get_CLVD_DC(M)
+            # FULL_MT = np.array(
+            #     [
+            #         MT_Direct[0],
+            #         MT_Direct[2],
+            #         MT_Direct[1],
+            #         MT_Direct[4],
+            #         MT_Direct[3],
+            #         MT_Direct[5],
+            #     ]
+            # )
+            # M0_DC = (
+            #     M_DC[2, 2] ** 2
+            #     + M_DC[0, 0] ** 2
+            #     + M_DC[1, 1] ** 2
+            #     + 2 * M_DC[0, 2] ** 2
+            #     + 2 * M_DC[1, 2] ** 2
+            #     + 2 * M_DC[0, 1] ** 2
+            # ) ** 0.5 * 0.5 ** 0.5
+            # DC_MT = np.array(
+            #     [M_DC[2, 2], M_DC[0, 0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1],]
+            # )
+            # CLVD_MT = np.array(
+            #     [
+            #         M_CLVD[2, 2],
+            #         M_CLVD[0, 0],
+            #         M_CLVD[1, 1],
+            #         M_CLVD[0, 2],
+            #         -M_CLVD[1, 2],
+            #         -M_CLVD[0, 1],
+            #     ]
+            # )
 
             # ============== CREATE BEACHBALL PATCHES ===============
 
@@ -959,15 +991,15 @@ def plot_misfit_vs_depth(
     # ax[0].text(
     #     52, 9, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
     # )
-    ax[0].axvspan(26, 44, facecolor="purple", alpha=0.3)
-    y = ax[0].get_ylim()[0] * 0.8
-    ax[0].text(
-        26, 2, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
-    )
+    # ax[0].axvspan(26, 44, facecolor="purple", alpha=0.3)
+    # y = ax[0].get_ylim()[0] * 0.8
+    # ax[0].text(
+    #     26, 2, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
+    # )
 
     # ax[0].set_yscale('log')
     ax[0].grid(True)
-    ax[0].set_ylim(1.5, 5.0)
+    ax[0].set_ylim(-0.1, 1.1)
     # ax[0].set_ylim(8, 30)
     # ax[0].set_xlabel('Depth (km)', fontsize=20)
 
@@ -1542,11 +1574,11 @@ def post_waveform_plotting(
 
             color_plot = "r"
 
-            MT_FULL_ = np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5],])
-            DC_MT_ = np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5],])
-            CLVD_MT_ = np.array(
-                [CLVD_MT[0], CLVD_MT[2], CLVD_MT[1], CLVD_MT[4], CLVD_MT[3], CLVD_MT[5],]
-            )
+            MT_FULL_ = MT#np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5],])
+            DC_MT_ = DC_MT#np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5],])
+            CLVD_MT_ =CLVD_MT# np.array(
+            #     [CLVD_MT[0], CLVD_MT[2], CLVD_MT[1], CLVD_MT[4], CLVD_MT[3], CLVD_MT[5],]
+            # )
 
             fig = Plot_Direct_BB(
                 MT_Full=MT_FULL_ / M0,
@@ -1722,9 +1754,9 @@ def waveform_plot(
                 ax[i].plot(
                     st_obs_full[i].times() - obs_tts[i], st_obs_full[i].data, lw=1, c="k",
                 )
-                ax[i].plot(
-                    st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
-                )
+                # ax[i].plot(
+                #     st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
+                # )
 
                 st += st_obs[i]
                 if Ylims is None:
@@ -1868,7 +1900,7 @@ def Source_Uncertainty(
         MT_Full = np.zeros((sdrs.shape[0], 6))
         for i in range(MT_Full.shape[0]):
             MT_Full[i, :] = _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i])
-            MT_Full[i, 3] = -MT_Full[i, 3]
+            MT_Full[i, 3] = -MT_Full[i, 4]
             MT_Full[i, 5] = -MT_Full[i, 5]
 
         if idepth == 0:
@@ -1916,7 +1948,7 @@ def Source_Uncertainty(
             GOF_Direct = Total_L2_Direct / DOF
             DC_MT = np.expand_dims(DC_MT, axis=0)
             # DC_MT = DC_MT / M0_DC
-            DC_MT[0, 3] = -DC_MT[0, 3]
+            DC_MT[0, 3] = -DC_MT[0, 4]
             DC_MT[0, 5] = -DC_MT[0, 5]
             if idepth == 0:
                 M0_plot_Direct = M0_DC
@@ -1930,7 +1962,7 @@ def Source_Uncertainty(
             color_plot = "r"
 
     # MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
-    MT_names = ["mzz", "myy", "mxx", "myz", "mxz", "mxy"]
+    MT_names = ["mzz", "mxx", "myy", "mxz", "myz", "mxy"]
 
     ## =====================BIG PLOT ===================
     fig, ax = plt.subplots(
