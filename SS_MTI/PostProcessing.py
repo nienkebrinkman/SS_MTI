@@ -435,6 +435,9 @@ def Plot_Direct_BB(
         resid_height = 1.0 - 3.0 * axis_height
         title_height = resid_height / 3.0
 
+    DC_scal = 1 - Eps / 0.5
+    CLVD_scal = 1 - DC_scal
+
     ## Full moment tensor:
     img1, buf1 = Get_bb_img(MT_Full, color)
 
@@ -497,14 +500,29 @@ def Plot_Direct_BB(
     ## DC moment tensor:
     img2, buf2 = Get_bb_img(MT_DC, color)
     if horizontal:
-        ax_2 = fig.add_axes([axis_width, 0.0, axis_width, axis_height])
+        ax_2 = fig.add_axes(
+            [
+                axis_width + ((axis_width - (axis_width * DC_scal)) / 2),
+                0.0 + ((axis_height - (axis_height * DC_scal)) / 2),
+                axis_width * DC_scal,
+                axis_height * DC_scal,
+            ]
+        )
     else:
         ax_2 = fig.add_axes([0.0, axis_height + title_height, 1.0, axis_height])
 
     if img2 is not None:
         ax_2.imshow(img2 / np.max(img2.flatten()))
     if horizontal:
-        ax_X = fig.add_axes([axis_width, 0.0, axis_width, axis_height], label="Circle_ray")
+        ax_X = fig.add_axes(
+            [
+                axis_width + ((axis_width - (axis_width * DC_scal)) / 2),
+                0.0 + ((axis_height - (axis_height * DC_scal)) / 2),
+                axis_width * DC_scal,
+                axis_height * DC_scal,
+            ],
+            label="Circle_ray",
+        )
     else:
         ax_X = fig.add_axes(
             [0.0, axis_height + title_height, 1.0, axis_height], label="Circle_ray"
@@ -552,14 +570,29 @@ def Plot_Direct_BB(
     ### CLVD
     img3, buf3 = Get_bb_img(MT_CLVD, color)
     if horizontal:
-        ax_3 = fig.add_axes([2 * (axis_width), 0.0, axis_width, axis_height])
+        ax_3 = fig.add_axes(
+            [
+                2 * (axis_width) + ((axis_width - (axis_width * CLVD_scal)) / 2),
+                0.0 + ((axis_height - (axis_height * CLVD_scal)) / 2),
+                axis_width * CLVD_scal,
+                axis_height * CLVD_scal,
+            ]
+        )
     else:
         ax_3 = fig.add_axes([0.0, 0.0, 1.0, axis_height])
 
     if img3 is not None:
         ax_3.imshow(img3 / np.max(img3.flatten()))
     if horizontal:
-        ax_X = fig.add_axes([2 * (axis_width), 0.0, axis_width, axis_height], label="Circle_ray")
+        ax_X = fig.add_axes(
+            [
+                2 * (axis_width) + ((axis_width - (axis_width * CLVD_scal)) / 2),
+                0.0 + ((axis_height - (axis_height * CLVD_scal)) / 2),
+                axis_width * CLVD_scal,
+                axis_height * CLVD_scal,
+            ],
+            label="Circle_ray",
+        )
     else:
         ax_X = fig.add_axes([0.0, 0.0, 1.0, axis_height], label="Circle_ray")
     ax_X.set_xlim((-1, 1))
@@ -764,7 +797,7 @@ def plot_misfit_vs_depth(
             # Total_L2_norm_GS = np.sum(misfit_L2_norm_GS, axis=1)
             # GOF = ( (Total_L2_GS - DOF ) * 100 ) / DOF
             # GOF_GS = (Total_L2_norm_GS / DOF) * 100
-            GOF_GS = Total_L2_GS / DOF  # * 100
+            GOF_GS = Total_L2_GS / DOF
 
             lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
             # lowest_indices = GOF_GS.argsort()[0:n_lowest]
@@ -787,7 +820,7 @@ def plot_misfit_vs_depth(
             ## ============ Read Direct ========================
             (
                 depth_Direct,
-                MT_Direct,
+                FULL_MT,
                 DC_MT,
                 CLVD_MT,
                 misfit_L2_Direct,
@@ -797,84 +830,13 @@ def plot_misfit_vs_depth(
                 M0_CLVD,
                 angles,
             ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
+
             Total_L2_Direct = np.sum(misfit_L2_Direct)
             # Total_L2_norm_Direct = np.sum(misfit_L2_norm_Direct, axis=1)
             # GOF_Direct = (Total_L2_norm_Direct / DOF) * 100
-            GOF_Direct = Total_L2_Direct / DOF  # * 100
+            GOF_Direct = Total_L2_Direct / DOF
             # L2_Direct = np.append(L2_Direct, Total_L2_Direct[0])
             L2_Direct = np.append(L2_Direct, GOF_Direct)
-
-
-            M = np.array(
-                [
-                    [MT_Direct[1], -MT_Direct[5], MT_Direct[3]],
-                    [-MT_Direct[5], MT_Direct[2], -MT_Direct[4]],
-                    [MT_Direct[3], -MT_Direct[4], MT_Direct[0]],
-                ]
-            )
-            M_CLVD, M_DC, F = _MTDecompose.Get_CLVD_DC(M)
-            FULL_MT = MT_Direct
-            M0_DC = (
-                M_DC[2, 2] ** 2
-                + M_DC[0, 0] ** 2
-                + M_DC[1, 1] ** 2
-                + 2 * M_DC[0, 2] ** 2
-                + 2 * M_DC[1, 2] ** 2
-                + 2 * M_DC[0, 1] ** 2
-            ) ** 0.5 * 0.5 ** 0.5
-            DC_MT = np.array(
-                [M_DC[2, 2], M_DC[0, 0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1],]
-            )
-            CLVD_MT = np.array(
-                [
-                    M_CLVD[2, 2],
-                    M_CLVD[0, 0],
-                    M_CLVD[1, 1],
-                    M_CLVD[0, 2],
-                    -M_CLVD[1, 2],
-                    -M_CLVD[0, 1],
-                ]
-            )
-
-            # M = np.array(
-            #     [
-            #         [MT_Direct[2], -MT_Direct[5], MT_Direct[4]],
-            #         [-MT_Direct[5], MT_Direct[1], -MT_Direct[3]],
-            #         [MT_Direct[4], -MT_Direct[3], MT_Direct[0]],
-            #     ]
-            # )
-            # M_CLVD, M_DC, F = _MTDecompose.Get_CLVD_DC(M)
-            # FULL_MT = np.array(
-            #     [
-            #         MT_Direct[0],
-            #         MT_Direct[2],
-            #         MT_Direct[1],
-            #         MT_Direct[4],
-            #         MT_Direct[3],
-            #         MT_Direct[5],
-            #     ]
-            # )
-            # M0_DC = (
-            #     M_DC[2, 2] ** 2
-            #     + M_DC[0, 0] ** 2
-            #     + M_DC[1, 1] ** 2
-            #     + 2 * M_DC[0, 2] ** 2
-            #     + 2 * M_DC[1, 2] ** 2
-            #     + 2 * M_DC[0, 1] ** 2
-            # ) ** 0.5 * 0.5 ** 0.5
-            # DC_MT = np.array(
-            #     [M_DC[2, 2], M_DC[0, 0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1],]
-            # )
-            # CLVD_MT = np.array(
-            #     [
-            #         M_CLVD[2, 2],
-            #         M_CLVD[0, 0],
-            #         M_CLVD[1, 1],
-            #         M_CLVD[0, 2],
-            #         -M_CLVD[1, 2],
-            #         -M_CLVD[0, 1],
-            #     ]
-            # )
 
             # ============== CREATE BEACHBALL PATCHES ===============
 
@@ -999,8 +961,9 @@ def plot_misfit_vs_depth(
 
     # ax[0].set_yscale('log')
     ax[0].grid(True)
-    ax[0].set_ylim(-0.1, 1.1)
-    # ax[0].set_ylim(8, 30)
+    # ax[0].set_ylim(-0.1, 1.1)
+    # ax[0].set_xlim(6, 10)
+    # ax[0].set_ylim(4.5, 9)
     # ax[0].set_xlabel('Depth (km)', fontsize=20)
 
     extraticks = [0.1, 0.2, 0.3, 0.4]
@@ -1243,57 +1206,57 @@ def plot_phases_vs_depth(
 
     for i, phase in enumerate(phases):
 
-        if phase == "S":
-            ymax = ax[i].get_ylim()[1]
-            if event.name == "S0235b":
-                ax[i].axvline(33.1 - 2.5, c="red", lw=3, alpha=0.6)
-                ax[i].axvspan(27.5 - 2.5, 40 - 2.5, facecolor="red", alpha=0.2)
-                ax[i].text(
-                    (40 - 27.5) / 2 - 2.5,
-                    ymax * 0.8,
-                    "SS",
-                    verticalalignment="center",
-                    color="red",
-                    fontsize=8,
-                )
-            elif event.name == "S0173a":
-                ax[i].axvline(23.8 - 2.5, c="red", lw=3)
-                ax[i].axvspan(18.8 - 2.5, 29.4 - 2.5, facecolor="red", alpha=0.2)
-                ax[i].text(
-                    (29.4 - 18.8) / 2 - 2.5,
-                    ymax * 0.8,
-                    "SS",
-                    verticalalignment="center",
-                    color="red",
-                    fontsize=8,
-                )
+        # if phase == "S":
+        #     ymax = ax[i].get_ylim()[1]
+        #     if event.name == "S0235b":
+        #         ax[i].axvline(33.1 - 2.5, c="red", lw=3, alpha=0.6)
+        #         ax[i].axvspan(27.5 - 2.5, 40 - 2.5, facecolor="red", alpha=0.2)
+        #         ax[i].text(
+        #             (40 - 27.5) / 2 - 2.5,
+        #             ymax * 0.8,
+        #             "SS",
+        #             verticalalignment="center",
+        #             color="red",
+        #             fontsize=8,
+        #         )
+        #     elif event.name == "S0173a":
+        #         ax[i].axvline(23.8 - 2.5, c="red", lw=3)
+        #         ax[i].axvspan(18.8 - 2.5, 29.4 - 2.5, facecolor="red", alpha=0.2)
+        #         ax[i].text(
+        #             (29.4 - 18.8) / 2 - 2.5,
+        #             ymax * 0.8,
+        #             "SS",
+        #             verticalalignment="center",
+        #             color="red",
+        #             fontsize=8,
+        #         )
 
-                ax[i].axvline(53.1 - 2.5, c="red", lw=3)
-                ax[i].axvspan(46.8 - 2.5, 60.6 - 2.5, facecolor="red", alpha=0.2)
-                ax[i].text(
-                    (60.6 - 46.8) / 2 - 2.5,
-                    ymax * 0.8,
-                    "SSS",
-                    verticalalignment="center",
-                    color="red",
-                    fontsize=8,
-                )
+        #         ax[i].axvline(53.1 - 2.5, c="red", lw=3)
+        #         ax[i].axvspan(46.8 - 2.5, 60.6 - 2.5, facecolor="red", alpha=0.2)
+        #         ax[i].text(
+        #             (60.6 - 46.8) / 2 - 2.5,
+        #             ymax * 0.8,
+        #             "SSS",
+        #             verticalalignment="center",
+        #             color="red",
+        #             fontsize=8,
+        #         )
 
         if phase == "P":
             ymax = ax[i].get_ylim()[1]
-            if event.name == "S0235b":
-                ax[i].axvline(18.7 - 2.5, c="red", lw=3)
-                ax[i].axvspan(13.8 - 2.5, 23.1 - 2.5, facecolor="red", alpha=0.2)
+            # if event.name == "S0235b":
+            #     ax[i].axvline(18.7 - 2.5, c="red", lw=3)
+            #     ax[i].axvspan(13.8 - 2.5, 23.1 - 2.5, facecolor="red", alpha=0.2)
 
-                ax[i].text(
-                    (23.1 - 13.8) / 2 - 2.5,
-                    ymax * 0.8,
-                    "PP",
-                    verticalalignment="center",
-                    color="red",
-                    fontsize=8,
-                )
-            elif event.name == "S0173a":
+            #     ax[i].text(
+            #         (23.1 - 13.8) / 2 - 2.5,
+            #         ymax * 0.8,
+            #         "PP",
+            #         verticalalignment="center",
+            #         color="red",
+            #         fontsize=8,
+            #     )
+            if event.name == "S0173a":
                 ax[i].axvspan(17 - 2.5, 40 - 2.5, facecolor="green", alpha=0.2)
                 ax[i].text(
                     17,
@@ -1574,9 +1537,11 @@ def post_waveform_plotting(
 
             color_plot = "r"
 
-            MT_FULL_ = MT#np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5],])
-            DC_MT_ = DC_MT#np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5],])
-            CLVD_MT_ =CLVD_MT# np.array(
+            MT_FULL_ = MT  # np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5],])
+            DC_MT_ = (
+                DC_MT  # np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5],])
+            )
+            CLVD_MT_ = CLVD_MT  # np.array(
             #     [CLVD_MT[0], CLVD_MT[2], CLVD_MT[1], CLVD_MT[4], CLVD_MT[3], CLVD_MT[5],]
             # )
 
@@ -1633,10 +1598,13 @@ def post_waveform_plotting(
             syn_GFs.append(syn_GF)
             syn_tts.append(syn_tt)
 
-        extra_arrs = []
-        for j, extraphase in enumerate(plot_extra_phases):
-            arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
-            extra_arrs.append(arr)
+        if plot_extra_phases is not None:
+            extra_arrs = []
+            for j, extraphase in enumerate(plot_extra_phases):
+                arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+                extra_arrs.append(arr)
+        else:
+            extra_arrs = None
 
         fig = waveform_plot(
             syn_GFs=syn_GFs,

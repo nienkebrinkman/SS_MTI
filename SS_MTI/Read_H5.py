@@ -22,7 +22,7 @@ def Read_Direct_Inversion(Filename, amount_of_phases=5):
     depth = f["samples"][0, 0]
     MT = f["samples"][0, 5 : 5 + 6]
     DC_MT = f["samples"][0, 5 + 6 : 5 + 2 * 6]
-    CLVD_MT = f["samples"][0, 5 + 6 : 5 + 2 * 6]
+    CLVD_MT = f["samples"][0, 5 + 2 * 6 : 5 + 3 * 6]
 
     angles = f["samples"][0, 5 + 3 * 6 : -amount_of_phases]
 

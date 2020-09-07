@@ -15,7 +15,7 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Trial_6"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Sigma_est_weight_noise_new"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -51,20 +51,20 @@ event_input = {
     "S0173a": {
         "phases": ["P", "S", "S", "P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
-        "phase_corrs": [-0.5, 2.5, 1.2, -0.5, 1.2],
-        "tstars": [1.1, 1.2, 1.2, 1.1, 1.2],
+        "phase_corrs": [-0.5, 2.5, 2.5, -0.5, 2.5, -0.5],
+        "tstars": [1.1, 1.2, 1.2, 1.1, 1.2, 1.1],
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
         "amplitude_correction": ["PZ"],
-        "t_pre": [1, 1, 1, 1, 1],
-        "t_post": [17, 30, 30, 17, 30],
-        "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
+        "t_pre": [1, 1, 1, 1, 1, 1],
+        "t_post": [17, 30, 30, 17, 30, 17],
+        "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
         "start_weight_len": 7.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
         "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
-        "ylims": [2e-9, 4e-9, 4e-9, 2e-9, 4e-9],
+        "ylims": [2e-9, 4e-9, 4e-9, 2e-9, 4e-9, 2e-9],
     },
     "S0183a": {
         "phases": ["P", "P"],
@@ -104,17 +104,17 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-# depths = np.arange(5, 90, 3)
-depths = np.arange(29, 50, 3)
-# depths = [29]
+depths = np.arange(5, 90, 3)
+# depths = np.arange(29, 50, 3)
+# depths = [8]
 
 strikes = np.arange(0, 360, 20)
 dips = np.arange(0, 91, 15)
 rakes = np.arange(-180, 180, 15)
 
-# strikes = [320]
-# dips = [60]
-# rakes = [-15]
+# strikes = [15.0116557194]  # [132.395557582]
+# dips = [59.551091053]  # [51.9591191063]
+# rakes = [-45.6275510954]  # [-139.94976385]
 
 # strikes = np.arange(0, 360, 5)
 # dips = np.arange(0, 91, 5)
@@ -220,62 +220,61 @@ for i, v in event_input.items():
         elif misfit_method == "CC":
             misfit = SS_MTI.Misfit.CC(shift_samples=128)
         elif misfit_method == "POL":
-            misfit = SS_MTI.Misfit.POL()
+            misfit = SS_MTI.Misfit.Pol(
+                components=components, start_weight_len=start_weight_len, weights=weights, dt=dt
+            )
         else:
             raise ValueError("misfit can be L2, CC or POL in [MISFIT] of .toml file")
 
         """ Start inversion """
-        # if inv_method == "GS":
-        # SS_MTI.Inversion.Grid_Search_run(
-        #     fwd=fwd,
-        #     misfit=misfit,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     strikes=strikes,
-        #     dips=dips,
-        #     rakes=rakes,
-        #     phase_corrs=phase_corrs,
-        #     tstars=tstars,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     list_to_correct_M0=amplitude_correction,
-        #     output_folder=output_folder,
-        #     plot=False,
-        #     plot_extra_phases=extra_phases,
-        #     color_plot="blue",
-        #     Ylims=ylims,
-        # )
-        # # # elif inv_method == "Direct":
-        # # # """ Direct inversion """
-        # SS_MTI.Inversion.Direct(
-        #     fwd=fwd,
-        #     misfit=misfit,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     phase_corrs=phase_corrs,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     tstars=tstars,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     output_folder=output_folder,
-        #     plot=True,
-        #     plot_extra_phases=extra_phases,
-        #     color_plot="red",
-        #     Ylims=ylims,
-        # )
-        # else:
-        #     raise ValueError("inv_method is not recognized, specify: GS or Direct")
+
+        SS_MTI.Inversion.Grid_Search_run(
+            fwd=fwd,
+            misfit=misfit,
+            event=event,
+            rec=rec,
+            phases=phases,
+            components=components,
+            t_pre=t_pre,
+            t_post=t_post,
+            depths=depths,
+            strikes=strikes,
+            dips=dips,
+            rakes=rakes,
+            phase_corrs=phase_corrs,
+            tstars=tstars,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+            list_to_correct_M0=amplitude_correction,
+            output_folder=output_folder,
+            plot=True,
+            plot_extra_phases=extra_phases,
+            color_plot="blue",
+            Ylims=ylims,
+        )
+
+        SS_MTI.Inversion.Direct(
+            fwd=fwd,
+            misfit=misfit,
+            event=event,
+            rec=rec,
+            phases=phases,
+            components=components,
+            phase_corrs=phase_corrs,
+            t_pre=t_pre,
+            t_post=t_post,
+            depths=depths,
+            tstars=tstars,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+            output_folder=output_folder,
+            plot=True,
+            plot_extra_phases=extra_phases,
+            color_plot="red",
+            Ylims=ylims,
+        )
 
         """ Post-processing """
 
@@ -324,7 +323,7 @@ for i, v in event_input.items():
         #     Ylims=ylims,
         # )
 
-        """ (misfit vs depth analysis)"""
+        # """ (misfit vs depth analysis)"""
         DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
         Moho_d = 24
         fig = _PostProcessing.plot_misfit_vs_depth(

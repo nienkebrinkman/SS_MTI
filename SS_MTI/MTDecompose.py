@@ -126,7 +126,8 @@ def TDL(AN, BN):
 
 
 def GET_sdr_from_mij(mxx, myy, mzz, mxy, mxz, myz):
-    M = _np.array([[mxx, mxy, mxz], [mxy, myy, myz], [mxz, myz, mzz]])
+    # M = _np.array([[mxx, mxy, mxz], [mxy, myy, myz], [mxz, myz, mzz]])
+    M = _np.array([[mzz, mxz, myz], [mxz, mxx, mxy], [myz, mxy, myy]])
 
     eigenValues, eigenVectors = _np.linalg.eig(M)
 
@@ -161,3 +162,4 @@ def GET_sdr_from_mij(mxx, myy, mzz, mxy, mxz, myz):
     dip = fd
     rake = 180 - fl
     return strike, dip, rake
+

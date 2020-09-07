@@ -81,6 +81,36 @@ def prepare_event_data(
                 endtime=event.origin_time + tts[i] - 5.0,
             )
             sigmas.append(_np.std(tr_noise.data))
+
+            # Path = "/home/nienke/Documents/Research/Data/Noise/"
+            # File_names = [
+            #     "XB.02.ELYSE.BHE-2019.274T0809-2019.274T0920",
+            #     "XB.02.ELYSE.BHN-2019.274T0809-2019.274T0920",
+            #     "XB.02.ELYSE.BHZ-2019.274T0809-2019.274T0920",
+            # ]
+            # st_noise = obspy.Stream()
+
+            # for file in File_names:
+            #     tr = obspy.read(Path + file)
+            #     st_noise += tr
+
+            # if components == "LQT":
+            #     raise ValueError("LQT orientation Not implemented yet")
+            #     # TODO: implement LQT orientation
+            # else:
+            #     st_noise.rotate(method="NE->RT", back_azimuth=event.baz)
+
+            # for trace in st_obs:
+
+            #     chan = trace.stats.channel
+            #     desired_dt = trace.stats.delta
+            #     desired_npts = len(trace.data)
+            #     noise_trace = st_noise.select(channel=chan)[0]
+            #     noise = noise_trace.data[
+            #         int(1200 / desired_dt) : int(1200 / desired_dt) + desired_npts
+            #     ]
+            #     sigmas.append(_np.std(noise))
+
         else:
             sigmas.append(None)
 

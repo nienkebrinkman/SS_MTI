@@ -67,6 +67,7 @@ class L2(_AbstractMisfit):
         ), "The start_weight_len should not be longer than the window you are inverting for"
 
         misfit_L2 = []
+        # sigmas_model = []
         for i in range(len(phases)):
             d_obs = _np.expand_dims(st_obs[i].data, axis=1)
             d_syn = _np.expand_dims(st_syn[i].data, axis=1)
@@ -78,17 +79,21 @@ class L2(_AbstractMisfit):
             d_weight[:samps] = start_weight
             d_weight[samps:] = end_weight
 
-            inv_Std = _np.diag(1 / (_np.std(d_obs) ** 2 * d_weight))
-            misfit_L2.append(0.5 * ((d_obs - d_syn).T @ inv_Std @ (d_obs - d_syn))[0][0])
+            # inv_Std = _np.diag(1 / (_np.std(d_obs) ** 2 * d_weight))
+            # misfit_L2.append(0.5 * ((d_obs - d_syn).T @ inv_Std @ (d_obs - d_syn))[0][0])
 
-            # misfit_L2.append(
-            #     0.5
-            #     * (
-            #         (d_obs - d_syn).T
-            #         @ (_np.expand_dims(1 / (sigmas[i] ** 2 * d_weight), axis=1) * (d_obs - d_syn))
-            #     )[0][0]
-            # )
+            # TODO: determine sigma based on RMS of data + sigma noise!!
+            # sigmas_model.append(_np.sqrt(_np.mean(d_syn ** 2 + d_obs ** 2)))
 
+            misfit_L2.append(
+                0.5
+                * (
+                    (d_obs - d_syn).T
+                    @ (_np.expand_dims(1 / (sigmas[i] * d_weight), axis=1) * (d_obs - d_syn))
+                )[0][0]
+            )
+            # misfit_L2.append(0.5 * ((d_obs - d_syn).T @ (d_obs - d_syn))[0][0])
+        # print(misfit_L2)
         return misfit_L2
 
 
@@ -170,57 +175,76 @@ class CC(_AbstractMisfit):
 class Pol(_AbstractMisfit):
     name = "POL"
     description = "polarization based misfit"
-    noise_level = False  # Do you need to determine level of noise for this misfit class?
+    noise_level = True  # Do you need to determine level of noise for this misfit class?
 
-    def __init__(self):
-        pass
+    def __init__(
+        self, components: [str], start_weight_len: float, weights: [_List[int]], dt: float
+    ):
+        self.components = components
+        self.start_weight_len = start_weight_len
+        self.weights = weights
+        self.dt = dt
 
-    def run_misfit(self, st_obs: _obspy.Stream, st_syn: _obspy.Stream):
+    def run_misfit(
+        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, sigmas: [float]
+    ):
+        seen = set()
+        uniq = [x for x in phases if x not in seen and not seen.add(x)]
+        for i, uniq_phase in enumerate(uniq):
+            inds_phase = [i for i, x in enumerate(phases) if x == uniq_phase]
+            syn_unique = _obspy.Stream()
+            obs_unique = _obspy.Stream()
+            comp_order = []
+            for ind, ind_phase in enumerate(inds_phase):
+                comp_order.append(self.components[ind_phase])
+                syn_unique += st_syn[ind_phase].copy()
+                obs_unique += st_obs[ind_phase].copy()
+            if i == 0:
+                syn = _np.zeros((3, len(syn_unique.traces[0].data)))
+                syn[0, :] = syn_unique.select(channel="BX" + "Z").copy()[0].data
+                syn[1, :] = syn_unique.select(channel="BX" + "R").copy()[0].data
+                syn[2, :] = syn_unique.select(channel="BX" + "T").copy()[0].data
 
-        # TODO check this misfit
-        P_Syn = np.zeros((3, len(st_synth.traces[0].data)))
-        P_Syn[0, :] = st_synth.traces[0].data
-        P_Syn[1, :] = st_synth.traces[3].data
-        P_Syn[2, :] = st_synth.traces[5].data
+                obs = _np.zeros((3, len(obs_unique.traces[0].data)))
+                obs[0, :] = obs_unique.select(channel="BH" + "Z").copy()[0].data
+                obs[1, :] = obs_unique.select(channel="BH" + "R").copy()[0].data
+                obs[2, :] = obs_unique.select(channel="BH" + "T").copy()[0].data
+            else:
+                syn_temp = _np.zeros((3, len(syn_unique.traces[0].data)))
+                syn_temp[0, :] = syn_unique.select(channel="BX" + "Z").copy()[0].data
+                syn_temp[1, :] = syn_unique.select(channel="BX" + "R").copy()[0].data
+                syn_temp[2, :] = syn_unique.select(channel="BX" + "T").copy()[0].data
 
-        P_Obs = np.zeros((3, len(st_synth.traces[0].data)))
-        P_Obs[0, :] = st_real.traces[0].data
-        P_Obs[1, :] = st_real.traces[3].data
-        P_Obs[2, :] = st_real.traces[5].data
+                syn = _np.hstack((syn, syn_temp))
 
-        S_Syn = np.zeros((3, len(st_synth.traces[2].data)))
-        S_Syn[0, :] = st_synth.traces[2].data
-        S_Syn[1, :] = st_synth.traces[4].data
-        S_Syn[2, :] = st_synth.traces[1].data
+                obs_temp = _np.zeros((3, len(obs_unique.traces[0].data)))
+                obs_temp[0, :] = obs_unique.select(channel="BH" + "Z").copy()[0].data
+                obs_temp[1, :] = obs_unique.select(channel="BH" + "R").copy()[0].data
+                obs_temp[2, :] = obs_unique.select(channel="BH" + "T").copy()[0].data
 
-        S_Obs = np.zeros((3, len(st_synth.traces[2].data)))
-        S_Obs[0, :] = st_real.traces[2].data
-        S_Obs[1, :] = st_real.traces[4].data
-        S_Obs[2, :] = st_real.traces[1].data
+                obs = _np.hstack((obs, obs_temp))
 
-        Cov_P_syn = (1 / P_Syn.shape[1]) * np.matmul(P_Syn, P_Syn.T)
-        Cov_P_obs = (1 / P_Obs.shape[1]) * np.matmul(P_Obs, P_Obs.T)
-        Cov_S_syn = (1 / S_Syn.shape[1]) * np.matmul(S_Syn, S_Syn.T)
-        Cov_S_obs = (1 / S_Obs.shape[1]) * np.matmul(S_Obs, S_Obs.T)
+        Cov_syn = (1 / syn.shape[1]) * (syn @ syn.T)
+        Cov_obs = (1 / obs.shape[1]) * (obs @ obs.T)
 
         from numpy import linalg as LA
 
-        Eigval_Psyn, Eigvec_Psyn = LA.eig(Cov_P_syn)
-        Eigval_Pobs, Eigvec_Pobs = LA.eig(Cov_P_obs)
-        Eigval_Ssyn, Eigvec_Ssyn = LA.eig(Cov_S_syn)
-        Eigval_Sobs, Eigvec_Sobs = LA.eig(Cov_S_obs)
+        Eigval_syn, Eigvec_syn = LA.eig(Cov_syn)
+        Eigval_obs, Eigvec_obs = LA.eig(Cov_obs)
 
         # TODO: check if you needed the maximum or the minimum eigenvalue
-        max_ind_Eigval_Pobs = Eigval_Pobs.argmax()
-        max_ind_Eigval_Psyn = Eigval_Pobs.argmax()
+        max_ind_Eigval_obs = Eigval_obs.argmax()
+        max_ind_Eigval_syn = Eigval_syn.argmax()
 
         # TODO: Use this value now as a misfit...
-        delta_s = np.rad2deg(
-            np.arccos(
+        delta_s = _np.rad2deg(
+            _np.arccos(
                 (
-                    Eigvec_Pobs[:, max_ind_Eigval_Pobs][:, None].T
-                    @ Eigvec_Psyn[:, max_ind_Eigval_Psyn][:, None]
+                    Eigvec_obs[:, max_ind_Eigval_obs][:, None].T
+                    @ Eigvec_syn[:, max_ind_Eigval_syn][:, None]
                 ).item()
             )
         )
-
+        L2 = [0] * len(phases)
+        L2[0] = delta_s
+        return L2

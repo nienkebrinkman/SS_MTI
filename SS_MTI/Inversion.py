@@ -84,7 +84,7 @@ def Grid_Search_run(
     obs_tt = []
     for i, phase in enumerate(phases):
         obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
-    st_obs, sigmas = _PreProcess.prepare_event_data(
+    st_obs, sigmas_noise = _PreProcess.prepare_event_data(
         event=event,
         phases=phases,
         components=components,
@@ -103,7 +103,15 @@ def Grid_Search_run(
     # if event.name == "Test_Event":
     #     sigmas[0] = 1.7711953652440284e-11
     #     sigmas[3] = 4.5996573530998017e-11
+
+    # sigmas[2] = sigmas[1]
+    # sigmas[3] = sigmas[0]
+    # sigmas[4] = sigmas[1]
     # print(sigmas)
+    # sigmas_model = [9e-10, 2e-9, 1e-9, 7e-10, 2e-9]
+
+    # sigmas = [i ** 2 + j ** 2 for i, j in zip(sigmas_noise, sigmas_model)]
+    sigmas = [i ** 2 for i in sigmas_noise]
 
     for depth in depths:
         print(depth)
@@ -172,13 +180,11 @@ def Grid_Search_run(
 
                         st_syn += tr_syn
 
-
-
                     """ Multiply the data with the M0 correction"""
-                    M0_corr = _np.sum(misfit_amp) / len(misfit_amp)
+                    M0_corr = _np.sum(misfit_amp) / len(misfit_amp)  # 9.18202e12
                     # M0_corr = _np.exp(abs(_np.log(misfit_amp[0] /
                     #                                    misfit_amp[1])))
-                    for i,tr in enumerate(st_syn):
+                    for i, tr in enumerate(st_syn):
                         tr.data = tr.data * M0_corr
 
                         # dat = _np.vstack((tr.data,st_obs[i].data))
@@ -340,7 +346,7 @@ def Direct(
     obs_tt = []
     for i, phase in enumerate(phases):
         obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
-    st_obs, sigmas = _PreProcess.prepare_event_data(
+    st_obs, sigmas_noise = _PreProcess.prepare_event_data(
         event=event,
         phases=phases,
         components=components,
@@ -360,7 +366,14 @@ def Direct(
     #     sigmas[0] = 1.7711953652440284e-11
     #     sigmas[3] = 4.5996573530998017e-11
     # print(sigmas)
+    # sigmas[2] = sigmas[1]
+    # sigmas[3] = sigmas[0]
+    # sigmas[4] = sigmas[1]
 
+    # sigmas_model = [9e-10, 2e-9, 1e-9, 7e-10, 2e-9]
+
+    # sigmas = [i ** 2 + j ** 2 for i, j in zip(sigmas_noise, sigmas_model)]
+    sigmas = [i ** 2 for i in sigmas_noise]
     rec_in = instaseis.Receiver(
         latitude=90.0 - event.distance,
         longitude=0.0,
@@ -414,8 +427,8 @@ def Direct(
             d_weight[:samps] = start_weight
             d_weight[samps:] = end_weight
 
-            # Wd = 1 / (sigmas[i] * d_weight)
-            Wd = 1 / (_np.std(st_obs[i].data) ** 2 * d_weight)
+            Wd = 1 / (sigmas[i] * d_weight)
+            # Wd = 1 / (_np.std(st_obs[i].data) ** 2 * d_weight)
 
             if i == 0:
                 G_tot = G
@@ -494,7 +507,7 @@ def Direct(
         )
         M_CLVD, M_DC, F = _MTDecompose.Get_CLVD_DC(M_tensor)
 
-        DC_MT = [M_DC[2, 2], M_DC[0 ,0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1]]
+        DC_MT = [M_DC[2, 2], M_DC[0, 0], M_DC[1, 1], M_DC[0, 2], -M_DC[1, 2], -M_DC[0, 1]]
         M0_DC = (
             M_DC[2, 2] ** 2
             + M_DC[0, 0] ** 2
@@ -569,7 +582,7 @@ def Direct(
             # with open(pjoin(output_folder, f"Direct_{tr_syn.stats.channel}_{phase}.txt"), 'wb') as file:
             #     _np.save(file,dat, allow_pickle=False)
             #     file.close()
-            
+
         ## Calculate the misfit
         chi = misfit.run_misfit(phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas)
         # print(chi)
@@ -612,12 +625,11 @@ def Direct(
 
             # For the plotting you need to re-arrange the order of the Moment tensor#
             # , since obspy uses a different order
-            FULL = MT#_np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5]])
-            DC = DC_MT#_np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5]])
-            CLVD = CLVD_MT#_np.array(
+            FULL = MT  # _np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5]])
+            DC = DC_MT  # _np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5]])
+            CLVD = CLVD_MT  # _np.array(
             #     [CLVD_MT[0], CLVD_MT[2], CLVD_MT[1], CLVD_MT[4], CLVD_MT[3], CLVD_MT[5]]
             # )
-
             fig = _PostProcessing.Plot_Direct_BB(
                 MT_Full=FULL / M0,
                 Eps=F,
