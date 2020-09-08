@@ -101,12 +101,12 @@ def Grid_Search_run(
 
     # # TODO: remove this again:
     # if event.name == "Test_Event":
-    #     sigmas[0] = 1.7711953652440284e-11
-    #     sigmas[3] = 4.5996573530998017e-11
+    #     sigmas_noise[0] = 1.7711953652440284e-11
+    #     sigmas_noise[3] = 4.5996573530998017e-11
 
-    # sigmas[2] = sigmas[1]
-    # sigmas[3] = sigmas[0]
-    # sigmas[4] = sigmas[1]
+    # sigmas_noise[2] = sigmas_noise[1]
+    # sigmas_noise[3] = sigmas_noise[0]
+    # sigmas_noise[4] = sigmas_noise[1]
     # print(sigmas)
     # sigmas_model = [9e-10, 2e-9, 1e-9, 7e-10, 2e-9]
 
@@ -169,10 +169,26 @@ def Grid_Search_run(
                         )
 
                         if phases[i] + components[i] in list_to_correct_M0:
-                            misfit_amp.append(
-                                (_np.sum(_np.abs(st_obs[i].data)))
-                                / (_np.sum(_np.abs(tr_syn.data)))
-                            )
+                            d_obs = _np.expand_dims(st_obs[i].data, axis=1)
+                            d_syn = _np.expand_dims(tr_syn.data, axis=1)
+
+                            start_weight = misfit.weights[i][0]
+                            end_weight = misfit.weights[i][1]
+
+                            samps = int(misfit.start_weight_len / misfit.dt)
+                            d_weight = _np.zeros_like(st_obs[i].data)
+                            d_weight[:samps] = start_weight
+                            d_weight[samps:] = end_weight
+
+                            W = _np.diag(1 / (sigmas[i] * d_weight))
+
+                            amplitude = ((d_obs.T @ W @ d_syn) / (d_obs.T @ W @ d_obs))[0][0]
+                            print(amplitude)
+                            misfit_amp.append(amplitude)
+                            # misfit_amp.append(
+                            #     (_np.sum(_np.abs(st_obs[i].data)))
+                            #     / (_np.sum(_np.abs(tr_syn.data)))
+                            # )
                             # misfit_amp.append(
                             #     (max(abs(st_obs[i].data)))
                             #     / (max(abs(tr_syn.data)))
@@ -181,7 +197,8 @@ def Grid_Search_run(
                         st_syn += tr_syn
 
                     """ Multiply the data with the M0 correction"""
-                    M0_corr = _np.sum(misfit_amp) / len(misfit_amp)  # 9.18202e12
+                    M0_corr = 1 / _np.mean(misfit_amp)
+                    # M0_corr = _np.sum(misfit_amp) / len(misfit_amp)  # 9.18202e12
                     # M0_corr = _np.exp(abs(_np.log(misfit_amp[0] /
                     #                                    misfit_amp[1])))
                     for i, tr in enumerate(st_syn):
@@ -320,7 +337,6 @@ def Direct(
 ):
     print(f"Running direct inversion with model: {fwd.name}")
     print(f"and with {misfit.description}")
-    M0 = 1e14
 
     if tstars is None:
         tstars = [None] * len(phases)
@@ -363,8 +379,8 @@ def Direct(
 
     # # TODO: remove this again:
     # if event.name == "Test_Event":
-    #     sigmas[0] = 1.7711953652440284e-11
-    #     sigmas[3] = 4.5996573530998017e-11
+    #     sigmas_noise[0] = 1.7711953652440284e-11
+    #     sigmas_noise[3] = 4.5996573530998017e-11
     # print(sigmas)
     # sigmas[2] = sigmas[1]
     # sigmas[3] = sigmas[0]
@@ -450,6 +466,7 @@ def Direct(
         try:
             M = _np.linalg.solve(A, B)
         except _np.linalg.LinAlgError:
+            print("least-square")
             M = _np.linalg.lstsq(A, B)[0]
 
         # --- transform to r, theta, phi system ---
@@ -477,7 +494,7 @@ def Direct(
         MT = [m_rr, m_tt, m_pp, m_rt, m_rp, m_tp]
         M0 = (
             m_rr ** 2 + m_tt ** 2 + m_pp ** 2 + 2 * m_rt ** 2 + 2 * m_rp ** 2 + 2 * m_tp ** 2
-        ) ** 0.5 * 0.5 ** 0.5
+        ) ** 0.5 * 0.5 ** 0.5  # TODO HAAKJES hallo
         print("Full Scalar Moment: %.4e" % M0)
         MW = 2.0 / 3.0 * (_np.log10(M0) - 9.1)
         print("Full magnitude: %.2f" % MW)
@@ -519,14 +536,6 @@ def Direct(
         print("DC Scalar Moment: %.4e" % M0_DC)
         print("Epsilon value: %.4e" % F)
 
-        # CLVD_MT = [
-        #     M_CLVD[2, 2],
-        #     M_CLVD[1, 1],
-        #     M_CLVD[0, 0],
-        #     -M_CLVD[1, 2],
-        #     M_CLVD[0, 2],
-        #     -M_CLVD[0, 1],
-        # ]
         CLVD_MT = [
             M_CLVD[2, 2],
             M_CLVD[0, 0],
@@ -654,8 +663,8 @@ def Direct(
             )
             plt.close()
 
-            MT = _np.expand_dims(DC_MT, axis=0)
-            M0 = _np.expand_dims(M0_DC, axis=0)
+            MT = _np.expand_dims(MT, axis=0)
+            M0 = _np.expand_dims(M0, axis=0)
 
             if plot_extra_phases is not None:
                 extra_arrs = []

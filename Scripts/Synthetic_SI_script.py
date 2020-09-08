@@ -62,7 +62,7 @@ dt = 0.05
 
 components = "ZRT"
 kind = "displacement"
-noise = False
+noise = True
 
 ## Step 2:
 """Create observed data and waveforms """
@@ -118,11 +118,11 @@ else:
 
 ## Step 5:
 """ Start inversion """
-components =  ["Z", "T", "Z", "R", "R"]
-amplitude_correction = ["PZ","ST"]
-t_pre = [1, 1,1,1,1]
-t_post = [20, 20,20,20,20]
-depths = [depth]#np.arange(5, 90, 3)
+components = ["Z", "T", "Z", "R", "R"]
+amplitude_correction = ["PZ", "ST"]
+t_pre = [1, 1, 1, 1, 1]
+t_post = [20, 20, 20, 20, 20]
+depths = [depth]  # np.arange(5, 90, 3)
 strikes = [strike]
 dips = [dip]
 rakes = [rake]

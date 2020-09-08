@@ -15,7 +15,7 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Sigma_est_weight_noise_new"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/invert_entire_window"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -49,22 +49,22 @@ event_input = {
         "ylims": [4e-9, 4e-9, 4e-9, 4e-9, 4e-9],
     },
     "S0173a": {
-        "phases": ["P", "S", "S", "P", "S"],
+        "phases": ["P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
-        "phase_corrs": [-0.5, 2.5, 2.5, -0.5, 2.5, -0.5],
-        "tstars": [1.1, 1.2, 1.2, 1.1, 1.2, 1.1],
+        "phase_corrs": [-0.5, 2.5, 2.5, -0.5, 2.5],
+        "tstars": [1.1, 0.7, 0.7, 1.1, 0.7],
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
-        "amplitude_correction": ["PZ"],
-        "t_pre": [1, 1, 1, 1, 1, 1],
-        "t_post": [17, 30, 30, 17, 30, 17],
-        "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
+        "amplitude_correction": ["PZ", "ST"],
+        "t_pre": [1, 1, 1, 1, 1],
+        "t_post": [17, 30, 30, 17, 30],
+        "weights": [[1, 3], [1, 3], [5, 5], [5, 5], [5, 5]],
         "start_weight_len": 7.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
         "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
-        "ylims": [2e-9, 4e-9, 4e-9, 2e-9, 4e-9, 2e-9],
+        "ylims": [2e-9, 4e-9, 4e-9, 2e-9, 4e-9],
     },
     "S0183a": {
         "phases": ["P", "P"],
@@ -104,17 +104,21 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-depths = np.arange(5, 90, 3)
+# depths = np.arange(5, 90, 3)
 # depths = np.arange(29, 50, 3)
-# depths = [8]
+depths = [50]
 
-strikes = np.arange(0, 360, 20)
-dips = np.arange(0, 91, 15)
-rakes = np.arange(-180, 180, 15)
+# strikes = np.arange(0, 360, 20)
+# dips = np.arange(0, 91, 15)
+# rakes = np.arange(-180, 180, 15)
 
 # strikes = [15.0116557194]  # [132.395557582]
 # dips = [59.551091053]  # [51.9591191063]
 # rakes = [-45.6275510954]  # [-139.94976385]
+
+strikes = [160]
+dips = [15]
+rakes = [-120]
 
 # strikes = np.arange(0, 360, 5)
 # dips = np.arange(0, 91, 5)
@@ -388,7 +392,7 @@ for i, v in event_input.items():
         # plt.close()
 
         """ Uncertainty estimates:"""
-        # fig, fig_sdr = _PostProcessing.Source_Uncertainty(
+        # fig_sdr = _PostProcessing.Source_Uncertainty(
         #     h5_file_folder=output_folder,
         #     event_name=event.name,
         #     method="GS",
@@ -396,20 +400,20 @@ for i, v in event_input.items():
         #     fwd=fwd,
         #     phases=phases,
         #     components=components,
-        #     depths=np.arange(26, 47, 3),
+        #     depths=np.arange(53, 65, 3),
         #     DOF=DOF,
         #     fmin=fmin,
         #     fmax=fmax,
         # )
-        # fig.tight_layout()
-        # fig.savefig(
-        #     pjoin(
-        #         save_folder,
-        #         f"Uncertainties_FULL_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        #     ),
-        #     dpi=600,
-        # )
-        # plt.close(fig)
+        # # fig.tight_layout()
+        # # fig.savefig(
+        # #     pjoin(
+        # #         save_folder,
+        # #         f"Uncertainties_FULL_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+        # #     ),
+        # #     dpi=600,
+        # # )
+        # # plt.close(fig)
         # fig_sdr.tight_layout()
         # fig_sdr.savefig(
         #     pjoin(

@@ -19,6 +19,7 @@ import instaseis
 from obspy import UTCDateTime as utct
 from obspy.imaging.beachball import aux_plane
 from sklearn.cluster import KMeans
+from pyrocko import moment_tensor as mtm
 
 pyproj_datadir = os.environ["PROJ_LIB"]
 
@@ -1052,9 +1053,10 @@ def plot_phases_vs_depth(
     for idepth, depth in enumerate(depths):
         print(depth)
         if method == "GS":
+            MT_depth = 56
             h5_file_path = pjoin(
                 h5_file_folder,
-                f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+                f"GS_{event.name}_{MT_depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
             )
             depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
                 Filename=h5_file_path, amount_of_phases=5
@@ -1100,16 +1102,37 @@ def plot_phases_vs_depth(
         )
 
         """ Generate Green's functions per depth """
-        extra_phases = [
-            "pP",
-            "sS",
-            "sP",
-            "pS",
-            "SS",
-            "PP",
-            "SSS",
-            "PPP",
-        ]
+
+        Underside_refl_src = []
+        Conversion_src = []
+        Conversion_rec = []
+        Reflection_phases = []
+        model = fwd.taup_veloc
+        for i, values in enumerate(model.model.s_mod.critical_depths):
+            if values[0] < 1.0 or values[0] > 100.0:
+                continue
+            interface = str(int(values[0]))
+            if i > 1:
+                Reflection_phases.append(
+                    "P"
+                    + interface
+                    + "s"
+                    + str(int(model.model.s_mod.critical_depths[i - 1][0]))
+                    + "p"
+                )
+            # if values[0] > 50.0 and "TAYAK" in model_name:
+            #     continue
+            for down_phase in ["p^", "s^"]:
+                for up_phase in ["P", "S"]:
+
+                    Underside_refl_src.append(down_phase + interface + up_phase)
+
+            Conversion_src.append("S" + interface + "P")
+            Conversion_src.append("P" + interface + "S")
+            Conversion_rec.append("P" + interface + "p")
+            Conversion_rec.append("P" + interface + "s")
+        # extra_phases = Conversion_src
+        extra_phases = ["pP", "sS", "sP", "pS", "SS", "PP", "SSS", "PPP",] + Conversion_rec
         for j, extraphase in enumerate(extra_phases):
             extra_arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
             if extra_arr:
@@ -1722,9 +1745,9 @@ def waveform_plot(
                 ax[i].plot(
                     st_obs_full[i].times() - obs_tts[i], st_obs_full[i].data, lw=1, c="k",
                 )
-                # ax[i].plot(
-                #     st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
-                # )
+                ax[i].plot(
+                    st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
+                )
 
                 st += st_obs[i]
                 if Ylims is None:
@@ -1830,7 +1853,7 @@ def waveform_plot(
     return fig, ax
 
 
-def Source_Uncertainty(
+def Source_Uncertainty_OLD(
     h5_file_folder: str,
     event_name: str,
     method: str,
@@ -1929,7 +1952,7 @@ def Source_Uncertainty(
 
             color_plot = "r"
 
-    # MT_names = ["mrr", "mpp", "mtt", "mrp", "mrt", "mtp"]
+    # MT_names = ["mrr", "mtt", "mpp", "mrt", "mrp", "mtp"]
     MT_names = ["mzz", "mxx", "myy", "mxz", "myz", "mxy"]
 
     ## =====================BIG PLOT ===================
@@ -2305,6 +2328,200 @@ def Source_Uncertainty(
     ax2[-1].legend()
     fig2.suptitle(event_name, fontsize=20)
     return fig2, fig1
+
+
+def Source_Uncertainty(
+    h5_file_folder: str,
+    event_name: str,
+    method: str,
+    misfit_name: str,
+    fwd: _Forward._AbstractForward,
+    phases: [str],
+    components: [str],
+    depths: [float],
+    DOF: float,
+    fmin: float = None,
+    fmax: float = None,
+):
+    for idepth, depth in enumerate(depths):
+        print(depth)
+        # if method == "GS":
+        color_plot = "b"
+        h5_file_path = pjoin(
+            h5_file_folder,
+            f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+        )
+        depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
+            Filename=h5_file_path, amount_of_phases=len(phases)
+        )
+        Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+        n_lowest = 50
+        # n_lowest = int(len(Total_L2_GS) * 0.05)
+        # lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
+        lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
+
+        GOF_GS = (Total_L2_GS / DOF)[lowest_indices]
+        M0 = M0_GS[lowest_indices]
+
+        sdrs = sdr[lowest_indices, :]
+        MT_Full = np.zeros((sdrs.shape[0], 6))
+        for i in range(MT_Full.shape[0]):
+            MT_Full[i, :] = _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i])
+
+        if idepth == 0:
+            M0_plot_GS = M0
+            MT_GS = MT_Full
+            MT_sdrs = sdrs
+            weights_GS = np.exp(-GOF_GS)
+        else:
+            M0_plot_GS = np.hstack((M0_plot_GS, M0))
+            MT_GS = np.vstack((MT_GS, MT_Full))
+            MT_sdrs = np.vstack((MT_sdrs, sdrs))
+            weights_GS = np.hstack((weights_GS, np.exp(-GOF_GS)))
+
+        # else:
+        if event_name == "S0183a":
+            pass
+        else:
+            h5_file_path = pjoin(
+                h5_file_folder,
+                f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+            )
+
+            (
+                depth_Direct,
+                MT_Full,
+                DC_MT,
+                CLVD_MT,
+                misfit_L2_Direct,
+                Epsilon,
+                M0_Direct,
+                M0_DC,
+                M0_CLVD,
+                angles,
+            ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=len(phases))
+            Total_L2_Direct = np.sum(misfit_L2_Direct)
+            GOF_Direct = Total_L2_Direct / DOF
+            DC_MT = np.expand_dims(DC_MT, axis=0)
+
+            m = mtm.MomentTensor(
+                mnn=DC_MT[0, 1],
+                mee=DC_MT[0, 2],
+                mdd=DC_MT[0, 0],
+                mne=-DC_MT[0, 5],
+                mnd=DC_MT[0, 3],
+                med=-DC_MT[0, 4],
+            )
+
+            (s1, d1, r1), (s2, d2, r2) = m.both_strike_dip_rake()
+            sdr_1 = np.expand_dims([s1, d1, r1], axis=0)
+            sdr_2 = np.expand_dims([s2, d2, r2], axis=0)
+            if idepth == 0:
+                M0_plot_Direct = M0_DC
+                MT_Direct = DC_MT
+                sdr_Direct1 = sdr_1
+                sdr_Direct2 = sdr_2
+                weights_Direct = np.exp(-GOF_Direct)
+            else:
+                M0_plot_Direct = np.hstack((M0_plot_Direct, M0_DC))
+                MT_Direct = np.vstack((MT_Direct, DC_MT))
+                sdr_Direct1 = np.vstack((sdr_Direct1, sdr_1))
+                sdr_Direct2 = np.vstack((sdr_Direct2, sdr_2))
+                weights_Direct = np.hstack((weights_Direct, np.exp(-GOF_Direct)))
+
+            color_plot = "r"
+
+    mean_Full = []
+    std_Full = []
+    for i in range(6):
+        hist_1 = MT_GS[:, i]
+        n, bins = np.histogram(hist_1, bins=18, weights=weights_GS)
+        mids = 0.5 * (bins[1:] + bins[:-1])
+
+        mean = np.average(mids, weights=n)
+        mean_Full.append(mean)
+        std_Full.append(np.sqrt(np.average((mids - mean) ** 2, weights=n)))
+
+    m = mtm.MomentTensor(
+        mnn=mean_Full[1],
+        mee=mean_Full[2],
+        mdd=mean_Full[0],
+        mne=-mean_Full[5],
+        mnd=mean_Full[3],
+        med=-mean_Full[4],
+    )
+
+    (s1, d1, r1), (s2, d2, r2) = m.both_strike_dip_rake()
+    mean_Full1 = [s1, d1, r1]
+    mean_Full2 = [s2, d2, r2]
+
+    m = mtm.MomentTensor(
+        mnn=std_Full[1],
+        mee=std_Full[2],
+        mdd=std_Full[0],
+        mne=-std_Full[5],
+        mnd=std_Full[3],
+        med=-std_Full[4],
+    )
+
+    (s1, d1, r1), (s2, d2, r2) = m.both_strike_dip_rake()
+    std_Full1 = [s1, d1, r1]
+    std_Full2 = [s2, d2, r2]
+
+    sdr_names = ["strike", "dip", "rake"]
+    sdr_mins = [0, 0, -180]
+    sdr_maxs = [360, 90, 180]
+
+    fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3), sharey="row")
+    for i in range(3):
+        ax1[i].hist(
+            MT_sdrs[:, i],
+            bins=18,
+            alpha=0.4,
+            color="steelblue",
+            edgecolor="none",
+            weights=weights_GS,
+            density=True,
+        )
+        # ax1[i].hist(
+        #     sdr_Direct1[:, i],
+        #     bins=18,
+        #     alpha=0.4,
+        #     color="darkred",
+        #     edgecolor="none",
+        #     weights=weights_Direct,
+        #     density=True,
+        # )
+        # ax1[i].hist(
+        #     sdr_Direct2[:, i],
+        #     bins=18,
+        #     alpha=0.4,
+        #     color="darkred",
+        #     edgecolor="none",
+        #     weights=weights_Direct,
+        #     density=True,
+        # )
+        ax1[i].axvline(x=mean_Full1[i], c="red", lw=1, label="mean 1", alpha=0.5)
+        ax1[i].axvline(
+            x=mean_Full1[i] + std_Full1[i], c="red", lw=1, ls="--", label="std 1", alpha=0.5
+        )
+        ax1[i].axvline(x=mean_Full1[i] - std_Full1[i], c="red", lw=1, ls="--", alpha=0.5)
+
+        ax1[i].axvline(x=mean_Full2[i], c="steelblue", lw=1, label="mean 2", alpha=0.5)
+        ax1[i].axvline(
+            x=mean_Full2[i] + std_Full2[i], c="steelblue", lw=1, ls="--", label="std 2", alpha=0.5
+        )
+        ax1[i].axvline(x=mean_Full2[i] - std_Full2[i], c="steelblue", lw=1, ls="--", alpha=0.5)
+
+        ax1[i].set_xlabel(sdr_names[i], fontsize=18)
+        ax1[i].tick_params(axis="x", labelsize=15)
+        ax1[i].tick_params(axis="y", labelsize=15)
+        ax1[i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+        ax1[i].set_xlim(sdr_mins[i], sdr_maxs[i])
+        # if i == 2:
+        #     ax1[i].legend()
+    fig1.suptitle(event_name, fontsize=20)
+    return fig1
 
 
 def k_mean_distance(data, cx, i_centroid, cluster_labels):
