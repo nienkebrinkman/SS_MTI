@@ -51,8 +51,8 @@ event_input = {
     "S0173a": {
         "phases": ["P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
-        "phase_corrs": [1.2, 2.5, 1.5, -0.5, 2.5],
-        "tstars": [1.2, 1.0, 0.7, 1.1, 0.7],
+        "phase_corrs": [1.2, 2.5, 2.5, -0.5, 2.5],
+        "tstars": [1.2, 1.0, 1.0, 1.2, 1.0],
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
@@ -108,17 +108,17 @@ rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 # depths = np.arange(29, 50, 3)
 depths = [60]
 
-# strikes = np.arange(0, 360, 20)
-# dips = np.arange(0, 91, 15)
-# rakes = np.arange(-180, 180, 15)
+strikes = np.arange(0, 360, 20)
+dips = np.arange(0, 91, 15)
+rakes = np.arange(-180, 180, 15)
 
 # strikes = [15.0116557194]  # [132.395557582]
 # dips = [59.551091053]  # [51.9591191063]
 # rakes = [-45.6275510954]  # [-139.94976385]
 
-strikes = [131.464966079]
-dips = [75.2975778142]
-rakes = [-179.464433396]
+# strikes = [131.464966079]
+# dips = [75.2975778142]
+# rakes = [-179.464433396]
 
 # strikes = np.arange(0, 360, 5)
 # dips = np.arange(0, 91, 5)
