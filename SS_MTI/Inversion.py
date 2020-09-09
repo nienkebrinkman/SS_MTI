@@ -17,6 +17,7 @@ from os.path import join as pjoin
 from obspy.taup import TauPyModel
 from obspy import UTCDateTime as utct
 from typing import List as _List, Union as _Union
+from obspy.signal.cross_correlation import xcorr_max, correlate
 
 
 from SS_MTI import PreProcess as _PreProcess
@@ -114,12 +115,13 @@ def Grid_Search_run(
     sigmas = [i ** 2 for i in sigmas_noise]
 
     for depth in depths:
+        M0_corrs_range = [1.26126e14]  # _np.linspace(0, 2, 1000)
         print(depth)
         """ Open .h5 file """
         file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.hdf5"
         f = _h5.File(pjoin(output_folder, file_name), "w")
         data_len = 6 + len(phases)
-        file_len = len(strikes) * len(dips) * len(rakes)
+        file_len = len(M0_corrs_range)  # len(strikes) * len(dips) * len(rakes)
         f.create_dataset("samples", (file_len, data_len), maxshape=(None, 50))
         iteration = 0
 
@@ -151,76 +153,114 @@ def Grid_Search_run(
         for strike in strikes:
             for dip in dips:
                 for rake in rakes:
+                    for M0_corr_i in M0_corrs_range:
 
-                    focal_mech = [strike, dip, rake]
-                    st_syn = obspy.Stream()
-                    misfit_amp = []
+                        focal_mech = [strike, dip, rake]
+                        st_syn = obspy.Stream()
+                        st_syn_full = obspy.Stream()
+                        misfit_amp = []
 
-                    """ Generate the synthetic data"""
-                    for i, phase in enumerate(phases):
-                        tr_syn = fwd.generate_synthetic_data(
-                            st_GF=syn_GFs[i],
-                            focal_mech=focal_mech,
-                            M0=M0,
-                            slice=True,
-                            tt=syn_tts[i],
-                            t_pre=t_pre[i],
-                            t_post=t_post[i],
+                        """ Generate the synthetic data"""
+                        for i, phase in enumerate(phases):
+                            # tr_syn = fwd.generate_synthetic_data(
+                            #     st_GF=syn_GFs[i],
+                            #     focal_mech=focal_mech,
+                            #     M0=M0,
+                            #     slice=True,
+                            #     tt=syn_tts[i],
+                            #     t_pre=t_pre[i],
+                            #     t_post=t_post[i],
+                            # )
+                            tr_syn_full = fwd.generate_synthetic_data(
+                                st_GF=syn_GFs[i], focal_mech=focal_mech, M0=M0, slice=False,
+                            )
+
+                            tr_syn = tr_syn_full.slice(
+                                starttime=fwd.or_time + syn_tts[i] - t_pre[i],
+                                endtime=fwd.or_time + syn_tts[i] + t_post[i],
+                            )
+
+                            if phases[i] + components[i] in list_to_correct_M0:
+                                start_weight = misfit.weights[i][0]
+                                end_weight = misfit.weights[i][1]
+
+                                samps = int(misfit.start_weight_len / misfit.dt)
+                                d_weight = _np.zeros_like(st_obs[i].data)
+                                d_weight[:samps] = start_weight
+                                d_weight[samps:] = end_weight
+
+                                W = 1 / (d_weight)
+                                # W = _np.diag(1 / (d_weight))
+
+                                d_obs = _np.expand_dims(st_obs[i].data * W, axis=1)
+                                d_syn = _np.expand_dims(tr_syn.data * W, axis=1)
+
+                                amplitude = ((d_obs.T @ d_syn) / (d_obs.T @ d_obs))[0][0]
+                                # print(amplitude)
+                                misfit_amp.append(_np.abs(amplitude))
+                                # misfit_amp.append(
+                                #     (_np.sum(_np.abs(st_obs[i].data)))
+                                #     / (_np.sum(_np.abs(tr_syn.data)))
+                                # )
+                                # misfit_amp.append(
+                                #     (max(abs(st_obs[i].data)))
+                                #     / (max(abs(tr_syn.data)))
+                                # )
+
+                            st_syn += tr_syn
+                            st_syn_full += tr_syn_full
+
+                        """ Multiply the data with the M0 correction"""
+                        # M0_corr = 1e14 * M0_corr_i  #
+                        M0_corr = M0_corr_i
+                        # M0_corr = 1 / _np.mean(misfit_amp)
+                        print(M0_corr)
+                        # M0_corr = _np.sum(misfit_amp) / len(misfit_amp)  # 9.18202e12
+                        # M0_corr = _np.exp(abs(_np.log(misfit_amp[0] /
+                        #                                    misfit_amp[1])))
+
+                        shift_CC = _np.zeros(len(phases))
+                        misfit_CC = _np.zeros(len(phases))
+                        shifts = {"P": None, "S": None}
+                        for i, tr in enumerate(st_syn):
+                            tr.data = tr.data * M0_corr
+
+                            # st_syn_full[i].data = st_syn_full[i].data * M0_corr
+
+                            # corrarray = correlate(tr.data, st_obs[i].data, domain="time", shift=40)
+                            # shift_CC[i], misfit_CC[i] = xcorr_max(corrarray, abs_max=False)
+
+                            # if shifts[phase] is None:
+                            #     shifts[phase] = shift_CC[i]
+                            # else:
+                            #     # misfit_CC[iphase] = \
+                            #     #     corrarray[(len(corrarray) - 1) // 2
+                            #     #               + int(shifts[phases[iphase]])]
+                            #     shift_CC[i] = shifts[phase]
+
+                            # start_sample = int((syn_tts[i] - t_pre[i] - fwd.start_cut) / fwd.dt) + int(
+                            #     shifts[phase]
+                            # )
+                            # end_sample = start_sample + len(tr.data)
+                            # tr_shifted_syn = st_syn_full[i].data[start_sample:end_sample]
+
+                            # dat = _np.vstack((tr.data,st_obs[i].data))
+                            # with open(pjoin(output_folder, f"GS_{tr_syn.stats.channel}_{phases[i]}.txt"), 'wb') as file:
+                            #     _np.save(file, dat, allow_pickle=False)
+                            #     file.close()
+
+                        """ Determine the misfit between syntetic and observed"""
+                        chi = misfit.run_misfit(
+                            phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas
                         )
+                        # print(chi)
+                        """ Write into file"""
+                        f["samples"][iteration, :] = [depth, strike, dip, rake, M0, M0_corr] + chi
+                        iteration += 1
 
-                        if phases[i] + components[i] in list_to_correct_M0:
-                            d_obs = _np.expand_dims(st_obs[i].data, axis=1)
-                            d_syn = _np.expand_dims(tr_syn.data, axis=1)
-
-                            start_weight = misfit.weights[i][0]
-                            end_weight = misfit.weights[i][1]
-
-                            samps = int(misfit.start_weight_len / misfit.dt)
-                            d_weight = _np.zeros_like(st_obs[i].data)
-                            d_weight[:samps] = start_weight
-                            d_weight[samps:] = end_weight
-
-                            W = _np.diag(1 / (sigmas[i] * d_weight))
-
-                            amplitude = ((d_obs.T @ W @ d_syn) / (d_obs.T @ W @ d_obs))[0][0]
-                            print(amplitude)
-                            misfit_amp.append(amplitude)
-                            # misfit_amp.append(
-                            #     (_np.sum(_np.abs(st_obs[i].data)))
-                            #     / (_np.sum(_np.abs(tr_syn.data)))
-                            # )
-                            # misfit_amp.append(
-                            #     (max(abs(st_obs[i].data)))
-                            #     / (max(abs(tr_syn.data)))
-                            # )
-
-                        st_syn += tr_syn
-
-                    """ Multiply the data with the M0 correction"""
-                    M0_corr = 1 / _np.mean(misfit_amp)
-                    # M0_corr = _np.sum(misfit_amp) / len(misfit_amp)  # 9.18202e12
-                    # M0_corr = _np.exp(abs(_np.log(misfit_amp[0] /
-                    #                                    misfit_amp[1])))
-                    for i, tr in enumerate(st_syn):
-                        tr.data = tr.data * M0_corr
-
-                        # dat = _np.vstack((tr.data,st_obs[i].data))
-                        # with open(pjoin(output_folder, f"GS_{tr_syn.stats.channel}_{phases[i]}.txt"), 'wb') as file:
-                        #     _np.save(file, dat, allow_pickle=False)
-                        #     file.close()
-
-                    """ Determine the misfit between syntetic and observed"""
-                    chi = misfit.run_misfit(
-                        phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas
-                    )
-                    # print(chi)
-                    """ Write into file"""
-                    f["samples"][iteration, :] = [depth, strike, dip, rake, M0, M0_corr] + chi
-                    iteration += 1
-
-                    # print(focal_mech)
-                    # print(_np.sum(chi))
-                    # print(M0_corr * M0)
+                        # print(focal_mech)
+                        # print(_np.sum(chi))
+                        # print(M0_corr * M0)
 
         if plot:
             """ Calculate take-off angles"""
@@ -534,7 +574,7 @@ def Direct(
             + 2 * M_DC[0, 1] ** 2
         ) ** 0.5 * 0.5 ** 0.5
         print("DC Scalar Moment: %.4e" % M0_DC)
-        print("Epsilon value: %.4e" % F)
+        print("Epsilon value: %.2f" % F)
 
         CLVD_MT = [
             M_CLVD[2, 2],
@@ -585,7 +625,21 @@ def Direct(
                 t_pre=t_pre[i],
                 t_post=t_post[i],
             )
+            # tr_syn.data = _np.zeros_like(tr_syn.data)
             st_syn += tr_syn
+
+            # moment_new = _np.expand_dims(
+            #     [DC_MT[1], DC_MT[2], -DC_MT[5], DC_MT[3], -DC_MT[4]], axis=1
+            # )
+            # if i == 0:
+            #     G_new = G_tot[: len(st_obs[i].data), :]
+            # else:
+            #     G_new = G_tot[
+            #         len(st_obs[i - 1].data) : len(st_obs[i - 1].data) + len(st_obs[i].data), :
+            #     ]
+            # d_new = G_new @ moment_new
+
+            # residual = tr_syn.data - d_new
 
             # dat = _np.vstack((tr_syn.data,st_obs[i].data))
             # with open(pjoin(output_folder, f"Direct_{tr_syn.stats.channel}_{phase}.txt"), 'wb') as file:
@@ -663,8 +717,8 @@ def Direct(
             )
             plt.close()
 
-            MT = _np.expand_dims(MT, axis=0)
-            M0 = _np.expand_dims(M0, axis=0)
+            MT = _np.expand_dims(DC_MT, axis=0)
+            M0 = _np.expand_dims(M0_DC, axis=0)
 
             if plot_extra_phases is not None:
                 extra_arrs = []

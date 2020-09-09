@@ -51,15 +51,15 @@ event_input = {
     "S0173a": {
         "phases": ["P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
-        "phase_corrs": [-0.5, 2.5, 2.5, -0.5, 2.5],
-        "tstars": [1.1, 0.7, 0.7, 1.1, 0.7],
+        "phase_corrs": [1.2, 2.5, 1.5, -0.5, 2.5],
+        "tstars": [1.2, 1.0, 0.7, 1.1, 0.7],
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
         "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [17, 30, 30, 17, 30],
-        "weights": [[1, 3], [1, 3], [5, 5], [5, 5], [5, 5]],
+        "weights": [[3, 1], [3, 1], [10, 10], [10, 10], [10, 10]],
         "start_weight_len": 7.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
@@ -106,7 +106,7 @@ rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 """ """
 # depths = np.arange(5, 90, 3)
 # depths = np.arange(29, 50, 3)
-depths = [50]
+depths = [60]
 
 # strikes = np.arange(0, 360, 20)
 # dips = np.arange(0, 91, 15)
@@ -116,9 +116,9 @@ depths = [50]
 # dips = [59.551091053]  # [51.9591191063]
 # rakes = [-45.6275510954]  # [-139.94976385]
 
-strikes = [160]
-dips = [15]
-rakes = [-120]
+strikes = [131.464966079]
+dips = [75.2975778142]
+rakes = [-179.464433396]
 
 # strikes = np.arange(0, 360, 5)
 # dips = np.arange(0, 91, 5)

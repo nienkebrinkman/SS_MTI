@@ -7,15 +7,15 @@ from os.path import join as pjoin
 import numpy as np
 from obspy.imaging.beachball import beachball
 
-folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/pol_misfit"
+folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/invert_entire_window"
 
 event_name = "S0173a"
-depth = 8
+depth = 60
 fmin = 0.1
 fmax = 0.7
-misfit_name = "POL"
+misfit_name = "L2"
 veloc_model = "TAYAK_BKE"
-amount_of_phases = 6
+amount_of_phases = 2
 az = 273.05  # S0235b: 257.57, S0183a:253
 
 # file_name = f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5"
@@ -100,4 +100,9 @@ MT = sdr[lowest_indices, :]
 depth_GS = depth_GS[lowest_indices]
 M0 = M0_GS[lowest_indices]
 
+print(M0_GS[lowest_indices[0]])
+
+plt.plot(M0_GS, np.sum(misfit_L2_GS, axis=1))
+plt.plot(M0_GS[lowest_indices[0]], np.sum(misfit_L2_GS, axis=1)[lowest_indices[0]], "ro")
+plt.show()
 a = 1

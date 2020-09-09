@@ -93,7 +93,7 @@ class L2(_AbstractMisfit):
                 )[0][0]
             )
             # misfit_L2.append(0.5 * ((d_obs - d_syn).T @ (d_obs - d_syn))[0][0])
-        print(sigmas)
+        # print(sigmas)
         print(misfit_L2)
         return misfit_L2
 
