@@ -15,7 +15,7 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/invert_entire_window"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/2phases"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -31,35 +31,35 @@ cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
 """ Define events to invert for and its parameters """
 event_input = {
     "S0235b": {
-        "phases": ["P", "S", "S", "P", "S"],
+        "phases": ["P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
         "phase_corrs": [0.2, 10.1, 10.7, 0.2, 10.7],
-        "tstars": [0.8, 1.1, 1.1, 0.8, 1.1],
+        "tstars": [0.8, 1.0, 1.0, 0.8, 1.0],
         "fmin": 0.1,
         "fmax": 0.9,
         "zerophase": False,
-        "amplitude_correction": ["PZ"],
+        "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [30, 30, 30, 30, 30],
-        "weights": [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]],
+        "weights": [[1, 3], [1, 3], [10, 10], [10, 10], [10, 10]],
         "start_weight_len": 7.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
         "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
-        "ylims": [4e-9, 4e-9, 4e-9, 4e-9, 4e-9],
+        "ylims": [1e-9, 4e-9, 3e-9, 0.5e-9, 4e-9],
     },
     "S0173a": {
         "phases": ["P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
-        "phase_corrs": [1.2, 2.5, 2.5, -0.5, 2.5],
-        "tstars": [1.2, 1.0, 1.0, 1.2, 1.0],
+        "phase_corrs": [-0.5, 2.5, 1.5, -0.5, 2.5],
+        "tstars": [1.0, 1.0, 1.0, 1.0, 1.0],
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
         "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [17, 30, 30, 17, 30],
-        "weights": [[3, 1], [3, 1], [10, 10], [10, 10], [10, 10]],
+        "weights": [[1, 3], [1, 3], [10, 10], [10, 10], [10, 10]],
         "start_weight_len": 7.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
@@ -104,9 +104,9 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-# depths = np.arange(5, 90, 3)
+depths = np.arange(5, 90, 3)
 # depths = np.arange(29, 50, 3)
-depths = [60]
+# depths = [29]
 
 strikes = np.arange(0, 360, 20)
 dips = np.arange(0, 91, 15)
@@ -141,7 +141,7 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event.name == "S0173a":
+    if event.name == "S0235b" or event.name == "S0173a":
         pass
     else:
         continue

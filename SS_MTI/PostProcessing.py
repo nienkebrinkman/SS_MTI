@@ -830,6 +830,7 @@ def plot_misfit_vs_depth(
                 M0_DC,
                 M0_CLVD,
                 angles,
+                cond_nr
             ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
 
             Total_L2_Direct = np.sum(misfit_L2_Direct)
@@ -844,33 +845,14 @@ def plot_misfit_vs_depth(
             # y1 = Total_L2_GS[lowest_indices][0]
             # y2 = Total_L2_Direct[0]
 
-            y1 = GOF_GS[lowest_indices][0]
-            y2 = GOF_Direct
+            y2 = GOF_GS[lowest_indices][0]
+            y1 = GOF_Direct
 
             y_dist = np.log(np.abs(y1 - y2))
 
-            if y_dist < 100:
-                adding_value = 2e-1
-                # adding_value = 2e0
-                Line_x.append(depth)
-                if y1 > y2:
-                    y1 = y1 + adding_value
-                    y2 = y2 - adding_value
-                    Line1_ymin.append(GOF_GS[lowest_indices][0])
-                    Line1_ymax.append(y1)
-                    Line2_ymin.append(y2)
-                    Line2_ymax.append(GOF_Direct)
-                else:
-                    diff = y2 - y1
-                    y1 = y1 + adding_value + diff
-                    y2 = y2 - adding_value - diff
-                    Line1_ymin.append(GOF_GS[lowest_indices][0])
-                    Line1_ymax.append(y1)
-                    Line2_ymin.append(y2)
-                    Line2_ymax.append(GOF_Direct)
-
             # if y_dist < 100:
-            #     adding_value = 1e1
+            #     adding_value = 2e-1
+            #     # adding_value = 2e0
             #     Line_x.append(depth)
             #     if y1 > y2:
             #         y1 = y1 + adding_value
@@ -878,19 +860,39 @@ def plot_misfit_vs_depth(
             #         Line1_ymin.append(GOF_GS[lowest_indices][0])
             #         Line1_ymax.append(y1)
             #         Line2_ymin.append(y2)
-            #         Line2_ymax.append(GOF_Direct[0])
+            #         Line2_ymax.append(GOF_Direct)
             #     else:
-            #         y1 = y1 - adding_value
-            #         y2 = y2 + adding_value
-            #         Line1_ymax.append(GOF_GS[lowest_indices][0])
-            #         Line1_ymin.append(y1)
-            #         Line2_ymax.append(y2)
-            #         Line2_ymin.append(GOF_Direct[0])
+            #         diff = y2 - y1
+            #         y1 = y1 + adding_value + diff
+            #         y2 = y2 - adding_value - diff
+            #         Line1_ymin.append(GOF_GS[lowest_indices][0])
+            #         Line1_ymax.append(y1)
+            #         Line2_ymin.append(y2)
+            #         Line2_ymax.append(GOF_Direct)
+
+            if y_dist < 100:
+                adding_value = 2e-1
+                Line_x.append(depth)
+                if y1 > y2:
+                    y1 = y1 + adding_value
+                    y2 = y2 - adding_value
+                    Line1_ymin.append(GOF_Direct)
+                    Line1_ymax.append(y1)
+                    Line2_ymin.append(y2)
+                    Line2_ymax.append(GOF_GS[lowest_indices][0])
+                else:
+                    diff = y2 - y1
+                    y1 = y1 + adding_value + diff
+                    y2 = y2 - adding_value - diff
+                    Line1_ymax.append(GOF_Direct)
+                    Line1_ymin.append(y1)
+                    Line2_ymax.append(y2)
+                    Line2_ymin.append(GOF_GS[lowest_indices][0])
 
             BB.append(
                 beach(
                     [sdr[0][0], sdr[0][1], sdr[0][2]],
-                    xy=(depth_GS[0], y1),
+                    xy=(depth_GS[0], y2),
                     width=15,
                     linewidth=1,
                     axes=ax[0],
@@ -899,7 +901,7 @@ def plot_misfit_vs_depth(
             BB.append(
                 beach(
                     DC_MT / M0_DC,
-                    xy=(depth, y2),
+                    xy=(depth, y1),
                     width=15,
                     facecolor="r",
                     linewidth=1,
@@ -927,7 +929,7 @@ def plot_misfit_vs_depth(
         ax[0].plot(
             [Line_x[iline], Line_x[iline]],
             [Line1_ymin[iline], Line1_ymax[iline]],
-            c="b",
+            c="r",
             ls="dashed",
             alpha=0.5,
             lw=0.5,
@@ -935,7 +937,7 @@ def plot_misfit_vs_depth(
         ax[0].plot(
             [Line_x[iline], Line_x[iline]],
             [Line2_ymin[iline], Line2_ymax[iline]],
-            c="r",
+            c="b",
             ls="dashed",
             alpha=0.5,
             lw=0.5,
@@ -969,7 +971,7 @@ def plot_misfit_vs_depth(
 
     extraticks = [0.1, 0.2, 0.3, 0.4]
     ax[1].set_yticks(list(ax[1].get_yticks()) + extraticks)
-    ax[1].legend(prop={"size": 15}, loc="upper right")
+    # ax[1].legend(prop={"size": 15}, loc="upper right")
     ax[1].set_xlabel("Depth (km)", fontsize=20)
     ax[1].set_ylabel(r"$\epsilon$", fontsize=20)
     ax[1].tick_params(axis="both", which="major", labelsize=18)
@@ -1084,6 +1086,7 @@ def plot_phases_vs_depth(
                 M0_DC,
                 M0_CLVD,
                 angles,
+                cond_nr
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
             Total_L2_Direct = np.sum(misfit_L2_Direct)
 
@@ -1555,6 +1558,7 @@ def post_waveform_plotting(
                 M0_DC,
                 M0_CLVD,
                 angles,
+                cond_nr
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
             Total_L2_Direct = np.sum(misfit_L2_Direct)
 
@@ -1934,6 +1938,7 @@ def Source_Uncertainty_OLD(
                 M0_DC,
                 M0_CLVD,
                 angles,
+                cond_nr
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=len(phases))
             Total_L2_Direct = np.sum(misfit_L2_Direct)
             GOF_Direct = Total_L2_Direct / DOF
@@ -2399,6 +2404,7 @@ def Source_Uncertainty(
                 M0_DC,
                 M0_CLVD,
                 angles,
+                cond_nr
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=len(phases))
             Total_L2_Direct = np.sum(misfit_L2_Direct)
             GOF_Direct = Total_L2_Direct / DOF

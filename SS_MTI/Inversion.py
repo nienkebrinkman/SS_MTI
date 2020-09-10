@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from os.path import join as pjoin
 from obspy.taup import TauPyModel
 from obspy import UTCDateTime as utct
+from numpy import linalg as _LA
 from typing import List as _List, Union as _Union
 from obspy.signal.cross_correlation import xcorr_max, correlate
 
@@ -543,6 +544,54 @@ def Direct(
             print("least-square")
             M = _np.linalg.lstsq(A, B)[0]
 
+        # --- Test condition number ---
+        cond_nr = _LA.cond(G_tot.T @ Wd_tot @ G_tot)
+        Eigval, Eigvec = _LA.eig(G_tot.T @ Wd_tot @ G_tot)
+        max_eigval = Eigval.max()
+        max_eigvec = Eigvec[:, _np.argmax(Eigval)]
+
+        moment_names = ["mxx", "myy", "mxy", "mxz", "myz"]
+        colors = ["k", "r", "green", "magenta", "darkorange"]
+        fig, ax = plt.subplots(6, 1, sharex=True, figsize=(8, 10))
+        ax[0].scatter(_np.arange(len(Eigval)), Eigval, color=colors, s=100)
+        ax[0].set_yscale("log")
+        ax[0].set_ylabel("Eigenvalues", fontsize=14)
+        ax[0].tick_params(axis="both", which="major", labelsize=14)
+        ax[0].tick_params(axis="both", which="minor", labelsize=10)
+        ax[0].set_title("Condition number: {:.2f}".format(cond_nr), fontsize=20)
+        for ax_i in range(len(Eigval)):
+            ax_x = _np.arange(len(Eigvec[:, ax_i]))
+            ax[ax_i + 1].plot(
+                ax_x,
+                Eigvec[:, ax_i],
+                "k^",
+                label=moment_names[ax_i],
+                color=colors[ax_i],
+                markersize=10,
+            )
+            for ax_ii in range(len(ax_x)):
+                ax[ax_i + 1].plot(
+                    [ax_x[ax_ii], ax_x[ax_ii]], [-1.0, Eigvec[ax_ii, ax_i]], c=colors[ax_i]
+                )
+            ax[ax_i + 1].set_ylabel("Eigvector", fontsize=14)
+            ax[ax_i + 1].legend(loc="upper right")
+            ax[ax_i + 1].tick_params(axis="both", which="major", labelsize=14)
+            ax[ax_i + 1].tick_params(axis="both", which="minor", labelsize=10)
+            ax[ax_i + 1].set_ylim(-1.0, 1.0)
+
+        ax[-1].xaxis.set_ticks(_np.arange(len(Eigval)))
+        ax[-1].set_xticklabels(moment_names)
+        ax[-1].set_xlabel("Parameters", fontsize=20)
+        plt.tight_layout()
+        plt.savefig(
+            pjoin(
+                output_folder,
+                f"Condition_nr_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+            ),
+            dpi=600,
+        )
+        plt.close()
+
         # --- transform to r, theta, phi system ---
         mxx = M[0]
         myy = M[1]
@@ -696,26 +745,29 @@ def Direct(
             f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.hdf5"
         )
         f = _h5.File(pjoin(output_folder, file_name), "w")
-        data_len = 5 + 3 * 6 + len(angles) + len(phases)
+        data_len = 6 + 3 * 6 + len(angles) + len(phases)
         file_len = 1
         f.create_dataset("samples", (file_len, data_len))
         """ Write into file """
-        f["samples"][0, :] = [depth, F, M0, M0_DC, M0_CLVD] + MT + DC_MT + CLVD_MT + angles + chi
+        f["samples"][0, :] = (
+            [depth, cond_nr, F, M0, M0_DC, M0_CLVD] + MT + DC_MT + CLVD_MT + angles + chi
+        )
 
         if plot:
             # TODO: make this plot routine as a function
-            MT = f["samples"][0, 5 : 5 + 6]
-            DC_MT = f["samples"][0, 5 + 6 : 5 + 2 * 6]
-            CLVD_MT = f["samples"][0, 5 + 2 * 6 : 5 + 3 * 6]
+            MT = f["samples"][0, 6 : 6 + 6]
+            DC_MT = f["samples"][0, 6 + 6 : 6 + 2 * 6]
+            CLVD_MT = f["samples"][0, 6 + 2 * 6 : 6 + 3 * 6]
 
-            angles = f["samples"][0, 5 + 3 * 6 : -len(phases)]
+            angles = f["samples"][0, 6 + 3 * 6 : -len(phases)]
             angle_names = takeoff_angles
             chi = f["samples"][0, -len(phases) :]
 
-            F = f["samples"][0, 1]
-            M0 = f["samples"][0, 2]
-            M0_DC = f["samples"][0, 3]
-            M0_CLVD = f["samples"][0, 4]
+            cond_nr = f["samples"][0, 1]
+            F = f["samples"][0, 2]
+            M0 = f["samples"][0, 3]
+            M0_DC = f["samples"][0, 4]
+            M0_CLVD = f["samples"][0, 5]
 
             if color_plot is None:
                 color_plot = "red"

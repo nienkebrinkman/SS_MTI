@@ -37,6 +37,7 @@ GS_file = pjoin(folder, file_name,)
 #     M0_DC,
 #     M0_CLVD,
 #     angles,
+#     cond_nr
 # ) = Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
 
 # M = np.array(
