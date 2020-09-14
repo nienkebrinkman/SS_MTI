@@ -546,7 +546,12 @@ def Direct(
 
         # --- Test condition number ---
         cond_nr = _LA.cond(G_tot.T @ Wd_tot @ G_tot)
-        Eigval, Eigvec = _LA.eig(G_tot.T @ Wd_tot @ G_tot)
+        eigenValues, eigenVectors = _LA.eig(G_tot.T @ Wd_tot @ G_tot)
+
+        idx = eigenValues.argsort()[::-1]
+        Eigval = eigenValues[idx]
+        Eigvec = eigenVectors[:, idx]
+
         max_eigval = Eigval.max()
         max_eigvec = Eigvec[:, _np.argmax(Eigval)]
 
@@ -561,18 +566,51 @@ def Direct(
         ax[0].set_title("Condition number: {:.2f}".format(cond_nr), fontsize=20)
         for ax_i in range(len(Eigval)):
             ax_x = _np.arange(len(Eigvec[:, ax_i]))
-            ax[ax_i + 1].plot(
-                ax_x,
-                Eigvec[:, ax_i],
-                "k^",
-                label=moment_names[ax_i],
-                color=colors[ax_i],
-                markersize=10,
-            )
+
             for ax_ii in range(len(ax_x)):
-                ax[ax_i + 1].plot(
-                    [ax_x[ax_ii], ax_x[ax_ii]], [-1.0, Eigvec[ax_ii, ax_i]], c=colors[ax_i]
-                )
+                if Eigvec[ax_ii, ax_i] > 0:
+                    if ax_ii == 0:
+                        ax[ax_i + 1].plot(
+                            ax_x[ax_ii],
+                            Eigvec[ax_ii, ax_i],
+                            "k^",
+                            label=f"Eigenvalue {ax_i}",
+                            color=colors[ax_i],
+                            markersize=10,
+                        )
+                    else:
+                        ax[ax_i + 1].plot(
+                            ax_x[ax_ii],
+                            Eigvec[ax_ii, ax_i],
+                            "k^",
+                            color=colors[ax_i],
+                            markersize=10,
+                        )
+                    ax[ax_i + 1].plot(
+                        [ax_x[ax_ii], ax_x[ax_ii]], [0.0, Eigvec[ax_ii, ax_i]], c=colors[ax_i]
+                    )
+                else:
+                    if ax_ii == 0:
+                        ax[ax_i + 1].plot(
+                            ax_x[ax_ii],
+                            Eigvec[ax_ii, ax_i],
+                            "kv",
+                            label=f"Eigenvalue {ax_i}",
+                            color=colors[ax_i],
+                            markersize=10,
+                        )
+                    else:
+                        ax[ax_i + 1].plot(
+                            ax_x[ax_ii],
+                            Eigvec[ax_ii, ax_i],
+                            "kv",
+                            color=colors[ax_i],
+                            markersize=10,
+                        )
+                    ax[ax_i + 1].plot(
+                        [ax_x[ax_ii], ax_x[ax_ii]], [Eigvec[ax_ii, ax_i], 0.0], c=colors[ax_i]
+                    )
+
             ax[ax_i + 1].set_ylabel("Eigvector", fontsize=14)
             ax[ax_i + 1].legend(loc="upper right")
             ax[ax_i + 1].tick_params(axis="both", which="major", labelsize=14)
@@ -586,7 +624,7 @@ def Direct(
         plt.savefig(
             pjoin(
                 output_folder,
-                f"Condition_nr_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+                f"Condition_nr_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
             ),
             dpi=600,
         )

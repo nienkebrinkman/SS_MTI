@@ -15,7 +15,9 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/2phases"
+save_folder = (
+    "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/5phases_weightchange_lowfreq"
+)
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -31,17 +33,17 @@ cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
 """ Define events to invert for and its parameters """
 event_input = {
     "S0235b": {
-        "phases": ["P", "S"],
+        "phases": ["P", "S", "S", "P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
         "phase_corrs": [0.2, 10.1, 10.7, 0.2, 10.7],
         "tstars": [0.8, 1.0, 1.0, 0.8, 1.0],
-        "fmin": 0.1,
-        "fmax": 0.9,
+        "fmin": 0.2,
+        "fmax": 0.4,
         "zerophase": False,
         "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [30, 30, 30, 30, 30],
-        "weights": [[1, 3], [1, 3], [10, 10], [10, 10], [10, 10]],
+        "weights": [[1, 3], [1, 3], [10, 30], [10, 30], [10, 30]],
         "start_weight_len": 7.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
@@ -49,17 +51,17 @@ event_input = {
         "ylims": [1e-9, 4e-9, 3e-9, 0.5e-9, 4e-9],
     },
     "S0173a": {
-        "phases": ["P", "S"],
+        "phases": ["P", "S", "S", "P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
         "phase_corrs": [-0.5, 2.5, 1.5, -0.5, 2.5],
         "tstars": [1.0, 1.0, 1.0, 1.0, 1.0],
-        "fmin": 0.1,
-        "fmax": 0.7,
+        "fmin": 0.2,
+        "fmax": 0.4,
         "zerophase": False,
         "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [17, 30, 30, 17, 30],
-        "weights": [[1, 3], [1, 3], [10, 10], [10, 10], [10, 10]],
+        "weights": [[1, 3], [1, 3], [10, 30], [10, 30], [10, 30]],
         "start_weight_len": 7.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
@@ -108,9 +110,9 @@ depths = np.arange(5, 90, 3)
 # depths = np.arange(29, 50, 3)
 # depths = [29]
 
-strikes = np.arange(0, 360, 20)
-dips = np.arange(0, 91, 15)
-rakes = np.arange(-180, 180, 15)
+strikes = np.arange(0, 360, 10)
+dips = np.arange(0, 91, 5)
+rakes = np.arange(-180, 180, 5)
 
 # strikes = [15.0116557194]  # [132.395557582]
 # dips = [59.551091053]  # [51.9591191063]

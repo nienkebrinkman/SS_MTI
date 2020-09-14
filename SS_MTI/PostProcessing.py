@@ -760,7 +760,7 @@ def plot_misfit_vs_depth(
     n_lowest = 1
 
     fig, ax = plt.subplots(
-        nrows=2, ncols=1, sharex="all", figsize=(8, 6), gridspec_kw={"height_ratios": [3, 1]},
+        nrows=3, ncols=1, sharex="all", figsize=(8, 8), gridspec_kw={"height_ratios": [4, 1, 1]},
     )
     # from matplotlib import gridspec
     # gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
@@ -774,6 +774,7 @@ def plot_misfit_vs_depth(
         L2_GS = np.array([])
         L2_Direct = np.array([])
         Eps = np.array([])
+        cond_nrs = np.array([])
 
         for depth in depths:
             print(i, depth)
@@ -830,7 +831,7 @@ def plot_misfit_vs_depth(
                 M0_DC,
                 M0_CLVD,
                 angles,
-                cond_nr
+                cond_nr,
             ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
 
             Total_L2_Direct = np.sum(misfit_L2_Direct)
@@ -910,6 +911,7 @@ def plot_misfit_vs_depth(
             )
 
             Eps = np.append(Eps, Epsilon)
+            cond_nrs = np.append(cond_nrs, cond_nr)
 
         ax[0].plot(depths, L2_GS, "-bo", label="Grid-Search %s" % labels[i], lw=i + 1)
         ax[0].plot(depths, L2_Direct, "-ro", label="Direct %s" % labels[i], lw=i + 1)
@@ -924,6 +926,11 @@ def plot_misfit_vs_depth(
             ax[1].axvline(x=Moho, c="grey", ls="dashed", lw=3)
             if true_depth is not None:
                 ax[1].axvline(x=true_depth, c="black", ls="dashed", label="True Depth")
+        ax[2].plot(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
+        if i == 0:
+            ax[2].axvline(x=Moho, c="grey", ls="dashed", lw=3)
+            if true_depth is not None:
+                ax[2].axvline(x=true_depth, c="black", ls="dashed", label="True Depth")
 
     for iline in range(len(Line_x)):
         ax[0].plot(
@@ -972,12 +979,20 @@ def plot_misfit_vs_depth(
     extraticks = [0.1, 0.2, 0.3, 0.4]
     ax[1].set_yticks(list(ax[1].get_yticks()) + extraticks)
     # ax[1].legend(prop={"size": 15}, loc="upper right")
-    ax[1].set_xlabel("Depth (km)", fontsize=20)
+    # ax[1].set_xlabel("Depth (km)", fontsize=20)
     ax[1].set_ylabel(r"$\epsilon$", fontsize=20)
     ax[1].tick_params(axis="both", which="major", labelsize=18)
     ax[1].tick_params(axis="both", which="minor", labelsize=10)
     ax[1].set_ylim(-0.05, 0.5)
     ax[1].grid(True)
+
+    ax[2].set_xlabel("Depth (km)", fontsize=20)
+    ax[2].set_ylabel(r"$\kappa$", fontsize=20)
+    ax[2].tick_params(axis="both", which="major", labelsize=18)
+    ax[2].tick_params(axis="both", which="minor", labelsize=10)
+    if event_name == "S0173a":
+        ax[2].set_ylim(0.0, 2000.0)
+    ax[2].grid(True)
     return fig
 
 
@@ -1086,7 +1101,7 @@ def plot_phases_vs_depth(
                 M0_DC,
                 M0_CLVD,
                 angles,
-                cond_nr
+                cond_nr,
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
             Total_L2_Direct = np.sum(misfit_L2_Direct)
 
@@ -1558,7 +1573,7 @@ def post_waveform_plotting(
                 M0_DC,
                 M0_CLVD,
                 angles,
-                cond_nr
+                cond_nr,
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
             Total_L2_Direct = np.sum(misfit_L2_Direct)
 
@@ -1938,7 +1953,7 @@ def Source_Uncertainty_OLD(
                 M0_DC,
                 M0_CLVD,
                 angles,
-                cond_nr
+                cond_nr,
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=len(phases))
             Total_L2_Direct = np.sum(misfit_L2_Direct)
             GOF_Direct = Total_L2_Direct / DOF
@@ -2404,7 +2419,7 @@ def Source_Uncertainty(
                 M0_DC,
                 M0_CLVD,
                 angles,
-                cond_nr
+                cond_nr,
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=len(phases))
             Total_L2_Direct = np.sum(misfit_L2_Direct)
             GOF_Direct = Total_L2_Direct / DOF
