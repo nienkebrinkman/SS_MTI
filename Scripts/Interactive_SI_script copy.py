@@ -15,9 +15,7 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = (
-    "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/5phases_weightchange_lowfreq"
-)
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/Test"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -33,36 +31,36 @@ cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
 """ Define events to invert for and its parameters """
 event_input = {
     "S0235b": {
-        "phases": ["P", "S", "S", "P", "S"],
+        "phases": ["P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
         "phase_corrs": [0.2, 10.1, 10.7, 0.2, 10.7],
         "tstars": [0.8, 1.0, 1.0, 0.8, 1.0],
-        "fmin": 0.2,
-        "fmax": 0.4,
+        "fmin": 0.1,
+        "fmax": 0.9,
         "zerophase": False,
         "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [30, 30, 30, 30, 30],
         "weights": [[1, 3], [1, 3], [10, 30], [10, 30], [10, 30]],
-        "start_weight_len": 7.0,
+        "start_weight_len": 13.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
         "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
         "ylims": [1e-9, 4e-9, 3e-9, 0.5e-9, 4e-9],
     },
     "S0173a": {
-        "phases": ["P", "S", "S", "P", "S"],
+        "phases": ["P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
         "phase_corrs": [-0.5, 2.5, 1.5, -0.5, 2.5],
-        "tstars": [1.0, 1.0, 1.0, 1.0, 1.0],
-        "fmin": 0.2,
-        "fmax": 0.4,
+        "tstars": [0.4, 0.4, 0.4, 0.4, 0.4],
+        "fmin": 0.1,
+        "fmax": 0.7,
         "zerophase": False,
         "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
         "t_post": [17, 30, 30, 17, 30],
         "weights": [[1, 3], [1, 3], [10, 30], [10, 30], [10, 30]],
-        "start_weight_len": 7.0,
+        "start_weight_len": 13.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
         "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
@@ -106,13 +104,13 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-depths = np.arange(5, 90, 3)
+# depths = np.arange(5, 90, 3)
 # depths = np.arange(29, 50, 3)
-# depths = [29]
+depths = [29]
 
-strikes = np.arange(0, 360, 10)
-dips = np.arange(0, 91, 5)
-rakes = np.arange(-180, 180, 5)
+strikes = np.arange(0, 360, 20)
+dips = np.arange(0, 91, 15)
+rakes = np.arange(-180, 180, 15)
 
 # strikes = [15.0116557194]  # [132.395557582]
 # dips = [59.551091053]  # [51.9591191063]
@@ -143,7 +141,7 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event.name == "S0235b" or event.name == "S0173a":
+    if event.name == "S0173a":
         pass
     else:
         continue
@@ -358,12 +356,14 @@ for i, v in event_input.items():
         """ (best MT vs depth phase arrivals) """
         # depths_phases = depths[1::2]  # np.array([23, 26, 29])  #
         # t_pre = [5, 5]
-        # t_post = [40, 65]
+        # t_post = [30, 30]
         # phases = [phases[0], phases[1]]
         # components = [components[0], components[1]]
         # phase_corrs = [phase_corrs[0], phase_corrs[1]]
         # tstars = [tstars[0], tstars[1]]
         # # tstars = [tstar_P, tstar_S]
+        # start_depth_range = 53  # 26
+        # end_depth_range = 69  # 51
         # fig = _PostProcessing.plot_phases_vs_depth(
         #     h5_file_folder=output_folder,
         #     method="GS",
@@ -382,6 +382,8 @@ for i, v in event_input.items():
         #     zerophase=zerophase,
         #     tstars=tstars,
         #     color_plot="blue",
+        #     pref_depth_start=start_depth_range,
+        #     pref_depth_end=end_depth_range,
         # )
         # # plt.tight_layout()
         # plt.savefig(

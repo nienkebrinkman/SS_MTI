@@ -7,17 +7,36 @@ import obspy
 import instaseis
 from matplotlib import mlab as mlab
 import matplotlib.pyplot as plt
+from obspy import UTCDateTime as utct
 
 from SS_MTI.Read_H5 import Read_GS_h5, Read_Direct_Inversion
 from SS_MTI import Forward, DataGetter
+from SS_MTI import PreProcess as _PreProcess
 
 """  Parameters """
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Synthetic_spectra/"
-folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Trial_4/"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/Synthetic_spectra/"
+folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/5phases_weightchange/"
+
+# event_name = "S0235b"
+# phases = ["P", "S", "S", "P", "S"]
+# phase_corrs = [0.2, 10.1, 10.1, 0.2, 10.7]
+# components = ["Z", "T", "Z", "R", "R"]
+# tstar = [0.4, 0.4, 0.4, 0.4, 0.4]
+# t_pres = [1, 1, 1, 1, 1]
+# t_posts = [30, 30, 30, 30, 30]
+# depth = 29
+# fmin = 0.1
+# fmax = 0.9
+# misfit_name = "L2"
+# amount_of_phases = 5
 
 event_name = "S0173a"
-phases = ["P", "S"]
-tstar = [1.1, 1.2]
+phases = ["P", "S", "S", "P", "S"]
+phase_corrs = [-0.5, 2.5, 1.5, -0.5, 2.5]
+components = ["Z", "T", "Z", "R", "R"]
+tstar = [0.4, 0.4, 0.4, 0.4, 0.4]
+t_pres = [1, 1, 1, 1, 1]
+t_posts = [30, 30, 30, 30, 30]
 depth = 29
 fmin = 0.1
 fmax = 0.7
@@ -25,8 +44,6 @@ misfit_name = "L2"
 amount_of_phases = 5
 
 dt = 0.05
-
-component = "Z"
 
 veloc_name = "TAYAK_BKE"
 db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
@@ -76,6 +93,24 @@ event = DataGetter.read_events_from_cat(
     save_file_name=pjoin(folder, "event.mseed"),
 )[0]
 
+obs_tt = []
+for i, phase in enumerate(phases):
+    obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
+st_obs, sigmas_noise = _PreProcess.prepare_event_data(
+    event=event,
+    phases=phases,
+    components=components,
+    slice=True,
+    tts=obs_tt,
+    t_pre=t_pres,
+    t_post=t_posts,
+    filter=True,
+    fmin=fmin,
+    fmax=fmax,
+    zerophase=False,
+    noise_level=True,
+)
+
 """ Specify receiver """
 lat_rec = 4.5  # 02384
 lon_rec = 135.623447
@@ -109,7 +144,7 @@ def calc_PSD(tr, winlen_sec):
 fig, ax = plt.subplots(nrows=len(phases), ncols=2, figsize=(8, 5 * len(phases)))
 for i, phase in enumerate(phases):
     syn_GF = fwd.get_greens_functions(
-        comp=component,
+        comp=components[i],
         depth=depth,
         distance=event.distance,
         lat_src=event.latitude,
@@ -121,14 +156,20 @@ for i, phase in enumerate(phases):
         baz=None,
         M0=1.0,
         filter=False,
-        fmin=None,
-        fmax=None,
+        fmin=fmin,
+        fmax=fmax,
         zerophase=False,
     )
     syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
 
     tr = fwd.generate_synthetic_data(
-        st_GF=syn_GF, focal_mech=MT, M0=M0, slice=True, tt=syn_tt, t_pre=1, t_post=30,
+        st_GF=syn_GF,
+        focal_mech=MT,
+        M0=M0,
+        slice=True,
+        tt=syn_tt,
+        t_pre=t_pres[i],
+        t_post=t_posts[i],
     )
     time = np.vstack((tr.times() - 1, tr.data))
     with open(pjoin(save_folder, f"{event.name}_{veloc_name}_{phase}_time.txt"), "wb") as file:
@@ -141,31 +182,42 @@ for i, phase in enumerate(phases):
     with open(pjoin(save_folder, f"{event.name}_{veloc_name}_{phase}_spectra.txt"), "wb") as file:
         np.save(file, freq, allow_pickle=False)
 
+    f_obs, p_obs = calc_PSD(st_obs[i], winlen_sec=win_len_sec)
+
     if len(phases) == 1:
-        ax[0].plot(tr.times() - 1.0, tr.data)
+        ax[0].plot(tr.times() - t_pres[i], tr.data)
+        ax[0].plot(st_obs[i].times() - t_pres[i], st_obs[i].data)
         ax[0].set_xlabel("Time (s)")
         ax[0].set_ylabel("Displacement (m)")
         ax[0].axis("tight")
-        ax[0].set_title(phase)
+        ax[0].set_title(f"{phase}{components[i]}")
 
         ax[1].plot(f, p)
+        ax[1].plot(f_obs, p_obs)
         ax[1].set_xlabel("Frequency (Hz)")
         ax[1].set_ylabel("Power Spectral Density")
         ax[1].axis("tight")
-        ax[1].set_title(phase)
+        ax[1].set_title(f"{phase}{components[i]}")
+        ax[1].set_xlim(0, 1)
+        ax[1].yscale("log")
 
     else:
-        ax[i, 0].plot(tr.times() - 1.0, tr.data)
+        ax[i, 0].plot(tr.times() - t_pres[i], tr.data)
+        ax[i, 0].plot(st_obs[i].times() - t_pres[i], st_obs[i].data)
         ax[i, 0].set_xlabel("Time (s)")
         ax[i, 0].set_ylabel("Displacement (m)")
         ax[i, 0].axis("tight")
-        ax[i, 0].set_title(phase)
+        ax[i, 0].set_title(f"{phase}{components[i]}")
 
         ax[i, 1].plot(f, p)
+        ax[i, 1].plot(f_obs, p_obs)
         ax[i, 1].set_xlabel("Frequency (Hz)")
         ax[i, 1].set_ylabel("Power Spectral Density")
         ax[i, 1].axis("tight")
-        ax[i, 1].set_title(phase)
+        ax[i, 1].set_title(f"{phase}{components[i]}")
+        ax[i, 1].set_xlim(0, 1)
+        ax[i, 1].yscale("log")
+
 
 plt.savefig(pjoin(save_folder, f"{event.name}_{veloc_name}.pdf"))
 

@@ -52,3 +52,36 @@ def Create_stf_from_file(Filepath, desired_dt):
     # plt.plot(time_new, moment_rate_new, 'g')
     # plt.show()
     return moment_rate_new
+
+
+if __name__ == "__main__":
+    dt = 0.05
+    t = np.arange(0, 80, dt)
+    fig, ax = plt.subplots(1, 2)
+
+    params = {
+        "legend.fontsize": "x-large",
+        "figure.figsize": (15, 15),
+        "axes.labelsize": 25,
+        "axes.titlesize": "x-large",
+        "xtick.labelsize": 25,
+        "ytick.labelsize": 25,
+    }
+    pylab.rcParams.update(params)
+
+    phase_name = ["P", "S"]
+
+    for i, tstar in enumerate([0.4, 1.2, 2.2]):
+        stf, f_stf, p_stf = stf_tstar(tstar, dt=dt, npts=len(t))
+        ax[0].plot(t, stf, label="T* %.2f" % (tstar), c="k")
+        # ax[0].plot(t, stf, label="T* %s: %.2f" %(phase_name[i],tstar))
+        # ax[1].plot(f_stf, p_stf, 'o', label="T* %s: %.2f" %(phase_name[i],tstar))
+        ax[1].plot(f_stf, p_stf, "o", label="T*: %.2f" % (tstar), c="k")
+    ax[0].legend()
+    ax[0].set_xlabel("Time (s)")
+    ax[0].set_ylabel("Amplitude factor")
+    ax[1].set_xlabel("Frequency (Hz)")
+
+    ax[1].set_xlim(0, 5)
+    ax[1].set_yscale("log")
+    plt.show()

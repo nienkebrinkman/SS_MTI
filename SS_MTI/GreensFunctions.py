@@ -86,8 +86,7 @@ def make_GF(
             reconvolve_stf = True
             remove_source_shift = False
             src.set_sliprate(stf, dt=db.info.dt)
-            reconvolve_stf = True
-            remove_source_shift = False
+            # src.set_sliprate_lp(dt=db.info.dt, nsamp=50, freq=0.7)
         elif isinstance(tstar, str):
             reconvolve_stf = True
             remove_source_shift = False

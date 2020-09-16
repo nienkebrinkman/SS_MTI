@@ -1014,6 +1014,8 @@ def plot_phases_vs_depth(
     zerophase: bool = None,
     tstars: _Union[_List[float], _List[str]] = None,
     color_plot: str = None,
+    pref_depth_start=None,
+    pref_depth_end=None,
 ):
     assert method == "GS" or method == "Direct", "method needs to be either GS or Direct"
 
@@ -1070,7 +1072,7 @@ def plot_phases_vs_depth(
     for idepth, depth in enumerate(depths):
         print(depth)
         if method == "GS":
-            MT_depth = 56
+            MT_depth = 29
             h5_file_path = pjoin(
                 h5_file_folder,
                 f"GS_{event.name}_{MT_depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
@@ -1107,18 +1109,6 @@ def plot_phases_vs_depth(
 
             MT = DC_MT
 
-        BB.append(
-            beach(
-                MT,
-                xy=(0, Yticks[idepth]),
-                width=20,
-                linewidth=1,
-                alpha=0.5,
-                facecolor="r",
-                axes=ax[-1],
-            )
-        )
-
         """ Generate Green's functions per depth """
 
         Underside_refl_src = []
@@ -1150,8 +1140,23 @@ def plot_phases_vs_depth(
             Conversion_rec.append("P" + interface + "p")
             Conversion_rec.append("P" + interface + "s")
         # extra_phases = Conversion_src
-        extra_phases = ["pP", "sS", "sP", "pS", "SS", "PP", "SSS", "PPP",] + Conversion_rec
+        if event.name == "S0173a":
+            add = ["p^24P", "p^10P", "s^24S", "s^10S", "P10s", "P24s"]
+        elif event.name == "S0235b":
+            add = ["p^24P", "p^10P", "s^24S", "s^10S", "P10s", "P24s"]
+        extra_phases = ["pP", "sS", "sP", "pS", "SS", "PP", "SSS", "PPP",] + add
+        if not os.path.exists(os.path.join(h5_file_folder, "ray_paths")):
+            os.mkdir(os.path.join(h5_file_folder, "ray_paths"))
         for j, extraphase in enumerate(extra_phases):
+            arrivals = fwd.taup_veloc.get_ray_paths(
+                source_depth_in_km=depth,
+                distance_in_degree=event.distance,
+                phase_list=[extraphase],
+            )
+            if arrivals:
+                ax_ray = arrivals.plot_rays(plot_type="cartesian", show=False, legend=True)
+                plt.savefig(os.path.join(h5_file_folder, "ray_paths", f"d_{depth}_{extraphase}"))
+                plt.close()
             extra_arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
             if extra_arr:
                 extra_arrs[idepth].append(extra_arr)
@@ -1161,43 +1166,6 @@ def plot_phases_vs_depth(
         for i, phase in enumerate(phases):
             syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
             syn_tts[idepth].append(syn_tt)
-            """ With instaseis"""
-            # stf_len_sec = 30.0
-            # from SS_MTI import SourceTimeFunction as STF_
-
-            # stf = STF_.stf_tstar(
-            #     tstar=tstars[i], dt=fwd.db.info.dt, npts=int(stf_len_sec / fwd.db.info.dt)
-            # )[0]
-            # src = instaseis.Source.from_strike_dip_rake(
-            #     latitude=event.latitude,
-            #     longitude=event.longitude,
-            #     depth_in_m=depth * 1000,
-            #     strike=MT[0],
-            #     dip=MT[1],
-            #     rake=MT[2],
-            #     M0=M0,
-            #     origin_time=event.origin_time,
-            #     time_shift=None,
-            #     sliprate=None,
-            # )
-
-            # src.set_sliprate(stf, dt=fwd.db.info.dt)
-            # tr_syn = fwd.db.get_seismograms(
-            #     source=src,
-            #     receiver=rec,
-            #     components=[components[i]],
-            #     kind="displacement",
-            #     dt=0.05,
-            #     reconvolve_stf=True,
-            #     remove_source_shift=False,
-            # )[0]
-
-            # _PreProcess.filter_tr(tr_syn, fmin=fmin, fmax=fmax, zerophase=zerophase)
-            # tr_syn.trim(
-            #     starttime=fwd.or_time + syn_tt - t_pre[i],
-            #     endtime=fwd.or_time + syn_tt + t_post[i],
-            # )
-            """ with my code"""
             syn_GF = fwd.get_greens_functions(
                 comp=components[i],
                 depth=depth,
@@ -1224,16 +1192,40 @@ def plot_phases_vs_depth(
                 t_pre=t_pre[i],
                 t_post=t_post[i] + 2.5,
             )
-            if depth > 52 and depth < 69:
-                color = "purple"
-            else:
-                color = "k"
+
+            color = "k"
+            lw = 1
+            if pref_depth_start is not None and pref_depth_end is not None:
+                if depth >= pref_depth_start and depth <= pref_depth_end:
+                    color = "purple"
+                    lw = 2
+
+            ytick = Yticks[idepth]
+            if depth > depths[(np.abs(depths - pref_depth_end)).argmin() + 1]:
+                ytick = Yticks[idepth + 1]
+            elif depth == depths[(np.abs(depths - pref_depth_end)).argmin() + 1]:
+                fig, ax[i] = Plot_phase_vs_depth_copy(
+                    tr=st_obs[i],
+                    depth=depth,
+                    total_depths=len(depths) + 1,
+                    Ytick=ytick,
+                    phase=phase,
+                    t_pre=t_pre[i],
+                    t_post=t_post[i],
+                    fig=fig,
+                    ax=ax[i],
+                    extra_phases=None,
+                    extra_arrs=None,
+                    color="b",
+                    linewidth=lw,
+                )
+                ytick = Yticks[idepth + 1]
 
             fig, ax[i] = Plot_phase_vs_depth_copy(
                 tr=tr_syn,
                 depth=depth,
                 total_depths=len(depths) + 1,
-                Ytick=Yticks[idepth],
+                Ytick=ytick,
                 phase=phase,
                 t_pre=t_pre[i],
                 t_post=t_post[i],
@@ -1242,63 +1234,49 @@ def plot_phases_vs_depth(
                 extra_phases=extra_phases,
                 extra_arrs=extra_arrs[idepth],
                 color=color,
+                linewidth=lw,
             )
+            BB.append(
+                beach(
+                    MT,
+                    xy=(0, ytick),
+                    width=20,
+                    linewidth=1,
+                    alpha=0.5,
+                    facecolor="r",
+                    axes=ax[-1],
+                )
+            )
+
     delta = Yticks[1] - Yticks[0]
+    idx = (np.abs(depths - pref_depth_end)).argmin() + 1
 
     for i, phase in enumerate(phases):
-
-        # if phase == "S":
-        #     ymax = ax[i].get_ylim()[1]
-        #     if event.name == "S0235b":
-        #         ax[i].axvline(33.1 - 2.5, c="red", lw=3, alpha=0.6)
-        #         ax[i].axvspan(27.5 - 2.5, 40 - 2.5, facecolor="red", alpha=0.2)
-        #         ax[i].text(
-        #             (40 - 27.5) / 2 - 2.5,
-        #             ymax * 0.8,
-        #             "SS",
-        #             verticalalignment="center",
-        #             color="red",
-        #             fontsize=8,
-        #         )
-        #     elif event.name == "S0173a":
-        #         ax[i].axvline(23.8 - 2.5, c="red", lw=3)
-        #         ax[i].axvspan(18.8 - 2.5, 29.4 - 2.5, facecolor="red", alpha=0.2)
-        #         ax[i].text(
-        #             (29.4 - 18.8) / 2 - 2.5,
-        #             ymax * 0.8,
-        #             "SS",
-        #             verticalalignment="center",
-        #             color="red",
-        #             fontsize=8,
-        #         )
-
-        #         ax[i].axvline(53.1 - 2.5, c="red", lw=3)
-        #         ax[i].axvspan(46.8 - 2.5, 60.6 - 2.5, facecolor="red", alpha=0.2)
-        #         ax[i].text(
-        #             (60.6 - 46.8) / 2 - 2.5,
-        #             ymax * 0.8,
-        #             "SSS",
-        #             verticalalignment="center",
-        #             color="red",
-        #             fontsize=8,
-        #         )
-
         if phase == "P":
             ymax = ax[i].get_ylim()[1]
-            # if event.name == "S0235b":
-            #     ax[i].axvline(18.7 - 2.5, c="red", lw=3)
-            #     ax[i].axvspan(13.8 - 2.5, 23.1 - 2.5, facecolor="red", alpha=0.2)
-
-            #     ax[i].text(
-            #         (23.1 - 13.8) / 2 - 2.5,
-            #         ymax * 0.8,
-            #         "PP",
-            #         verticalalignment="center",
-            #         color="red",
-            #         fontsize=8,
-            #     )
             if event.name == "S0173a":
-                ax[i].axvspan(17 - 2.5, 40 - 2.5, facecolor="green", alpha=0.2)
+                ax[i].fill(
+                    [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
+                    [
+                        Yticks[0] - 0.4 * delta,
+                        Yticks[0] - 0.4 * delta,
+                        Yticks[idx - 1] + 0.4 * delta,
+                        Yticks[idx - 1] + 0.4 * delta,
+                    ],
+                    facecolor="green",
+                    alpha=0.2,
+                )
+                ax[i].fill(
+                    [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
+                    [
+                        Yticks[idx + 1] - 0.4 * delta,
+                        Yticks[idx + 1] - 0.4 * delta,
+                        Yticks[-1] + 0.4 * delta,
+                        Yticks[-1] + 0.4 * delta,
+                    ],
+                    facecolor="green",
+                    alpha=0.2,
+                )
                 ax[i].text(
                     17,
                     ymax * 0.8,
@@ -1307,40 +1285,60 @@ def plot_phases_vs_depth(
                     color="green",
                     fontsize=8,
                 )
-        ax[i].axvline(0.0, c="dimgrey")
+
+        # fig, ax[i] = Plot_phase_vs_depth_copy(
+        #     tr=st_obs[i],
+        #     depth=depth,
+        #     total_depths=len(depths) + 1,
+        #     Ytick=Yticks[idepth + 1],
+        #     phase=phase,
+        #     t_pre=t_pre[i],
+        #     t_post=t_post[i],
+        #     fig=fig,
+        #     ax=ax[i],
+        #     extra_phases=None,
+        #     extra_arrs=None,
+        #     color="b",
+        # )
+        # ax[i].axvline(0.0, c="dimgrey")
+
+        ax[i].plot(
+            [0, 0], [Yticks[0] - 0.4 * delta, Yticks[idx - 1] + 0.4 * delta], "dimgrey", lw=1
+        )
         ax[i].text(
             0.1,
-            Yticks[-1] + 0.5 * delta,
+            Yticks[idx - 1] + 0.4 * delta,
             phase,
             verticalalignment="center",
             color="dimgrey",
-            fontsize=12,
+            fontsize=10,
+            weight="bold",
         )
-
-        fig, ax[i] = Plot_phase_vs_depth_copy(
-            tr=st_obs[i],
-            depth=depth,
-            total_depths=len(depths) + 1,
-            Ytick=Yticks[idepth + 1],
-            phase=phase,
-            t_pre=t_pre[i],
-            t_post=t_post[i],
-            fig=fig,
-            ax=ax[i],
-            extra_phases=None,
-            extra_arrs=None,
-            color="b",
+        ax[i].plot(
+            [0, 0], [Yticks[idx + 1] - 0.4 * delta, Yticks[-1] + 0.4 * delta], "dimgrey", lw=1
+        )
+        ax[i].text(
+            0.1,
+            Yticks[-1] + 0.4 * delta,
+            phase,
+            verticalalignment="center",
+            color="dimgrey",
+            fontsize=10,
+            weight="bold",
         )
 
         for k in range(len(extra_phases)):
-            syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
-            x = np.asarray([arr[k] for arr in extra_arrs], dtype=np.float)
+            """ Below observed plot: """
+            syn_tt_depth = np.asarray([arr[i] for arr in syn_tts[:idx]], dtype=np.float)
+            # syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
+            x = np.asarray([arr[k] for arr in extra_arrs[:idx]], dtype=np.float)
             x = x - syn_tt_depth
             if np.any(x > t_post[i]):
                 x[x > t_post[i]] = None
             if np.any(x < -t_pre[i]):
                 x[x < -t_pre[i]] = None
-            y = np.asarray(Yticks[:-1])
+            # y = np.asarray(Yticks[:-1])
+            y = np.asarray(Yticks[:idx])
             y = y[~np.isnan(x)]
             x = x[~np.isnan(x)]
             if x.size == 0:
@@ -1348,16 +1346,50 @@ def plot_phases_vs_depth(
             rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
             if rotn.size == 0:
                 trans_angle = 90
-                ax[i].plot(
-                    [x[0], x[0]], [y[0] - 0.8, y[0] + 0.8], "dimgrey",
-                )
+                ax[i].plot([x[0], x[0]], [y[0] - 0.4 * delta, y[0] + 0.4 * delta], "dimgrey", lw=1)
             else:
                 l2 = np.array((x[-1], y[-1]))
                 rotation = rotn[-1]
                 trans_angle = plt.gca().transData.transform_angles(
                     np.array((rotation,)), l2.reshape((1, 2))
                 )[0]
-                ax[i].plot(x, y, "-", c="dimgrey")
+                ax[i].plot(x, y, "-", c="dimgrey", lw=1)
+            ax[i].text(
+                x[-1],
+                y[-1],
+                extra_phases[k],
+                verticalalignment="center",
+                color="dimgrey",
+                fontsize=10,
+                rotation=trans_angle,
+                weight="bold",
+            )
+
+            """ Above observed plot"""
+            syn_tt_depth = np.asarray([arr[i] for arr in syn_tts[idx:]], dtype=np.float)
+            # syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
+            x = np.asarray([arr[k] for arr in extra_arrs[idx:]], dtype=np.float)
+            x = x - syn_tt_depth
+            if np.any(x > t_post[i]):
+                x[x > t_post[i]] = None
+            if np.any(x < -t_pre[i]):
+                x[x < -t_pre[i]] = None
+            y = np.asarray(Yticks[idx + 1 :])
+            y = y[~np.isnan(x)]
+            x = x[~np.isnan(x)]
+            if x.size == 0:
+                continue
+            rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
+            if rotn.size == 0:
+                trans_angle = 90
+                ax[i].plot([x[0], x[0]], [y[0] - 0.4 * delta, y[0] + 0.4 * delta], "dimgrey", lw=1)
+            else:
+                l2 = np.array((x[-1], y[-1]))
+                rotation = rotn[-1]
+                trans_angle = plt.gca().transData.transform_angles(
+                    np.array((rotation,)), l2.reshape((1, 2))
+                )[0]
+                ax[i].plot(x, y, "-", c="dimgrey", lw=1)
 
             ax[i].text(
                 x[-1],
@@ -1365,25 +1397,26 @@ def plot_phases_vs_depth(
                 extra_phases[k],
                 verticalalignment="center",
                 color="dimgrey",
-                fontsize=12,
+                fontsize=10,
                 rotation=trans_angle,
+                weight="bold",
             )
+
+            depths_ins = np.insert(depths, idx, 70)
             ax[i].yaxis.set_ticks(Yticks)
-            ax[i].set_yticklabels(depths)
+            ax[i].set_yticklabels(depths_ins)
+            yticks = ax[i].yaxis.get_major_ticks()
+            yticks[idx].set_visible(False)
             ax[i].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
-            # ax[i].axhspan(
-            #     Yticks[np.where(depths == 56)],
-            #     Yticks[np.where(depths == 68)],
-            #     facecolor="purple",
-            #     alpha=0.3,
-            # )
             if not i == 0:
                 ax[i].get_yaxis().set_visible(False)
 
     # # for i in range(len(phases)):
-
+    depths_ins = np.insert(depths, idx, 70)
     ax[-1].yaxis.set_ticks(Yticks)
-    ax[-1].set_yticklabels(depths)
+    ax[-1].set_yticklabels(depths_ins)
+    # yticks = ax[-1].yaxis.get_major_ticks()
+    # yticks[idx].set_visible(False)
     ax[-1].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
     ax[-1].axis("off")
     ax[-1].set_xlim(-0.15, 0.15)
@@ -1410,6 +1443,7 @@ def Plot_phase_vs_depth_copy(
     extra_phases: [str] = None,
     extra_arrs: [float] = None,
     color: str = None,
+    linewidth: float = 1,
 ):
     if color is None:
         color = "k"
@@ -1421,9 +1455,7 @@ def Plot_phase_vs_depth_copy(
     ymin = global_min + Ytick
     ymax = global_max + Ytick
 
-    ax.plot(
-        st.times() - t_pre - 2.5, st.data + Ytick, color,
-    )
+    ax.plot(st.times() - t_pre - 2.5, st.data + Ytick, color, lw=linewidth)
 
     # ax.plot(
     #     [0, 0], [ymin, ymax], "grey",
