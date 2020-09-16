@@ -8,6 +8,7 @@ import instaseis
 from matplotlib import mlab as mlab
 import matplotlib.pyplot as plt
 from obspy import UTCDateTime as utct
+import scipy.fftpack
 
 from SS_MTI.Read_H5 import Read_GS_h5, Read_Direct_Inversion
 from SS_MTI import Forward, DataGetter
@@ -15,7 +16,7 @@ from SS_MTI import PreProcess as _PreProcess
 
 """  Parameters """
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/Synthetic_spectra/"
-folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/5phases_weightchange/"
+folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/Test/"
 
 # event_name = "S0235b"
 # phases = ["P", "S", "S", "P", "S"]
@@ -32,11 +33,11 @@ folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/5phases_we
 
 event_name = "S0173a"
 phases = ["P", "S", "S", "P", "S"]
-phase_corrs = [-0.5, 2.5, 1.5, -0.5, 2.5]
+phase_corrs = [-0.5, 3., 1.5, -0.5, 2.5]
 components = ["Z", "T", "Z", "R", "R"]
-tstar = [0.4, 0.4, 0.4, 0.4, 0.4]
+tstar = [0.4, 0.4,1.0, 1.0, 1.]
 t_pres = [1, 1, 1, 1, 1]
-t_posts = [30, 30, 30, 30, 30]
+t_posts = [15, 30, 30, 17, 30]
 depth = 29
 fmin = 0.1
 fmax = 0.7
@@ -132,12 +133,26 @@ fwd = Forward.Instaseis(
 
 
 def calc_PSD(tr, winlen_sec):
+    tr.taper(0.05)
     Fs = tr.stats.sampling_rate
     winlen = min(winlen_sec * Fs, (tr.stats.endtime - tr.stats.starttime) * Fs / 2.0)
     NFFT = obspy.signal.util.next_pow_2(winlen)
     pad_to = np.max((NFFT * 2, 1024))
     p, f = mlab.psd(tr.data, Fs=Fs, NFFT=NFFT, detrend="linear", pad_to=pad_to, noverlap=NFFT // 2)
     return f, p
+
+def calc_freq(tr):
+    # winlen = 20.
+    tr.taper(10)
+    N = len(tr.data) # number of samples
+    T = tr.stats.delta
+    yf = scipy.fftpack.fft(tr.data)
+    p = 2.0/N * np.abs(yf[:N//2])
+    # NFFT = obspy.signal.util.next_pow_2(winlen)
+    # from obspy.signal.freqattributes import spectrum as sp
+    # p = sp(tr.data,winlen,NFFT)
+    f = np.linspace(0.0, 1.0/(2.0*T),N//2)
+    return f,p
 
 
 """ Generate Green's functions per depth """
@@ -155,7 +170,7 @@ for i, phase in enumerate(phases):
         inc=None,
         baz=None,
         M0=1.0,
-        filter=False,
+        filter=True,
         fmin=fmin,
         fmax=fmax,
         zerophase=False,
@@ -177,12 +192,15 @@ for i, phase in enumerate(phases):
 
     win_len_sec = 20.0
     f, p = calc_PSD(tr, winlen_sec=win_len_sec)
+    f_new, p_new = calc_freq(tr)
+
     freq = np.vstack((f, p))
 
     with open(pjoin(save_folder, f"{event.name}_{veloc_name}_{phase}_spectra.txt"), "wb") as file:
         np.save(file, freq, allow_pickle=False)
 
     f_obs, p_obs = calc_PSD(st_obs[i], winlen_sec=win_len_sec)
+    f_obs_new, p_obs_new = calc_freq(st_obs[i])
 
     if len(phases) == 1:
         ax[0].plot(tr.times() - t_pres[i], tr.data)
@@ -199,7 +217,7 @@ for i, phase in enumerate(phases):
         ax[1].axis("tight")
         ax[1].set_title(f"{phase}{components[i]}")
         ax[1].set_xlim(0, 1)
-        ax[1].yscale("log")
+        ax[1].set_yscale("log")
 
     else:
         ax[i, 0].plot(tr.times() - t_pres[i], tr.data)
@@ -211,12 +229,15 @@ for i, phase in enumerate(phases):
 
         ax[i, 1].plot(f, p)
         ax[i, 1].plot(f_obs, p_obs)
+        
+        # ax[i, 1].plot(f_new, p_new)
+        # ax[i, 1].plot(f_obs_new, p_obs_new)
         ax[i, 1].set_xlabel("Frequency (Hz)")
         ax[i, 1].set_ylabel("Power Spectral Density")
         ax[i, 1].axis("tight")
         ax[i, 1].set_title(f"{phase}{components[i]}")
         ax[i, 1].set_xlim(0, 1)
-        ax[i, 1].yscale("log")
+        # ax[i, 1].set_yscale("log")
 
 
 plt.savefig(pjoin(save_folder, f"{event.name}_{veloc_name}.pdf"))

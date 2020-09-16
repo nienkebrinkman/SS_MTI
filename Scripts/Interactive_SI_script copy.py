@@ -31,7 +31,7 @@ cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
 """ Define events to invert for and its parameters """
 event_input = {
     "S0235b": {
-        "phases": ["P", "S"],
+        "phases": ["P", "S", "S", "P",  "S"],
         "components": ["Z", "T", "Z", "R", "R"],
         "phase_corrs": [0.2, 10.1, 10.7, 0.2, 10.7],
         "tstars": [0.8, 1.0, 1.0, 0.8, 1.0],
@@ -49,10 +49,10 @@ event_input = {
         "ylims": [1e-9, 4e-9, 3e-9, 0.5e-9, 4e-9],
     },
     "S0173a": {
-        "phases": ["P", "S"],
+        "phases": ["P", "S", "S", "P",  "S"],
         "components": ["Z", "T", "Z", "R", "R"],
         "phase_corrs": [-0.5, 2.5, 1.5, -0.5, 2.5],
-        "tstars": [0.4, 0.4, 0.4, 0.4, 0.4],
+        "tstars": [1., 1., 1., 1., 1.],
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
@@ -131,8 +131,8 @@ npz_file_name_1 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
 db_name_2 = "/mnt/marshost/instaseis2/databases/TAYAK_shallow"
 npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 
-db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
-npz_file_names = [npz_file_name_1]
+db_names = [db_name_2]  # , db_name_3, db_name_4, db_name_5]
+npz_file_names = [npz_file_name_2]
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -141,7 +141,7 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event.name == "S0173a":
+    if event.name == "S0235b" or event.name == "S0173a":
         pass
     else:
         continue
