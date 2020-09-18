@@ -19,7 +19,7 @@ def stf_tstar(tstar, dt, npts):
     # Create source time function with
     # M(f) = 1 / (1+(f/fc)**2)
     f = fftpack.fftfreq(npts, dt)
-    stf_amp = np.exp(-np.pi * np.abs(f) * tstar)
+    stf_amp = np.exp(-np.pi * np.abs(f) * tstar * 2)
 
     # Set phase to obtain a minimum phase signal
     # Phi is the hilbert transform of

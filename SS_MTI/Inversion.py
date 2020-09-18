@@ -60,7 +60,7 @@ def Grid_Search_run(
     """
     print(f"Running grid search with model: {fwd.name}")
     print(f"and with {misfit.description}")
-    M0 = 1.0
+    M0 = 1
 
     if tstars is None:
         tstars = [None] * len(phases)

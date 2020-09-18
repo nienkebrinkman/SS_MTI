@@ -4,10 +4,10 @@ from typing import Tuple as _Tuple
 
 
 def filter_tr(tr, fmin=1.0 / 10.0, fmax=1.0 / 2, zerophase=False):
-    tr.filter("highpass", freq=fmin, zerophase=zerophase)
-    tr.filter("highpass", freq=fmin, zerophase=zerophase)
-    tr.filter("lowpass", freq=fmax, zerophase=zerophase)
-    tr.filter("lowpass", freq=fmax, zerophase=zerophase)
+    tr.filter("highpass", freq=fmin, corners=4, zerophase=zerophase)
+    tr.filter("highpass", freq=fmin, corners=4, zerophase=zerophase)
+    tr.filter("lowpass", freq=fmax, corners=4, zerophase=zerophase)
+    tr.filter("lowpass", freq=fmax, corners=4, zerophase=zerophase)
 
 
 def rotate_event_data(

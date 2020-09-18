@@ -138,7 +138,7 @@ class Instaseis(_AbstractForward):
         ) or slice == False, "if slice is set to True you have to specify tt, t_pre and t_post"
 
         syn_tr_full = _GreensFunctions.from_GF(st_GF, focal_mech, M0)
-        # _PreProcess.filter_tr(syn_tr_full, fmin=0.1, fmax=0.7, zerophase=False)
+        # _PreProcess.filter_tr(syn_tr_full, fmin=0.1, fmax=0.9, zerophase=False)
         if slice:
             syn_tr_full.trim(
                 starttime=self.or_time + tt - t_pre, endtime=self.or_time + tt + t_post,
