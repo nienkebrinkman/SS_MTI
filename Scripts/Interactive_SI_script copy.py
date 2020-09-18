@@ -15,7 +15,7 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/Test"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/Test_high_weight/"
 
 # path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -34,7 +34,7 @@ event_input = {
         "phases": ["P", "S", "S", "P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
         "phase_corrs": [0.2, 10.1, 10.7, 0.2, 10.7],
-        "tstars": [0.8, 1.0, 1.0, 0.8, 1.0],
+        "tstars": [0.4, 0.2, 0.2, 0.4, 0.2],
         "fmin": 0.1,
         "fmax": 0.9,
         "zerophase": False,
@@ -49,17 +49,17 @@ event_input = {
         "ylims": [1e-9, 4e-9, 3e-9, 0.5e-9, 4e-9],
     },
     "S0173a": {
-        "phases": ["P", "S"],
+        "phases": ["P", "S", "S", "P", "S"],
         "components": ["Z", "T", "Z", "R", "R"],
-        "phase_corrs": [1.8, 3.0, 2.0, -0.1, 2.0],
+        "phase_corrs": [-0.1, 2.9, 2.0, -0.1, 2.0],
         "tstars": [0.3, 0.2, 0.2, 0.3, 0.2],
         "fmin": 0.1,
         "fmax": 0.7,
         "zerophase": False,
         "amplitude_correction": ["PZ", "ST"],
         "t_pre": [1, 1, 1, 1, 1],
-        "t_post": [10, 10, 30, 17, 30],
-        "weights": [[1, 3], [1, 3], [10, 3], [10, 3], [10, 3]],
+        "t_post": [17, 30, 30, 17, 30],
+        "weights": [[1, 100], [1, 100], [10, 1000], [10, 1000], [10, 1000]],
         "start_weight_len": 10.0,
         "dt": 0.05,
         "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
@@ -104,13 +104,13 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-# depths = np.arange(5, 90, 3)
+depths = np.arange(5, 90, 1)
 # depths = np.arange(29, 50, 3)
-depths = [47]
+# depths = [50]
 
-strikes = np.arange(0, 360, 20)
-dips = np.arange(0, 91, 15)
-rakes = np.arange(-180, 180, 15)
+strikes = np.arange(0, 360, 10)
+dips = np.arange(0, 91, 10)
+rakes = np.arange(-180, 180, 10)
 
 # strikes = [15.0116557194]  # [132.395557582]
 # dips = [59.551091053]  # [51.9591191063]
@@ -131,8 +131,11 @@ npz_file_name_1 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
 db_name_2 = "/mnt/marshost/instaseis2/databases/TAYAK_shallow"
 npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 
-db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
-npz_file_names = [npz_file_name_1]
+db_name_3 = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
+npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
+
+db_names = [db_name_1, db_name_2]  # , db_name_3, db_name_4, db_name_5]
+npz_file_names = [npz_file_name_1, npz_file_name_2]
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -362,8 +365,8 @@ for i, v in event_input.items():
         # phase_corrs = [phase_corrs[0], phase_corrs[1]]
         # tstars = [tstars[0], tstars[1]]
         # # tstars = [tstar_P, tstar_S]
-        # start_depth_range = 53  # 26
-        # end_depth_range = 69  # 51
+        # start_depth_range = 26  # 53  #
+        # end_depth_range = 51  # 69  #
         # fig = _PostProcessing.plot_phases_vs_depth(
         #     h5_file_folder=output_folder,
         #     method="GS",

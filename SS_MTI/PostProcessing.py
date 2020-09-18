@@ -1072,7 +1072,7 @@ def plot_phases_vs_depth(
     for idepth, depth in enumerate(depths):
         print(depth)
         if method == "GS":
-            MT_depth = 29
+            MT_depth = 50
             h5_file_path = pjoin(
                 h5_file_folder,
                 f"GS_{event.name}_{MT_depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
@@ -1083,7 +1083,8 @@ def plot_phases_vs_depth(
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
             n_lowest = 1
             lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
-            MT = sdr[lowest_indices, :][0]
+            # MT = sdr[lowest_indices, :][0]
+            MT = [340.0, 90.0, 105.0]
             print("strike", MT[0], "dip", MT[1], "rake", MT[2])
             depth_GS = depth_GS[lowest_indices]
             M0 = M0_GS[lowest_indices][0]
@@ -1448,6 +1449,10 @@ def Plot_phase_vs_depth_copy(
     if color is None:
         color = "k"
     st = tr.copy()
+    # norm = st.slice(
+    #     starttime=st.stats.starttime, endtime=st.stats.starttime + 7.0
+    # ).max()  # TODO: this value needs to come from the function
+    # st.data = st.data / norm
     st.normalize()
     global_max = st.data.max()
     global_min = st.data.min()

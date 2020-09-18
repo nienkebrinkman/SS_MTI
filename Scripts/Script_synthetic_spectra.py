@@ -18,39 +18,39 @@ from SS_MTI import PreProcess as _PreProcess
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/Synthetic_spectra/"
 folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/5phases_weightchange/"
 
-event_name = "S0235b"
-phases = ["P", "S", "S", "P", "S"]
-# phase_corrs = [0.2, 10.5, 11.1, 0.2, 11.1]
-phase_corrs = [0.2, 10.1, 10.7, 0.2, 10.7]
-components = ["Z", "T", "Z", "R", "R"]
-tstar = [0.4, 0.2, 0.2, 0.4, 0.2]
-# tstar = [None, None, None, None, None]
-t_pres = [1, 1, 1, 1, 1]
-t_posts = [30, 30, 30, 30, 30]
-depth = 62
-fmin = 0.1
-fmax = 0.9
-misfit_name = "L2"
-amount_of_phases = 5
-
-# event_name = "S0173a"
+# event_name = "S0235b"
 # phases = ["P", "S", "S", "P", "S"]
-# phase_corrs = [-0.5, 3.0, 2.0, -0.5, 3.0]
+# # phase_corrs = [0.2, 10.5, 11.1, 0.2, 11.1]
+# phase_corrs = [0.2, 10.1, 10.7, 0.2, 10.7]
 # components = ["Z", "T", "Z", "R", "R"]
-# tstar = [
-#     0.3,
-#     0.2,
-#     0.2,
-#     0.3,
-#     0.2,
-# ]
+# tstar = [0.4, 0.2, 0.2, 0.4, 0.2]
+# # tstar = [None, None, None, None, None]
 # t_pres = [1, 1, 1, 1, 1]
-# t_posts = [17, 30, 30, 17, 30]
-# depth = 29
+# t_posts = [30, 30, 30, 30, 30]
+# depth = 62
 # fmin = 0.1
-# fmax = 0.7
+# fmax = 0.9
 # misfit_name = "L2"
 # amount_of_phases = 5
+
+event_name = "S0173a"
+phases = ["P", "S", "S", "P", "S"]
+phase_corrs = [-0.5, 3.0, 2.0, -0.5, 3.0]
+components = ["Z", "T", "Z", "R", "R"]
+tstar = [
+    0.3,
+    0.5,
+    0.5,
+    0.5,
+    0.2,
+]
+t_pres = [1, 1, 1, 1, 1]
+t_posts = [17, 30, 30, 17, 30]
+depth = 29
+fmin = 0.1
+fmax = 0.7
+misfit_name = "L2"
+amount_of_phases = 5
 
 filter_par = True
 zerophase = False
@@ -58,9 +58,13 @@ win_len_sec = [10.0, 10.0, 10.0, 10.0, 10.0]
 dt = 0.05
 
 veloc_name = "TAYAK_BKE"
-db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
+# db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
+db_path = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
+# db_path = "/mnt/marshost/instaseis2/databases/EH45TcoldCrust1b"
 # db_path = "/mnt/marshost/instaseis2/databases/TAYAK_shallow"
-npz_file = f"/home/nienke/Documents/Research/Data/npz_files/{veloc_name}.npz"
+# npz_file = f"/home/nienke/Documents/Research/Data/npz_files/{veloc_name}.npz"
+npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
+# npz_file = "/home/nienke/Documents/Research/Data/npz_files/EH45TcoldCrust1b.npz"
 
 """ Open file within preferred depth range """
 GS_file_name = pjoin(

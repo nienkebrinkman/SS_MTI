@@ -76,7 +76,29 @@ events = SS_MTI.DataGetter.read_events_from_cat(
     save_file_name=pjoin(save_folder, "event.mseed"),
 )
 
+event = events[1]
+
+obs_tt = []
+for i, phase in enumerate(phases):
+    obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
+st_obs, sigmas = _PreProcess.prepare_event_data(
+    event=event,
+    phases=phases,
+    components=components,
+    slice=True,
+    tts=obs_tt,
+    t_pre=t_pre,
+    t_post=t_post_new,
+    filter=filter_par,
+    fmin=fmin,
+    fmax=0.5,
+    zerophase=zerophase,
+    noise_level=False,
+)
+
 """ Specify receiver """
 lat_rec = 4.502384
 lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
+
+a = 1
