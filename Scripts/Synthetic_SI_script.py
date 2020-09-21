@@ -53,8 +53,8 @@ lat_rec = 4.502384
 lon_rec = 135.623447
 
 strike = 60
-dip = 90
-rake = 0
+dip = 45
+rake = -90
 focal_mech = [strike, dip, rake]
 M0 = 5.62e13
 
@@ -103,8 +103,8 @@ fwd = SS_MTI.Forward.Instaseis(
 """ Define misfit """
 misfit_method = "L2"
 
-weights = [[1, 3], [1, 3], [1, 3], [1, 3], [1, 3]]
-start_weight_len = 7.0
+weights = [[1, 10], [1, 10], [10, 100], [10, 100], [10, 100]]
+start_weight_len = 10.0
 
 
 if misfit_method == "L2":
@@ -121,69 +121,69 @@ else:
 components = ["Z", "T", "Z", "R", "R"]
 amplitude_correction = ["PZ", "ST"]
 t_pre = [1, 1, 1, 1, 1]
-t_post = [20, 20, 20, 20, 20]
-depths = [depth]  # np.arange(5, 90, 3)
-strikes = [strike]
-dips = [dip]
-rakes = [rake]
+t_post = [30, 30, 30, 30, 30]
+depths = np.arange(5, 90, 3)
+strikes = np.arange(0, 360, 20)
+dips = np.arange(0, 91, 15)
+rakes = np.arange(-180, 180, 15)
 phase_corrs = None
 tstars = None
-fmin = 1.0 / 8.0
-fmax = 1.0 / 5.0
+fmin = 1.0 / 5.0
+fmax = 1.0 / 1.0
 zerophase = False
-output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Synthetic/"
+output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Synthetic/Strike_Slip/"
 
 extra_phases = None
 ylims = [1e-9, 4e-9, 2e-9, 1e-9, 2e-9]
 
 """ Grid-Search inversion """
-SS_MTI.Inversion.Grid_Search_run(
-    fwd=fwd,
-    misfit=misfit,
-    event=event,
-    rec=rec,
-    phases=phases,
-    components=components,
-    t_pre=t_pre,
-    t_post=t_post,
-    depths=depths,
-    strikes=strikes,
-    dips=dips,
-    rakes=rakes,
-    phase_corrs=phase_corrs,
-    tstars=tstars,
-    fmin=fmin,
-    fmax=fmax,
-    zerophase=zerophase,
-    list_to_correct_M0=amplitude_correction,
-    output_folder=output_folder,
-    plot=True,
-    plot_extra_phases=extra_phases,
-    color_plot="blue",
-    Ylims=ylims,
-)
+# SS_MTI.Inversion.Grid_Search_run(
+#     fwd=fwd,
+#     misfit=misfit,
+#     event=event,
+#     rec=rec,
+#     phases=phases,
+#     components=components,
+#     t_pre=t_pre,
+#     t_post=t_post,
+#     depths=depths,
+#     strikes=strikes,
+#     dips=dips,
+#     rakes=rakes,
+#     phase_corrs=phase_corrs,
+#     tstars=tstars,
+#     fmin=fmin,
+#     fmax=fmax,
+#     zerophase=zerophase,
+#     list_to_correct_M0=amplitude_correction,
+#     output_folder=output_folder,
+#     plot=True,
+#     plot_extra_phases=extra_phases,
+#     color_plot="blue",
+#     Ylims=ylims,
+# )
 
-SS_MTI.Inversion.Direct(
-    fwd=fwd,
-    misfit=misfit,
-    event=event,
-    rec=rec,
-    phases=phases,
-    components=components,
-    phase_corrs=phase_corrs,
-    t_pre=t_pre,
-    t_post=t_post,
-    depths=depths,
-    tstars=tstars,
-    fmin=fmin,
-    fmax=fmax,
-    zerophase=zerophase,
-    output_folder=output_folder,
-    plot=True,
-    plot_extra_phases=extra_phases,
-    color_plot="red",
-    Ylims=ylims,
-)
+# SS_MTI.Inversion.Direct(
+#     fwd=fwd,
+#     misfit=misfit,
+#     event=event,
+#     rec=rec,
+#     phases=phases,
+#     components=components,
+#     phase_corrs=phase_corrs,
+#     t_pre=t_pre,
+#     t_post=t_post,
+#     depths=depths,
+#     tstars=tstars,
+#     fmin=fmin,
+#     fmax=fmax,
+#     zerophase=zerophase,
+#     output_folder=output_folder,
+#     plot=True,
+#     plot_extra_phases=extra_phases,
+#     color_plot="red",
+#     Ylims=ylims,
+# )
 
 """ (misfit vs depth analysis)"""
 DOF = sum([int((x + y) / dt) for x, y in zip(t_pre, t_post)])
@@ -195,7 +195,7 @@ fig = _PostProcessing.plot_misfit_vs_depth(
     depths=depths,
     misfit_name=misfit.name,
     veloc_model=fwd.veloc_name,
-    true_depth=None,
+    true_depth=depth,
     Moho=Moho_d,
     fmin=fmin,
     fmax=fmax,

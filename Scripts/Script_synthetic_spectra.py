@@ -35,20 +35,20 @@ folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/5phases_we
 
 event_name = "S0173a"
 phases = ["P", "S", "S", "P", "S"]
-phase_corrs = [-0.5, 3.0, 2.0, -0.5, 3.0]
+phase_corrs = [-0.3, 2.9, 2.0, -0.3, 2.9]
 components = ["Z", "T", "Z", "R", "R"]
 tstar = [
     0.3,
-    0.5,
-    0.5,
-    0.5,
+    0.2,
+    0.2,
+    0.3,
     0.2,
 ]
 t_pres = [1, 1, 1, 1, 1]
 t_posts = [17, 30, 30, 17, 30]
-depth = 29
+depth = 50
 fmin = 0.1
-fmax = 0.7
+fmax = 0.5
 misfit_name = "L2"
 amount_of_phases = 5
 
@@ -58,17 +58,17 @@ win_len_sec = [10.0, 10.0, 10.0, 10.0, 10.0]
 dt = 0.05
 
 veloc_name = "TAYAK_BKE"
-# db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
-db_path = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
+db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
+# db_path = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
 # db_path = "/mnt/marshost/instaseis2/databases/EH45TcoldCrust1b"
 # db_path = "/mnt/marshost/instaseis2/databases/TAYAK_shallow"
-# npz_file = f"/home/nienke/Documents/Research/Data/npz_files/{veloc_name}.npz"
-npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
+npz_file = f"/home/nienke/Documents/Research/Data/npz_files/{veloc_name}.npz"
+# npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
 # npz_file = "/home/nienke/Documents/Research/Data/npz_files/EH45TcoldCrust1b.npz"
 
 """ Open file within preferred depth range """
 GS_file_name = pjoin(
-    folder, f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_name}.hdf5",
+    folder, f"GS_{event_name}_{depth}_{fmin}_{0.7}_{misfit_name}_{veloc_name}.hdf5",
 )
 
 depth_GS, sdr, M0_GS, misfit_L2_GS = Read_GS_h5(

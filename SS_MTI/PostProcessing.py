@@ -925,12 +925,12 @@ def plot_misfit_vs_depth(
         if i == 0:
             ax[1].axvline(x=Moho, c="grey", ls="dashed", lw=3)
             if true_depth is not None:
-                ax[1].axvline(x=true_depth, c="black", ls="dashed", label="True Depth")
+                ax[1].axvline(x=true_depth, c="green", ls="dotted", label="True Depth")
         ax[2].plot(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
         if i == 0:
             ax[2].axvline(x=Moho, c="grey", ls="dashed", lw=3)
             if true_depth is not None:
-                ax[2].axvline(x=true_depth, c="black", ls="dashed", label="True Depth")
+                ax[2].axvline(x=true_depth, c="green", ls="dotted", label="True Depth")
 
     for iline in range(len(Line_x)):
         ax[0].plot(
@@ -1072,10 +1072,10 @@ def plot_phases_vs_depth(
     for idepth, depth in enumerate(depths):
         print(depth)
         if method == "GS":
-            MT_depth = 50
+            MT_depth = 62
             h5_file_path = pjoin(
                 h5_file_folder,
-                f"GS_{event.name}_{MT_depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+                f"GS_{event.name}_{MT_depth}_{0.1}_{0.9}_{misfit_name}_{fwd.veloc_name}.hdf5",
             )
             depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
                 Filename=h5_file_path, amount_of_phases=5
@@ -1083,8 +1083,8 @@ def plot_phases_vs_depth(
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
             n_lowest = 1
             lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
-            # MT = sdr[lowest_indices, :][0]
-            MT = [340.0, 90.0, 105.0]
+            MT = sdr[lowest_indices, :][0]
+            # MT = [340.0, 90.0, 105.0]
             print("strike", MT[0], "dip", MT[1], "rake", MT[2])
             depth_GS = depth_GS[lowest_indices]
             M0 = M0_GS[lowest_indices][0]
@@ -2412,11 +2412,12 @@ def Source_Uncertainty(
             Filename=h5_file_path, amount_of_phases=len(phases)
         )
         Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
-        n_lowest = 50
-        # n_lowest = int(len(Total_L2_GS) * 0.05)
-        # lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
-        lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
-
+        lowest_ind = Total_L2_GS.argsort()
+        Total_L2_GS.sort()
+        misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
+        uncert = 0.05 * Total_L2_GS[0]
+        inds = np.where(misfit_low < uncert)
+        lowest_indices = lowest_ind[inds]
         GOF_GS = (Total_L2_GS / DOF)[lowest_indices]
         M0 = M0_GS[lowest_indices]
 
@@ -2560,22 +2561,23 @@ def Source_Uncertainty(
         #     density=True,
         # )
         ax1[i].axvline(x=mean_Full1[i], c="red", lw=1, label="mean 1", alpha=0.5)
-        ax1[i].axvline(
-            x=mean_Full1[i] + std_Full1[i], c="red", lw=1, ls="--", label="std 1", alpha=0.5
-        )
-        ax1[i].axvline(x=mean_Full1[i] - std_Full1[i], c="red", lw=1, ls="--", alpha=0.5)
+        # ax1[i].axvline(
+        #     x=mean_Full1[i] + std_Full1[i], c="red", lw=1, ls="--", label="std 1", alpha=0.5
+        # )
+        # ax1[i].axvline(x=mean_Full1[i] - std_Full1[i], c="red", lw=1, ls="--", alpha=0.5)
 
         ax1[i].axvline(x=mean_Full2[i], c="steelblue", lw=1, label="mean 2", alpha=0.5)
-        ax1[i].axvline(
-            x=mean_Full2[i] + std_Full2[i], c="steelblue", lw=1, ls="--", label="std 2", alpha=0.5
-        )
-        ax1[i].axvline(x=mean_Full2[i] - std_Full2[i], c="steelblue", lw=1, ls="--", alpha=0.5)
+        # ax1[i].axvline(
+        #     x=mean_Full2[i] + std_Full2[i], c="steelblue", lw=1, ls="--", label="std 2", alpha=0.5
+        # )
+        # ax1[i].axvline(x=mean_Full2[i] - std_Full2[i], c="steelblue", lw=1, ls="--", alpha=0.5)
 
         ax1[i].set_xlabel(sdr_names[i], fontsize=18)
         ax1[i].tick_params(axis="x", labelsize=15)
         ax1[i].tick_params(axis="y", labelsize=15)
         ax1[i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
         ax1[i].set_xlim(sdr_mins[i], sdr_maxs[i])
+        # ax1[i].set_ylim(0, 0.01)
         # if i == 2:
         #     ax1[i].legend()
     fig1.suptitle(event_name, fontsize=20)
