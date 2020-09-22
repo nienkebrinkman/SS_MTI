@@ -15,8 +15,8 @@ from SS_MTI import Forward, DataGetter
 from SS_MTI import PreProcess as _PreProcess
 
 """  Parameters """
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/DATA_inversion/Synthetic_spectra/"
-folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_1/DATA_inversion/Test/"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/"
+folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases_low_weight/"
 
 # event_name = "S0235b"
 # phases = ["P", "S", "S", "P", "S"]
@@ -39,7 +39,7 @@ phase_corrs = [-0.3, 2.9, 2.0, -0.3, 2.9]
 components = ["Z", "T", "Z", "R", "R"]
 tstar = [
     0.3,
-    0.5,
+    0.2,
     0.2,
     0.3,
     0.2,
@@ -48,13 +48,13 @@ t_pres = [1, 1, 1, 1, 1]
 t_posts = [17, 30, 30, 17, 30]
 depth = 50
 fmin = 0.1
-fmax = 0.7
+fmax = 0.4
 misfit_name = "L2"
 amount_of_phases = 5
 
 filter_par = True
 zerophase = False
-win_len_sec = [20.0, 20.0, 10.0, 10.0, 10.0]
+win_len_sec = [20.0, 20.0, 20.0, 20.0, 20.0]
 dt = 0.05
 
 veloc_name = "TAYAK_BKE"

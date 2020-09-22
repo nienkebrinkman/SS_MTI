@@ -19,7 +19,7 @@ def stf_tstar(tstar, dt, npts):
     # Create source time function with
     # M(f) = 1 / (1+(f/fc)**2)
     f = fftpack.fftfreq(npts, dt)
-    stf_amp = np.exp(-np.pi * np.abs(f) * tstar )
+    stf_amp = np.exp(-np.pi * np.abs(f) * tstar)
 
     # Set phase to obtain a minimum phase signal
     # Phi is the hilbert transform of
@@ -55,7 +55,7 @@ def Create_stf_from_file(Filepath, desired_dt):
 
 
 if __name__ == "__main__":
-    dt = 0.05
+    dt = 1 / 10.0
     t = np.arange(0, 80, dt)
     fig, ax = plt.subplots(1, 2)
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     phase_name = ["P", "S"]
 
-    for i, tstar in enumerate([1.2, 2.2]):
+    for i, tstar in enumerate([1, 2, 4]):
         stf, f_stf, p_stf = stf_tstar(tstar, dt=dt, npts=len(t))
         ax[0].plot(t, stf, label="T* %.2f" % (tstar), c="k")
         # ax[0].plot(t, stf, label="T* %s: %.2f" %(phase_name[i],tstar))

@@ -15,7 +15,7 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/2phases/"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases/"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -108,9 +108,9 @@ depths = np.arange(5, 90, 3)
 # depths = np.arange(29, 50, 3)
 # depths = [50]
 
-strikes = np.arange(0, 360, 5)
-dips = np.arange(0, 91, 5)
-rakes = np.arange(-180, 180, 5)
+strikes = np.arange(0, 360, 10)
+dips = np.arange(0, 91, 10)
+rakes = np.arange(-180, 180, 10)
 
 # strikes = [15.0116557194]  # [132.395557582]
 # dips = [59.551091053]  # [51.9591191063]
@@ -134,8 +134,8 @@ npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 db_name_3 = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
 npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
 
-db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
-npz_file_names = [npz_file_name_1]
+db_names = [db_name_2]  # , db_name_3, db_name_4, db_name_5]
+npz_file_names = [npz_file_name_2]
 
 """ Loop over events to invert for: """
 event_nr = 0
