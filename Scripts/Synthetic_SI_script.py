@@ -53,8 +53,8 @@ lat_rec = 4.502384
 lon_rec = 135.623447
 
 strike = 60
-dip = 45
-rake = -90
+dip = 90  # 45
+rake = 0  # -90
 focal_mech = [strike, dip, rake]
 M0 = 5.62e13
 
@@ -131,59 +131,59 @@ tstars = None
 fmin = 1.0 / 5.0
 fmax = 1.0 / 1.0
 zerophase = False
-output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Synthetic/Strike_Slip/"
+output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Synthetic/Normal/"
 
 extra_phases = None
 ylims = [1e-9, 4e-9, 2e-9, 1e-9, 2e-9]
 
 """ Grid-Search inversion """
-# SS_MTI.Inversion.Grid_Search_run(
-#     fwd=fwd,
-#     misfit=misfit,
-#     event=event,
-#     rec=rec,
-#     phases=phases,
-#     components=components,
-#     t_pre=t_pre,
-#     t_post=t_post,
-#     depths=depths,
-#     strikes=strikes,
-#     dips=dips,
-#     rakes=rakes,
-#     phase_corrs=phase_corrs,
-#     tstars=tstars,
-#     fmin=fmin,
-#     fmax=fmax,
-#     zerophase=zerophase,
-#     list_to_correct_M0=amplitude_correction,
-#     output_folder=output_folder,
-#     plot=True,
-#     plot_extra_phases=extra_phases,
-#     color_plot="blue",
-#     Ylims=ylims,
-# )
+SS_MTI.Inversion.Grid_Search_run(
+    fwd=fwd,
+    misfit=misfit,
+    event=event,
+    rec=rec,
+    phases=phases,
+    components=components,
+    t_pre=t_pre,
+    t_post=t_post,
+    depths=depths,
+    strikes=strikes,
+    dips=dips,
+    rakes=rakes,
+    phase_corrs=phase_corrs,
+    tstars=tstars,
+    fmin=fmin,
+    fmax=fmax,
+    zerophase=zerophase,
+    list_to_correct_M0=amplitude_correction,
+    output_folder=output_folder,
+    plot=True,
+    plot_extra_phases=extra_phases,
+    color_plot="blue",
+    Ylims=ylims,
+)
 
-# SS_MTI.Inversion.Direct(
-#     fwd=fwd,
-#     misfit=misfit,
-#     event=event,
-#     rec=rec,
-#     phases=phases,
-#     components=components,
-#     phase_corrs=phase_corrs,
-#     t_pre=t_pre,
-#     t_post=t_post,
-#     depths=depths,
-#     tstars=tstars,
-#     fmin=fmin,
-#     fmax=fmax,
-#     zerophase=zerophase,
-#     output_folder=output_folder,
-#     plot=True,
-#     plot_extra_phases=extra_phases,
-#     color_plot="red",
-#     Ylims=ylims,
-# )
+SS_MTI.Inversion.Direct(
+    fwd=fwd,
+    misfit=misfit,
+    event=event,
+    rec=rec,
+    phases=phases,
+    components=components,
+    phase_corrs=phase_corrs,
+    t_pre=t_pre,
+    t_post=t_post,
+    depths=depths,
+    tstars=tstars,
+    fmin=fmin,
+    fmax=fmax,
+    zerophase=zerophase,
+    output_folder=output_folder,
+    plot=True,
+    plot_extra_phases=extra_phases,
+    color_plot="red",
+    Ylims=ylims,
+)
 
 """ (misfit vs depth analysis)"""
 DOF = sum([int((x + y) / dt) for x, y in zip(t_pre, t_post)])

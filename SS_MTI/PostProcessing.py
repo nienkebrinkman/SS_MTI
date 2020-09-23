@@ -1072,10 +1072,10 @@ def plot_phases_vs_depth(
     for idepth, depth in enumerate(depths):
         print(depth)
         if method == "GS":
-            MT_depth = 62
+            MT_depth = 32  # 59
             h5_file_path = pjoin(
                 h5_file_folder,
-                f"GS_{event.name}_{MT_depth}_{0.1}_{0.9}_{misfit_name}_{fwd.veloc_name}.hdf5",
+                f"GS_{event.name}_{MT_depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
             )
             depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
                 Filename=h5_file_path, amount_of_phases=5

@@ -16,20 +16,20 @@ from SS_MTI import PreProcess as _PreProcess
 
 """  Parameters """
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/"
-folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases_low_weight/"
+folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases/"
 
 # event_name = "S0235b"
 # phases = ["P", "S", "S", "P", "S"]
-# # phase_corrs = [0.2, 10.5, 11.1, 0.2, 11.1]
-# phase_corrs = [0.2, 10.1, 10.7, 0.2, 10.7]
+# # phase_corrs = [0.2, 10.4, 11.1, 0.2, 11.1]
+# phase_corrs = [0.2, 10.4, 11.1, 0.2, 11.1]
 # components = ["Z", "T", "Z", "R", "R"]
 # tstar = [0.4, 0.2, 0.2, 0.4, 0.2]
 # # tstar = [None, None, None, None, None]
 # t_pres = [1, 1, 1, 1, 1]
 # t_posts = [30, 30, 30, 30, 30]
-# depth = 62
+# depth = 59
 # fmin = 0.1
-# fmax = 0.9
+# fmax = 0.5
 # misfit_name = "L2"
 # amount_of_phases = 5
 
@@ -38,15 +38,15 @@ phases = ["P", "S", "S", "P", "S"]
 phase_corrs = [-0.3, 2.9, 2.0, -0.3, 2.9]
 components = ["Z", "T", "Z", "R", "R"]
 tstar = [
-    0.3,
-    0.2,
+    2.0,
+    0.5,
     0.2,
     0.3,
     0.2,
 ]
 t_pres = [1, 1, 1, 1, 1]
 t_posts = [17, 30, 30, 17, 30]
-depth = 50
+depth = 32
 fmin = 0.1
 fmax = 0.4
 misfit_name = "L2"
@@ -68,7 +68,7 @@ npz_file = f"/home/nienke/Documents/Research/Data/npz_files/{veloc_name}.npz"
 
 """ Open file within preferred depth range """
 GS_file_name = pjoin(
-    folder, f"GS_{event_name}_{depth}_{fmin}_{0.7}_{misfit_name}_{veloc_name}.hdf5",
+    folder, f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_name}.hdf5",
 )
 
 depth_GS, sdr, M0_GS, misfit_L2_GS = Read_GS_h5(
@@ -314,5 +314,5 @@ for i, phase in enumerate(phases):
             ax[i, 1].legend()
 
 
-plt.savefig(pjoin(save_folder, f"{event.name}_{veloc_name}.pdf"))
+plt.savefig(pjoin(save_folder, f"{event.name}_{veloc_name}.svg"), dpi=600)
 

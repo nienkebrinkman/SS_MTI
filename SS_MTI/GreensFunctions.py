@@ -52,7 +52,9 @@ def make_GF(
 
     if tstar is not None and not isinstance(tstar, str):
         stf_len_sec = 30.0
-        stf = _STF.stf_tstar(tstar=tstar, dt=db.info.dt, npts=int(stf_len_sec / db.info.dt))[0]
+        stf = _STF.stf_tstar(
+            tstar=tstar, dt=db.info.dt, npts=int(stf_len_sec / db.info.dt), nfft=db.info.nfft
+        )[0]
         # from obspy.signal.filter import highpass, lowpass
 
         # stf = highpass(stf, df=1 / db.info.dt, freq=0.1, corners=4, zerophase=False)

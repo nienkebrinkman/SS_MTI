@@ -15,18 +15,23 @@ from scipy import fftpack
 import pylab
 
 
-def stf_tstar(tstar, dt, npts):
+def stf_tstar(tstar, dt, npts, nfft):
     # Create source time function with
     # M(f) = 1 / (1+(f/fc)**2)
     f = fftpack.fftfreq(npts, dt)
     stf_amp = np.exp(-np.pi * np.abs(f) * tstar)
 
+    # stf_amp = np.exp(-fftpack.rfftfreq(nfft) * np.pi * tstar)
+    # stf_phase = fftpack.hilbert(-1j * fftpack.rfftfreq(nfft) * 2.0 * np.pi * tstar)
+
     # Set phase to obtain a minimum phase signal
     # Phi is the hilbert transform of
     # the log of the spectral amplitude
-    stf_phase = fftpack.hilbert(np.log(stf_amp))
+    stf_phase = fftpack.hilbert(-np.pi * np.abs(f) * tstar)
 
     stf_td = fftpack.ifft(stf_amp * np.exp(1j * stf_phase))
+    # stf_td = fftpack.irfft(stf_amp * 2 * np.pi)
+    # f = 1
     return stf_td.real, f, stf_amp
 
 
@@ -56,6 +61,13 @@ def Create_stf_from_file(Filepath, desired_dt):
 
 if __name__ == "__main__":
     dt = 1 / 10.0
+    Fs = 1 / dt
+    winlen_sec = 30.0
+    winlen = winlen_sec * Fs
+    import obspy.signal.util as UTIL
+
+    NFFT = UTIL.next_pow_2(winlen)
+
     t = np.arange(0, 80, dt)
     fig, ax = plt.subplots(1, 2)
 
@@ -71,12 +83,12 @@ if __name__ == "__main__":
 
     phase_name = ["P", "S"]
 
-    for i, tstar in enumerate([1, 2, 4]):
-        stf, f_stf, p_stf = stf_tstar(tstar, dt=dt, npts=len(t))
-        ax[0].plot(t, stf, label="T* %.2f" % (tstar), c="k")
+    for i, tstar in enumerate([0.2, 1.0, 2.0]):
+        stf, f_stf, p_stf = stf_tstar(tstar, dt=dt, npts=len(t), nfft=NFFT)
+        ax[0].plot(t, stf, label="T* %.2f" % (tstar))
         # ax[0].plot(t, stf, label="T* %s: %.2f" %(phase_name[i],tstar))
         # ax[1].plot(f_stf, p_stf, 'o', label="T* %s: %.2f" %(phase_name[i],tstar))
-        ax[1].plot(f_stf, p_stf, "o", label="T*: %.2f" % (tstar), c="k")
+        ax[1].plot(f_stf, p_stf, "o", label="T*: %.2f" % (tstar))
     ax[0].legend()
     ax[0].set_xlabel("Time (s)")
     ax[0].set_ylabel("Amplitude factor")
