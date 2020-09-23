@@ -16,8 +16,8 @@ import mpi4py.MPI
 # import EventInterface
 # from SS_MTI import PostProcessing as _PostProcessing
 
-input_file = "/home/nienke/Documents/Research/SS_MTI/Input/TAYAK_BKE_tstar_update.toml"
-event_input = toml.load(input_file, _dict=dict)
+# input_file = "/home/nienke/Documents/Research/SS_MTI/Input/TAYAK_BKE_tstar_update.toml"
+# event_input = toml.load(input_file, _dict=dict)
 
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/"
 
@@ -26,19 +26,11 @@ save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/
 rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 size = mpi4py.MPI.COMM_WORLD.Get_size()
 
-task_list = np.arange(0, 11)
+task_list =  np.arange(5, 90, 3)
 for i, task in enumerate(task_list):
-    # This is how we split up the jobs.
-    # The % sign is a modulus, and the "continue" means
-    # "skip the rest of this bit and go to the next time
-    # through the loop"
-    # If we had e.g. 4 processors, this would mean
-    # that proc zero did tasks 0, 4, 8, 12, 16, ...
-    # and proc one did tasks 1, 5, 9, 13, 17, ...
-    # and do on.
     if i % size != rank:
         continue
-    print("Task number %d (%d) being done by processor %d of %d" % (i, task, rank, size))
+    print(f"Depth number {task} being done by processor {rank} of {size}" )
 
 # print("Rank", rank, "Size", size)
 

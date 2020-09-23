@@ -15,9 +15,9 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/"
+save_folder = "/home/nienke/Data_2020/Test_2020/"
 
-path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
+path = "/home/nienke/Data_2020/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
 path_to_inventory = pjoin(path, "inventory.xml")
 path_to_catalog = pjoin(path, "catalog.xml")
@@ -125,14 +125,14 @@ rakes = np.arange(-180, 180, 50)
 # rakes = np.arange(-180, 180, 5)
 
 """ Define different velocity models"""
-db_name_1 = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
-npz_file_name_1 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
+db_name_1 = "/opt/databases/Mars/TAYAK_15s_BKE"
+npz_file_name_1 = "/home/nienke/Data_2020/TAYAK_BKE.npz"
 
-db_name_2 = "/mnt/marshost/instaseis2/databases/TAYAK_shallow"
-npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
+# db_name_2 = "/mnt/marshost/instaseis2/databases/TAYAK_shallow"
+# npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 
-db_name_3 = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
-npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
+# db_name_3 = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
+# npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
 
 db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
 npz_file_names = [npz_file_name_1]
@@ -163,15 +163,15 @@ for i, v in event_input.items():
     db_nr = 0
     for db_path, npz_file in zip(db_names, npz_file_names):
         db_nr += 0
-        mnt_folder = "/mnt/marshost/"
-        if not lsdir(mnt_folder):
-            print(f"{mnt_folder} is still empty, mounting now...")
-            SS_MTI.DataGetter.mnt_remote_folder(
-                host_ip="marshost.ethz.ch",
-                host_usr="sysop",
-                remote_folder="/data/",
-                mnt_folder=mnt_folder,
-            )
+        # mnt_folder = "/mnt/marshost/"
+        # if not lsdir(mnt_folder):
+        #     print(f"{mnt_folder} is still empty, mounting now...")
+        #     SS_MTI.DataGetter.mnt_remote_folder(
+        #         host_ip="marshost.ethz.ch",
+        #         host_usr="sysop",
+        #         remote_folder="/data/",
+        #         mnt_folder=mnt_folder,
+        #     )
 
         db = instaseis.open_db(db_path)
 

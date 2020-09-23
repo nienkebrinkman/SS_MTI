@@ -19,6 +19,7 @@ from obspy import UTCDateTime as utct
 from numpy import linalg as _LA
 from typing import List as _List, Union as _Union
 from obspy.signal.cross_correlation import xcorr_max, correlate
+import mpi4py.MPI
 
 
 from SS_MTI import PreProcess as _PreProcess
@@ -52,6 +53,7 @@ def Grid_Search_run(
     plot_extra_phases: [str] = None,
     color_plot: str = None,
     Ylims: [float] = None,
+    Parallel: bool = False
 ):
     """
     Grid search over strike, dip, rake angles
@@ -115,7 +117,15 @@ def Grid_Search_run(
     # sigmas = [i ** 2 + j ** 2 for i, j in zip(sigmas_noise, sigmas_model)]
     sigmas = [i ** 2 for i in sigmas_noise]
 
-    for depth in depths:
+    if Parallel:
+        rank = mpi4py.MPI.COMM_WORLD.Get_rank()
+        size = mpi4py.MPI.COMM_WORLD.Get_size()
+
+    for iPar, depth in enumerate(depths):
+        if Parallel:
+            if iPar % size != rank:
+                continue
+            print(f"Depth number {depth} being done by processor {rank} of {size}" )
         # M0_corrs_range = [1.26126e14]  # _np.linspace(0, 2, 1000)
         print(depth)
         """ Open .h5 file """
@@ -386,6 +396,7 @@ def Grid_Search_run(
             )
             plt.close()
         f.close()
+    # mpi4py.MPI.COMM_WORLD.bcast()
 
 
 def Direct(
