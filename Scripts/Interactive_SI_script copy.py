@@ -9,6 +9,7 @@ from os import listdir as lsdir
 import instaseis
 import numpy as np
 import matplotlib.pyplot as plt
+import toml
 
 import SS_MTI
 import EventInterface
@@ -22,69 +23,14 @@ path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 path_to_inventory = pjoin(path, "inventory.xml")
 path_to_catalog = pjoin(path, "catalog.xml")
 
+""" Specify input file """
+input_file = "/home/nienke/Documents/Research/SS_MTI/Input/TAYAK_BKE_tstar_update.toml"
+event_input = toml.load(input_file, _dict=dict)
 
 """ Read the inventory and catalog file (the once that contain info about the marsquakes) """
 inv = SS_MTI.DataGetter.read_inv(inv_path=path_to_inventory)  # Inventory file
 cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
 
-
-""" Define events to invert for and its parameters """
-event_input = {
-    "S0235b": {
-        "phases": ["P", "S", "S", "P", "S"],
-        "components": ["Z", "T", "Z", "R", "R"],
-        "phase_corrs": [0.2, 10.4, 11.1, 0.2, 11.1],
-        "tstars": [0.4, 0.2, 0.2, 0.4, 0.2],
-        "fmin": 0.1,
-        "fmax": 0.5,
-        "zerophase": False,
-        "amplitude_correction": ["PZ", "ST"],
-        "t_pre": [1, 1, 1, 1, 1],
-        "t_post": [30, 30, 30, 30, 30],
-        "weights": [[1, 10], [1, 10], [10, 100], [10, 100], [10, 100]],
-        "start_weight_len": 10.0,
-        "dt": 0.05,
-        "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
-        "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
-        "ylims": [1e-9, 4e-9, 3e-9, 0.5e-9, 4e-9],
-    },
-    "S0173a": {
-        "phases": ["P", "S", "S", "P", "S"],
-        "components": ["Z", "T", "Z", "R", "R"],
-        "phase_corrs": [-0.3, 2.9, 2.0, -0.3, 2.9],
-        "tstars": [0.3, 0.2, 0.2, 0.3, 0.2],
-        "fmin": 0.1,
-        "fmax": 0.4,
-        "zerophase": False,
-        "amplitude_correction": ["PZ", "ST"],
-        "t_pre": [1, 1, 1, 1, 1],
-        "t_post": [17, 30, 30, 17, 30],
-        "weights": [[1, 10], [1, 10], [10, 100], [10, 100], [10, 100]],
-        "start_weight_len": 10.0,
-        "dt": 0.05,
-        "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
-        "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
-        "ylims": [2e-9, 4e-9, 4e-9, 2e-9, 4e-9],
-    },
-    "S0183a": {
-        "phases": ["P", "P"],
-        "components": ["Z", "R"],
-        "phase_corrs": [2.1, 2.1],
-        "tstars": [1.5, 1.5],
-        "fmin": 1.0 / 5.0,
-        "fmax": 1.0 / 2.5,
-        "zerophase": False,
-        "amplitude_correction": ["PZ", "PR"],
-        "t_pre": [1, 1],
-        "t_post": [30, 30],
-        "weights": [[1, 3], [1, 3]],
-        "start_weight_len": 7.0,
-        "dt": 0.05,
-        "db_path": "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE",
-        "npz_file": "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz",
-        "ylims": [2e-10, 2e-10],
-    },
-}
 
 """ Get the data into a list of obspy.Event objects """
 events = SS_MTI.DataGetter.read_events_from_cat(
@@ -235,32 +181,32 @@ for i, v in event_input.items():
 
         """ Start inversion """
 
-        SS_MTI.Inversion.Grid_Search_run(
-            fwd=fwd,
-            misfit=misfit,
-            event=event,
-            rec=rec,
-            phases=phases,
-            components=components,
-            t_pre=t_pre,
-            t_post=t_post,
-            depths=depths,
-            strikes=strikes,
-            dips=dips,
-            rakes=rakes,
-            phase_corrs=phase_corrs,
-            tstars=tstars,
-            fmin=fmin,
-            fmax=fmax,
-            zerophase=zerophase,
-            list_to_correct_M0=amplitude_correction,
-            output_folder=output_folder,
-            plot=True,
-            plot_extra_phases=extra_phases,
-            color_plot="blue",
-            Ylims=ylims,
-            Parallel = True
-        )
+        # SS_MTI.Inversion.Grid_Search_run(
+        #     fwd=fwd,
+        #     misfit=misfit,
+        #     event=event,
+        #     rec=rec,
+        #     phases=phases,
+        #     components=components,
+        #     t_pre=t_pre,
+        #     t_post=t_post,
+        #     depths=depths,
+        #     strikes=strikes,
+        #     dips=dips,
+        #     rakes=rakes,
+        #     phase_corrs=phase_corrs,
+        #     tstars=tstars,
+        #     fmin=fmin,
+        #     fmax=fmax,
+        #     zerophase=zerophase,
+        #     list_to_correct_M0=amplitude_correction,
+        #     output_folder=output_folder,
+        #     plot=True,
+        #     plot_extra_phases=extra_phases,
+        #     color_plot="blue",
+        #     Ylims=ylims,
+        #     Parallel=False,
+        # )
 
         # SS_MTI.Inversion.Direct(
         #     fwd=fwd,
