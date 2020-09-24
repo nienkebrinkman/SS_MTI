@@ -80,10 +80,10 @@ if __name__ == "__main__":
 
     """ Define different velocity models"""
     db_name_1 = "/opt/databases/TAYAK_15s_BKE"
-    npz_file_name_1 = "/home/nienke/Data_2020/TAYAK_BKE.npz"
+    npz_file_name_1 = "/home/nienke/Data_2020/npz_files/TAYAK_BKE.npz"
 
     db_name_2 = "/opt/databases/TAYAK_shallow"
-    npz_file_name_2 = "/home/nienke/Data_2020/TAYAK.npz"
+    npz_file_name_2 = "/home/nienke/Data_2020/npz_files/TAYAK.npz"
 
     # db_name_1 = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
     # npz_file_name_1 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
