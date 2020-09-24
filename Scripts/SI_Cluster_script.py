@@ -79,10 +79,10 @@ if __name__ == "__main__":
     # rakes = [-45.6275510954]  # [-139.94976385]
 
     """ Define different velocity models"""
-    db_name_1 = "/opt/databases/Mars/TAYAK_15s_BKE"
+    db_name_1 = "/opt/databases/TAYAK_15s_BKE"
     npz_file_name_1 = "/home/nienke/Data_2020/TAYAK_BKE.npz"
 
-    db_name_2 = "/opt/databases/Mars/TAYAK_shallow"
+    db_name_2 = "/opt/databases/TAYAK_shallow"
     npz_file_name_2 = "/home/nienke/Data_2020/TAYAK.npz"
 
     # db_name_1 = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
