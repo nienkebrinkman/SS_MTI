@@ -15,8 +15,22 @@ from SS_MTI import Forward, DataGetter
 from SS_MTI import PreProcess as _PreProcess
 
 """  Parameters """
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/"
-folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases/"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Spectra/"
+folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/event_183a/"
+
+event_name = "S0183a"
+phases = ["P", "S"]
+phase_corrs = [2.1, 2.1]
+components = ["Z", "T"]
+tstar = [1.5, 1.5]
+# tstar = [None, None, None, None, None]
+t_pres = [1, 1]
+t_posts = [30, 30]
+depth = 29
+fmin = 0.2
+fmax = 0.4
+misfit_name = "L2"
+amount_of_phases = 2
 
 # event_name = "S0235b"
 # phases = ["P", "S", "S", "P", "S"]
@@ -33,24 +47,24 @@ folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases/"
 # misfit_name = "L2"
 # amount_of_phases = 5
 
-event_name = "S0173a"
-phases = ["P", "S", "S", "P", "S"]
-phase_corrs = [-0.3, 2.9, 2.0, -0.3, 2.9]
-components = ["Z", "T", "Z", "R", "R"]
-tstar = [
-    2.0,
-    0.5,
-    0.2,
-    0.3,
-    0.2,
-]
-t_pres = [1, 1, 1, 1, 1]
-t_posts = [17, 30, 30, 17, 30]
-depth = 32
-fmin = 0.1
-fmax = 0.4
-misfit_name = "L2"
-amount_of_phases = 5
+# event_name = "S0173a"
+# phases = ["P", "S", "S", "P", "S"]
+# phase_corrs = [-0.3, 2.9, 2.0, -0.3, 2.9]
+# components = ["Z", "T", "Z", "R", "R"]
+# tstar = [
+#     0.3,
+#     0.2,
+#     0.2,
+#     0.3,
+#     0.2,
+# ]
+# t_pres = [1, 1, 1, 1, 1]
+# t_posts = [17, 30, 30, 17, 30]
+# depth = 32
+# fmin = 0.1
+# fmax = 0.4
+# misfit_name = "L2"
+# amount_of_phases = 5
 
 filter_par = True
 zerophase = False
@@ -215,17 +229,42 @@ for i, phase in enumerate(phases):
         starttime=event.origin_time + syn_tt - t_pres[i],
         endtime=event.origin_time + syn_tt + t_posts[i],
     )
-    # time = np.vstack((tr.times() - 1, tr.data))
-    # with open(pjoin(save_folder, f"{event.name}_{veloc_name}_{phase}_time.txt"), "wb") as file:
-    #     np.save(file, time, allow_pickle=False)
+    td_syn_filt = np.vstack((tr_syn_filt.times() - 1, tr_syn_filt.data))
+    with open(
+        pjoin(
+            save_folder, f"{event.name}_{veloc_name}_{phase}{components[i]}_syn_Filtered_td.txt"
+        ),
+        "wb",
+    ) as file:
+        np.save(file, td_syn_filt, allow_pickle=False)
+
+    td_syn_raw = np.vstack((tr_syn_raw.times() - 1, tr_syn_raw.data))
+    with open(
+        pjoin(save_folder, f"{event.name}_{veloc_name}_{phase}{components[i]}_syn_Raw_td.txt"),
+        "wb",
+    ) as file:
+        np.save(file, td_syn_raw, allow_pickle=False)
 
     f_syn_filt, p_syn_filt = calc_PSD(tr_syn_filt, winlen_sec=win_len_sec[i])
     f_syn_raw, p_syn_raw = calc_PSD(tr_syn_raw, winlen_sec=win_len_sec[i])
 
-    # f_new, p_new = calc_freq(tr)
+    fd_syn_filt = np.vstack((f_syn_filt, p_syn_filt))
+    with open(
+        pjoin(
+            save_folder, f"{event.name}_{veloc_name}_{phase}{components[i]}_syn_Filtered_fd.txt"
+        ),
+        "wb",
+    ) as file:
+        np.save(file, fd_syn_filt, allow_pickle=False)
+
+    fd_syn_raw = np.vstack((f_syn_raw, p_syn_raw))
+    with open(
+        pjoin(save_folder, f"{event.name}_{veloc_name}_{phase}{components[i]}_syn_Raw_fd.txt"),
+        "wb",
+    ) as file:
+        np.save(file, fd_syn_raw, allow_pickle=False)
 
     # freq = np.vstack((f, p))
-
     # with open(pjoin(save_folder, f"{event.name}_{veloc_name}_{phase}_spectra.txt"), "wb") as file:
     #     np.save(file, freq, allow_pickle=False)
 

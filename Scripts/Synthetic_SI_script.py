@@ -26,23 +26,25 @@ name = "Test_Event"
 
 phases = ["P", "S", "S", "P", "S"]
 
-mnt_folder = "/mnt/marshost/"
+# mnt_folder = "/mnt/marshost/"
 
-if not lsdir(mnt_folder):
-    print(f"{mnt_folder} is still empty, mounting now...")
-    SS_MTI.DataGetter.mnt_remote_folder(
-        host_ip="marshost.ethz.ch",
-        host_usr="sysop",
-        remote_folder="/data/",
-        mnt_folder=mnt_folder,
-    )
+# if not lsdir(mnt_folder):
+#     print(f"{mnt_folder} is still empty, mounting now...")
+#     SS_MTI.DataGetter.mnt_remote_folder(
+#         host_ip="marshost.ethz.ch",
+#         host_usr="sysop",
+#         remote_folder="/data/",
+#         mnt_folder=mnt_folder,
+#     )
 
 
-npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
+# npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
+npz_file = "/home/nienke/Data_2020/npz_files/TAYAK_BKE.npz"
 # npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 model = TauPyModel(npz_file)
 
-db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
+# db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
+db_path = "/opt/databases/TAYAK_15s_BKE"
 # db_path = "http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/"
 db = instaseis.open_db(db_path)
 
@@ -52,7 +54,7 @@ SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
 lat_rec = 4.502384
 lon_rec = 135.623447
 
-strike = 60
+strike = 90
 dip = 90  # 45
 rake = 0  # -90
 focal_mech = [strike, dip, rake]
@@ -63,6 +65,8 @@ dt = 0.05
 components = "ZRT"
 kind = "displacement"
 noise = True
+
+Parallel = True
 
 ## Step 2:
 """Create observed data and waveforms """
@@ -131,7 +135,7 @@ tstars = None
 fmin = 1.0 / 5.0
 fmax = 1.0 / 1.0
 zerophase = False
-output_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Synthetic/Normal/"
+output_folder = "/home/nienke/Documents/Data_2020/Synthetic/"
 
 extra_phases = None
 ylims = [1e-9, 4e-9, 2e-9, 1e-9, 2e-9]
@@ -161,6 +165,7 @@ SS_MTI.Inversion.Grid_Search_run(
     plot_extra_phases=extra_phases,
     color_plot="blue",
     Ylims=ylims,
+    Parallel=Parallel,
 )
 
 SS_MTI.Inversion.Direct(
@@ -183,31 +188,38 @@ SS_MTI.Inversion.Direct(
     plot_extra_phases=extra_phases,
     color_plot="red",
     Ylims=ylims,
+    Parallel=Parallel,
 )
 
-""" (misfit vs depth analysis)"""
-DOF = sum([int((x + y) / dt) for x, y in zip(t_pre, t_post)])
-Moho_d = 30
-fig = _PostProcessing.plot_misfit_vs_depth(
-    save_paths=[output_folder],
-    event_name=event.name,
-    DOF=DOF,
-    depths=depths,
-    misfit_name=misfit.name,
-    veloc_model=fwd.veloc_name,
-    true_depth=depth,
-    Moho=Moho_d,
-    fmin=fmin,
-    fmax=fmax,
-    amount_of_phases=len(phases),
-)
-plt.tight_layout()
-plt.savefig(
-    pjoin(
-        output_folder,
-        f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-    ),
-    dpi=600,
-)
-plt.close()
+if Parallel:
+    mpi4py.MPI.COMM_WORLD.Barrier()
+    rank = mpi4py.MPI.COMM_WORLD.Get_rank()
+    if not rank == 0:
+        print("rank {rank} will go to next simulation and does not doe post processing")
+    else:
+        """ (misfit vs depth analysis)"""
+        DOF = sum([int((x + y) / dt) for x, y in zip(t_pre, t_post)])
+        Moho_d = 24
+        fig = _PostProcessing.plot_misfit_vs_depth(
+            save_paths=[output_folder],
+            event_name=event.name,
+            DOF=DOF,
+            depths=depths,
+            misfit_name=misfit.name,
+            veloc_model=fwd.veloc_name,
+            true_depth=depth,
+            Moho=Moho_d,
+            fmin=fmin,
+            fmax=fmax,
+            amount_of_phases=len(phases),
+        )
+        plt.tight_layout()
+        plt.savefig(
+            pjoin(
+                output_folder,
+                f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+            ),
+            dpi=600,
+        )
+        plt.close()
 

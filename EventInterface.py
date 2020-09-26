@@ -148,7 +148,7 @@ class EventObj:
         st_obs.trim(starttime=self.event.origin_time, endtime=self.event.origin_time + 800.0)
 
         if noise:
-            Path = "/home/nienke/Documents/Research/Data/Noise/"
+            Path = "/home/nienke/Data_2020/Noise/"
             File_names = [
                 "XB.02.ELYSE.BHE-2019.274T0809-2019.274T0920",
                 "XB.02.ELYSE.BHN-2019.274T0809-2019.274T0920",

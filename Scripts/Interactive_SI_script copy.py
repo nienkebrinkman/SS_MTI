@@ -16,7 +16,7 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/event_183a/"
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -50,13 +50,13 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ """
-depths = np.arange(5, 90, 3)
+# depths = np.arange(5, 90, 3)
 # depths = np.arange(29, 50, 3)
-# depths = [59]
+depths = [29]
 
-strikes = np.arange(0, 360, 50)
-dips = np.arange(0, 91, 25)
-rakes = np.arange(-180, 180, 50)
+strikes = np.arange(0, 360, 20)
+dips = np.arange(0, 91, 15)
+rakes = np.arange(-180, 180, 15)
 
 # strikes = [15.0116557194]  # [132.395557582]
 # dips = [59.551091053]  # [51.9591191063]
@@ -90,7 +90,7 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event.name == "S0173a":
+    if event.name == "S0183a":
         pass
     else:
         continue
@@ -181,32 +181,32 @@ for i, v in event_input.items():
 
         """ Start inversion """
 
-        # SS_MTI.Inversion.Grid_Search_run(
-        #     fwd=fwd,
-        #     misfit=misfit,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     strikes=strikes,
-        #     dips=dips,
-        #     rakes=rakes,
-        #     phase_corrs=phase_corrs,
-        #     tstars=tstars,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     list_to_correct_M0=amplitude_correction,
-        #     output_folder=output_folder,
-        #     plot=True,
-        #     plot_extra_phases=extra_phases,
-        #     color_plot="blue",
-        #     Ylims=ylims,
-        #     Parallel=False,
-        # )
+        SS_MTI.Inversion.Grid_Search_run(
+            fwd=fwd,
+            misfit=misfit,
+            event=event,
+            rec=rec,
+            phases=phases,
+            components=components,
+            t_pre=t_pre,
+            t_post=t_post,
+            depths=depths,
+            strikes=strikes,
+            dips=dips,
+            rakes=rakes,
+            phase_corrs=phase_corrs,
+            tstars=tstars,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+            list_to_correct_M0=amplitude_correction,
+            output_folder=output_folder,
+            plot=True,
+            plot_extra_phases=extra_phases,
+            color_plot="blue",
+            Ylims=ylims,
+            Parallel=False,
+        )
 
         # SS_MTI.Inversion.Direct(
         #     fwd=fwd,
@@ -304,7 +304,7 @@ for i, v in event_input.items():
         # plt.close()
 
         """ (best MT vs depth phase arrivals) """
-        # depths_phases = depths[1::2]  # np.array([23, 26, 29])  #
+        # depths_phases = depths[2::2]  # np.array([23, 26, 29])  #
         # t_pre = [5, 5]
         # t_post = [30, 30]
         # phases = [phases[0], phases[1]]
@@ -312,8 +312,8 @@ for i, v in event_input.items():
         # phase_corrs = [phase_corrs[0], phase_corrs[1]]
         # tstars = [tstars[0], tstars[1]]
         # # tstars = [tstar_P, tstar_S]
-        # start_depth_range = 29  # 53  #
-        # end_depth_range = 41  # 69  #
+        # start_depth_range = [56, 17]  # 53  # 29
+        # end_depth_range = [62, 17]  # 69  # 41
         # fig = _PostProcessing.plot_phases_vs_depth(
         #     h5_file_folder=output_folder,
         #     method="GS",

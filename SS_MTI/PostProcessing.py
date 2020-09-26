@@ -1014,8 +1014,8 @@ def plot_phases_vs_depth(
     zerophase: bool = None,
     tstars: _Union[_List[float], _List[str]] = None,
     color_plot: str = None,
-    pref_depth_start=None,
-    pref_depth_end=None,
+    pref_depth_start=[None],
+    pref_depth_end=[None],
 ):
     assert method == "GS" or method == "Direct", "method needs to be either GS or Direct"
 
@@ -1065,7 +1065,10 @@ def plot_phases_vs_depth(
         sharey="col",
         gridspec_kw={"width_ratios": widths},
     )
-    Yticks = np.arange(len(depths) + 1) * 1.8
+    Yticks = np.arange(len(depths) + len(pref_depth_start)) * 1.8
+    obs = 0
+    pref_depth_end_sorted = pref_depth_end.sort()
+    pref_depth_start.sort()
     BB = []
     extra_arrs = [[] for _ in range(len(depths))]
     syn_tts = [[] for _ in range(len(depths))]
@@ -1196,19 +1199,29 @@ def plot_phases_vs_depth(
 
             color = "k"
             lw = 1
-            if pref_depth_start is not None and pref_depth_end is not None:
-                if depth >= pref_depth_start and depth <= pref_depth_end:
-                    color = "purple"
-                    lw = 2
+            if (
+                all(x is None for x in pref_depth_start) is not None
+                and all(x is None for x in pref_depth_end) is not None
+            ):
+                for d_range in range(len(pref_depth_end)):
+                    if depth <= pref_depth_end[d_range] and depth >= pref_depth_start[d_range]:
+                        color = "purple"
+                        lw = 2
 
             ytick = Yticks[idepth]
-            if depth > depths[(np.abs(depths - pref_depth_end)).argmin() + 1]:
-                ytick = Yticks[idepth + 1]
-            elif depth == depths[(np.abs(depths - pref_depth_end)).argmin() + 1]:
+            if (depth == depths[[np.abs(depths - x).argmin() + 1 for x in pref_depth_end]]).any():
+                obs = (
+                    1
+                    + np.where(
+                        depth == depths[[np.abs(depths - x).argmin() + 1 for x in pref_depth_end]]
+                    )[0][0]
+                )
+                print(obs)
+                ytick = Yticks[idepth + obs - 1]
                 fig, ax[i] = Plot_phase_vs_depth_copy(
                     tr=st_obs[i],
                     depth=depth,
-                    total_depths=len(depths) + 1,
+                    total_depths=len(depths) + len(pref_depth_start),
                     Ytick=ytick,
                     phase=phase,
                     t_pre=t_pre[i],
@@ -1218,14 +1231,16 @@ def plot_phases_vs_depth(
                     extra_phases=None,
                     extra_arrs=None,
                     color="b",
-                    linewidth=lw,
+                    linewidth=2,
                 )
-                ytick = Yticks[idepth + 1]
+                ytick = Yticks[idepth + obs]
+            elif (depth > depths[[np.abs(depths - x).argmin() + 1 for x in pref_depth_end]]).any():
+                ytick = Yticks[idepth + obs]
 
             fig, ax[i] = Plot_phase_vs_depth_copy(
                 tr=tr_syn,
                 depth=depth,
-                total_depths=len(depths) + 1,
+                total_depths=len(depths) + len(pref_depth_start),
                 Ytick=ytick,
                 phase=phase,
                 t_pre=t_pre[i],
@@ -1250,170 +1265,209 @@ def plot_phases_vs_depth(
             )
 
     delta = Yticks[1] - Yticks[0]
-    idx = (np.abs(depths - pref_depth_end)).argmin() + 1
 
-    for i, phase in enumerate(phases):
-        if phase == "P":
-            ymax = ax[i].get_ylim()[1]
-            if event.name == "S0173a":
-                ax[i].fill(
-                    [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
-                    [
-                        Yticks[0] - 0.4 * delta,
-                        Yticks[0] - 0.4 * delta,
-                        Yticks[idx - 1] + 0.4 * delta,
-                        Yticks[idx - 1] + 0.4 * delta,
-                    ],
-                    facecolor="green",
-                    alpha=0.2,
-                )
-                ax[i].fill(
-                    [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
-                    [
-                        Yticks[idx + 1] - 0.4 * delta,
-                        Yticks[idx + 1] - 0.4 * delta,
-                        Yticks[-1] + 0.4 * delta,
-                        Yticks[-1] + 0.4 * delta,
-                    ],
-                    facecolor="green",
-                    alpha=0.2,
+    idxs = [np.abs(depths - x).argmin() + 1 for x in pref_depth_end]
+
+    depths_ins = depths
+    for idx_i, idx in enumerate(idxs):
+        depths_ins = np.insert(depths_ins, idx + idx_i, 70)
+    for idx_i, idx in enumerate(idxs):
+        for i, phase in enumerate(phases):
+            if phase == "P":
+                ymax = ax[i].get_ylim()[1]
+                if event.name == "S0173a":
+                    if idx_i > 0:
+                        fill_zero = idxs[idx_i]
+                    else:
+                        fill_zero = 0
+                        ax[i].fill(
+                            [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
+                            [
+                                Yticks[fill_zero] - 0.4 * delta,
+                                Yticks[fill_zero] - 0.4 * delta,
+                                Yticks[idx - (idx_i + 1)] + 0.4 * delta,
+                                Yticks[idx - (idx_i + 1)] + 0.4 * delta,
+                            ],
+                            facecolor="green",
+                            alpha=0.2,
+                        )
+                    if idx_i == len(idxs) - 1:
+                        fill_one = -1
+                        fill_zero = idxs[idx_i] + len(idxs)
+                    else:
+                        fill_one = idxs[idx_i + 1]
+
+                    ax[i].fill(
+                        [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
+                        [
+                            Yticks[idx + (idx_i + 1)] - 0.4 * delta,
+                            Yticks[idx + (idx_i + 1)] - 0.4 * delta,
+                            Yticks[fill_one] + 0.4 * delta,
+                            Yticks[fill_one] + 0.4 * delta,
+                        ],
+                        facecolor="green",
+                        alpha=0.2,
+                    )
+                    ax[i].text(
+                        17,
+                        ymax * 0.8,
+                        "Glitch",
+                        verticalalignment="center",
+                        color="green",
+                        fontsize=8,
+                    )
+
+            # fig, ax[i] = Plot_phase_vs_depth_copy(
+            #     tr=st_obs[i],
+            #     depth=depth,
+            #     total_depths=len(depths) + 1,
+            #     Ytick=Yticks[idepth + 1],
+            #     phase=phase,
+            #     t_pre=t_pre[i],
+            #     t_post=t_post[i],
+            #     fig=fig,
+            #     ax=ax[i],
+            #     extra_phases=None,
+            #     extra_arrs=None,
+            #     color="b",
+            # )
+            # ax[i].axvline(0.0, c="dimgrey")
+            if idx_i == 0:
+                ax[i].plot(
+                    [0, 0],
+                    [Yticks[fill_zero] - 0.4 * delta, Yticks[idx - 1] + 0.4 * delta],
+                    "dimgrey",
+                    lw=1,
                 )
                 ax[i].text(
-                    17,
-                    ymax * 0.8,
-                    "Glitch",
+                    0.1,
+                    Yticks[idx - 1] + 0.4 * delta,
+                    phase,
                     verticalalignment="center",
-                    color="green",
-                    fontsize=8,
+                    color="dimgrey",
+                    fontsize=10,
+                    weight="bold",
+                )
+            ax[i].plot(
+                [0, 0],
+                [Yticks[idx + (idx_i + 1)] - 0.4 * delta, Yticks[fill_one] + 0.4 * delta],
+                "dimgrey",
+                lw=1,
+            )
+            ax[i].text(
+                0.1,
+                Yticks[-1] + 0.4 * delta,
+                phase,
+                verticalalignment="center",
+                color="dimgrey",
+                fontsize=10,
+                weight="bold",
+            )
+
+            for k in range(len(extra_phases)):
+                """ Below observed plot: """
+                if idx_i == 0:
+                    syn_tt_depth = np.asarray(
+                        [arr[i] for arr in syn_tts[fill_zero:idx]], dtype=np.float
+                    )
+                    # syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
+                    x = np.asarray([arr[k] for arr in extra_arrs[fill_zero:idx]], dtype=np.float)
+                    x = x - syn_tt_depth
+                    if np.any(x > t_post[i]):
+                        x[x > t_post[i]] = None
+                    if np.any(x < -t_pre[i]):
+                        x[x < -t_pre[i]] = None
+                    # y = np.asarray(Yticks[:-1])
+                    y = np.asarray(Yticks[fill_zero:idx])
+                    y = y[~np.isnan(x)]
+                    x = x[~np.isnan(x)]
+                    if x.size == 0:
+                        continue
+                    rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
+                    if rotn.size == 0:
+                        trans_angle = 90
+                        ax[i].plot(
+                            [x[0], x[0]], [y[0] - 0.4 * delta, y[0] + 0.4 * delta], "dimgrey", lw=1
+                        )
+                    else:
+                        l2 = np.array((x[-1], y[-1]))
+                        rotation = rotn[-1]
+                        trans_angle = plt.gca().transData.transform_angles(
+                            np.array((rotation,)), l2.reshape((1, 2))
+                        )[0]
+                        ax[i].plot(x, y, "-", c="dimgrey", lw=1)
+                    ax[i].text(
+                        x[-1],
+                        y[-1],
+                        extra_phases[k],
+                        verticalalignment="center",
+                        color="dimgrey",
+                        fontsize=10,
+                        rotation=trans_angle,
+                        weight="bold",
+                    )
+
+                """ Above observed plot"""
+                if idx_i == len(idxs) - 1:
+                    syn_tt_depth = np.asarray([arr[i] for arr in syn_tts[idx:]], dtype=np.float)
+                    # syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
+                    x = np.asarray([arr[k] for arr in extra_arrs[idx:]], dtype=np.float)
+                else:
+                    syn_tt_depth = np.asarray(
+                        [arr[i] for arr in syn_tts[idx:fill_one]], dtype=np.float
+                    )
+                    # syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
+                    x = np.asarray([arr[k] for arr in extra_arrs[idx:fill_one]], dtype=np.float)
+                x = x - syn_tt_depth
+                if np.any(x > t_post[i]):
+                    x[x > t_post[i]] = None
+                if np.any(x < -t_pre[i]):
+                    x[x < -t_pre[i]] = None
+                print(idx_i)
+                if idx_i == len(idxs) - 1:
+                    y = np.asarray(Yticks[idx + (idx_i + 1) :])
+                else:
+                    y = np.asarray(Yticks[idx + (idx_i + 1) : fill_one + 1])
+                y = y[~np.isnan(x)]
+                x = x[~np.isnan(x)]
+                if x.size == 0:
+                    continue
+                rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
+                if rotn.size == 0:
+                    trans_angle = 90
+                    ax[i].plot(
+                        [x[0], x[0]], [y[0] - 0.4 * delta, y[0] + 0.4 * delta], "dimgrey", lw=1
+                    )
+                else:
+                    l2 = np.array((x[-1], y[-1]))
+                    rotation = rotn[-1]
+                    trans_angle = plt.gca().transData.transform_angles(
+                        np.array((rotation,)), l2.reshape((1, 2))
+                    )[0]
+                    ax[i].plot(x, y, "-", c="dimgrey", lw=1)
+
+                ax[i].text(
+                    x[-1],
+                    y[-1],
+                    extra_phases[k],
+                    verticalalignment="center",
+                    color="dimgrey",
+                    fontsize=10,
+                    rotation=trans_angle,
+                    weight="bold",
                 )
 
-        # fig, ax[i] = Plot_phase_vs_depth_copy(
-        #     tr=st_obs[i],
-        #     depth=depth,
-        #     total_depths=len(depths) + 1,
-        #     Ytick=Yticks[idepth + 1],
-        #     phase=phase,
-        #     t_pre=t_pre[i],
-        #     t_post=t_post[i],
-        #     fig=fig,
-        #     ax=ax[i],
-        #     extra_phases=None,
-        #     extra_arrs=None,
-        #     color="b",
-        # )
-        # ax[i].axvline(0.0, c="dimgrey")
-
-        ax[i].plot(
-            [0, 0], [Yticks[0] - 0.4 * delta, Yticks[idx - 1] + 0.4 * delta], "dimgrey", lw=1
-        )
-        ax[i].text(
-            0.1,
-            Yticks[idx - 1] + 0.4 * delta,
-            phase,
-            verticalalignment="center",
-            color="dimgrey",
-            fontsize=10,
-            weight="bold",
-        )
-        ax[i].plot(
-            [0, 0], [Yticks[idx + 1] - 0.4 * delta, Yticks[-1] + 0.4 * delta], "dimgrey", lw=1
-        )
-        ax[i].text(
-            0.1,
-            Yticks[-1] + 0.4 * delta,
-            phase,
-            verticalalignment="center",
-            color="dimgrey",
-            fontsize=10,
-            weight="bold",
-        )
-
-        for k in range(len(extra_phases)):
-            """ Below observed plot: """
-            syn_tt_depth = np.asarray([arr[i] for arr in syn_tts[:idx]], dtype=np.float)
-            # syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
-            x = np.asarray([arr[k] for arr in extra_arrs[:idx]], dtype=np.float)
-            x = x - syn_tt_depth
-            if np.any(x > t_post[i]):
-                x[x > t_post[i]] = None
-            if np.any(x < -t_pre[i]):
-                x[x < -t_pre[i]] = None
-            # y = np.asarray(Yticks[:-1])
-            y = np.asarray(Yticks[:idx])
-            y = y[~np.isnan(x)]
-            x = x[~np.isnan(x)]
-            if x.size == 0:
-                continue
-            rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
-            if rotn.size == 0:
-                trans_angle = 90
-                ax[i].plot([x[0], x[0]], [y[0] - 0.4 * delta, y[0] + 0.4 * delta], "dimgrey", lw=1)
-            else:
-                l2 = np.array((x[-1], y[-1]))
-                rotation = rotn[-1]
-                trans_angle = plt.gca().transData.transform_angles(
-                    np.array((rotation,)), l2.reshape((1, 2))
-                )[0]
-                ax[i].plot(x, y, "-", c="dimgrey", lw=1)
-            ax[i].text(
-                x[-1],
-                y[-1],
-                extra_phases[k],
-                verticalalignment="center",
-                color="dimgrey",
-                fontsize=10,
-                rotation=trans_angle,
-                weight="bold",
-            )
-
-            """ Above observed plot"""
-            syn_tt_depth = np.asarray([arr[i] for arr in syn_tts[idx:]], dtype=np.float)
-            # syn_tt_depth = np.asarray([arr[i] for arr in syn_tts], dtype=np.float)
-            x = np.asarray([arr[k] for arr in extra_arrs[idx:]], dtype=np.float)
-            x = x - syn_tt_depth
-            if np.any(x > t_post[i]):
-                x[x > t_post[i]] = None
-            if np.any(x < -t_pre[i]):
-                x[x < -t_pre[i]] = None
-            y = np.asarray(Yticks[idx + 1 :])
-            y = y[~np.isnan(x)]
-            x = x[~np.isnan(x)]
-            if x.size == 0:
-                continue
-            rotn = np.degrees(np.arctan(y[-1:] - y[-2:-1], x[-1:] - x[-2:-1]))
-            if rotn.size == 0:
-                trans_angle = 90
-                ax[i].plot([x[0], x[0]], [y[0] - 0.4 * delta, y[0] + 0.4 * delta], "dimgrey", lw=1)
-            else:
-                l2 = np.array((x[-1], y[-1]))
-                rotation = rotn[-1]
-                trans_angle = plt.gca().transData.transform_angles(
-                    np.array((rotation,)), l2.reshape((1, 2))
-                )[0]
-                ax[i].plot(x, y, "-", c="dimgrey", lw=1)
-
-            ax[i].text(
-                x[-1],
-                y[-1],
-                extra_phases[k],
-                verticalalignment="center",
-                color="dimgrey",
-                fontsize=10,
-                rotation=trans_angle,
-                weight="bold",
-            )
-
-            depths_ins = np.insert(depths, idx, 70)
-            ax[i].yaxis.set_ticks(Yticks)
-            ax[i].set_yticklabels(depths_ins)
-            yticks = ax[i].yaxis.get_major_ticks()
-            yticks[idx].set_visible(False)
-            ax[i].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
-            if not i == 0:
-                ax[i].get_yaxis().set_visible(False)
+                # depths_ins = np.insert(depths, idx + idx_i, 70)
+                ax[i].yaxis.set_ticks(Yticks)
+                ax[i].set_yticklabels(depths_ins)
+                yticks = ax[i].yaxis.get_major_ticks()
+                yticks[idx + idx_i].set_visible(False)
+                ax[i].set_ylim(Yticks[0] - delta, Yticks[-1] + delta)
+                if not i == 0:
+                    ax[i].get_yaxis().set_visible(False)
 
     # # for i in range(len(phases)):
-    depths_ins = np.insert(depths, idx, 70)
+
     ax[-1].yaxis.set_ticks(Yticks)
     ax[-1].set_yticklabels(depths_ins)
     # yticks = ax[-1].yaxis.get_major_ticks()
