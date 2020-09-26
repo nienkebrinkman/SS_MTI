@@ -48,7 +48,7 @@ db_path = "/opt/databases/TAYAK_15s_BKE"
 # db_path = "http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/"
 db = instaseis.open_db(db_path)
 
-SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
+# SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
 
 
 lat_rec = 4.502384
