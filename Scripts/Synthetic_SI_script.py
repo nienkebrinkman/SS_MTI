@@ -135,7 +135,7 @@ tstars = None
 fmin = 1.0 / 5.0
 fmax = 1.0 / 1.0
 zerophase = False
-output_folder = "/home/nienke/Documents/Data_2020/Synthetic/"
+output_folder = "/home/nienke/Data_2020/Synthetic/"
 
 extra_phases = None
 ylims = [1e-9, 4e-9, 2e-9, 1e-9, 2e-9]
