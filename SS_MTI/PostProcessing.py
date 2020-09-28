@@ -20,6 +20,7 @@ from obspy import UTCDateTime as utct
 from obspy.imaging.beachball import aux_plane
 from sklearn.cluster import KMeans
 from pyrocko import moment_tensor as mtm
+import matplotlib.patches as mpatches
 
 pyproj_datadir = os.environ["PROJ_LIB"]
 
@@ -436,8 +437,8 @@ def Plot_Direct_BB(
         resid_height = 1.0 - 3.0 * axis_height
         title_height = resid_height / 3.0
 
-    DC_scal = 1 - Eps / 0.5
-    CLVD_scal = 1 - DC_scal
+    DC_scal = np.sqrt(1 - Eps / 0.5)
+    CLVD_scal = np.sqrt(1 - (1 - Eps / 0.5))
 
     ## Full moment tensor:
     img1, buf1 = Get_bb_img(MT_Full, color)
@@ -926,7 +927,7 @@ def plot_misfit_vs_depth(
             ax[1].axvline(x=Moho, c="grey", ls="dashed", lw=3)
             if true_depth is not None:
                 ax[1].axvline(x=true_depth, c="green", ls="dotted", label="True Depth")
-        ax[2].plot(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
+        ax[2].semilogy(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
         if i == 0:
             ax[2].axvline(x=Moho, c="grey", ls="dashed", lw=3)
             if true_depth is not None:
@@ -990,8 +991,8 @@ def plot_misfit_vs_depth(
     ax[2].set_ylabel(r"$\kappa$", fontsize=20)
     ax[2].tick_params(axis="both", which="major", labelsize=18)
     ax[2].tick_params(axis="both", which="minor", labelsize=10)
-    if event_name == "S0173a":
-        ax[2].set_ylim(0.0, 2000.0)
+    # if event_name == "S0173a":
+    #     ax[2].set_ylim(0.0, 2000.0)
     ax[2].grid(True)
     return fig
 
@@ -1075,7 +1076,10 @@ def plot_phases_vs_depth(
     for idepth, depth in enumerate(depths):
         print(depth)
         if method == "GS":
-            MT_depth = 32  # 59
+            if event.name == "S0173a":
+                MT_depth = 14
+            elif event.name == "S0235b":
+                MT_depth = 59  # 14
             h5_file_path = pjoin(
                 h5_file_folder,
                 f"GS_{event.name}_{MT_depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
@@ -1273,13 +1277,19 @@ def plot_phases_vs_depth(
         depths_ins = np.insert(depths_ins, idx + idx_i, 70)
     for idx_i, idx in enumerate(idxs):
         for i, phase in enumerate(phases):
+            if idx_i > 0:
+                fill_zero = idxs[idx_i]
+            else:
+                fill_zero = 0
+            if idx_i == len(idxs) - 1:
+                fill_one = -1
+                fill_zero = idxs[idx_i] + len(idxs)
+            else:
+                fill_one = idxs[idx_i + 1]
             if phase == "P":
                 ymax = ax[i].get_ylim()[1]
                 if event.name == "S0173a":
-                    if idx_i > 0:
-                        fill_zero = idxs[idx_i]
-                    else:
-                        fill_zero = 0
+                    if idx_i == 0:
                         ax[i].fill(
                             [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
                             [
@@ -1291,12 +1301,6 @@ def plot_phases_vs_depth(
                             facecolor="green",
                             alpha=0.2,
                         )
-                    if idx_i == len(idxs) - 1:
-                        fill_one = -1
-                        fill_zero = idxs[idx_i] + len(idxs)
-                    else:
-                        fill_one = idxs[idx_i + 1]
-
                     ax[i].fill(
                         [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
                         [
@@ -1427,7 +1431,7 @@ def plot_phases_vs_depth(
                 if idx_i == len(idxs) - 1:
                     y = np.asarray(Yticks[idx + (idx_i + 1) :])
                 else:
-                    y = np.asarray(Yticks[idx + (idx_i + 1) : fill_one + 1])
+                    y = np.asarray(Yticks[idx + (idx_i + 1) : fill_one + (idx_i + 1)])
                 y = y[~np.isnan(x)]
                 x = x[~np.isnan(x)]
                 if x.size == 0:
@@ -1610,7 +1614,7 @@ def post_waveform_plotting(
             misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
             uncert = 0.05 * Total_L2_GS[0]
             inds = np.where(misfit_low < uncert)
-            lowest_indices = lowest_ind[inds]
+            lowest_indices = lowest_ind[inds][:10]
 
             # n_lowest = int(len(Total_L2_GS) * 0.05)
             # lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
@@ -2457,40 +2461,6 @@ def Source_Uncertainty(
     for idepth, depth in enumerate(depths):
         print(depth)
         # if method == "GS":
-        color_plot = "b"
-        h5_file_path = pjoin(
-            h5_file_folder,
-            f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
-        )
-        depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
-            Filename=h5_file_path, amount_of_phases=len(phases)
-        )
-        Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
-        lowest_ind = Total_L2_GS.argsort()
-        Total_L2_GS.sort()
-        misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
-        uncert = 0.05 * Total_L2_GS[0]
-        inds = np.where(misfit_low < uncert)
-        lowest_indices = lowest_ind[inds]
-        GOF_GS = (Total_L2_GS / DOF)[lowest_indices]
-        M0 = M0_GS[lowest_indices]
-
-        sdrs = sdr[lowest_indices, :]
-        MT_Full = np.zeros((sdrs.shape[0], 6))
-        for i in range(MT_Full.shape[0]):
-            MT_Full[i, :] = _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i])
-
-        if idepth == 0:
-            M0_plot_GS = M0
-            MT_GS = MT_Full
-            MT_sdrs = sdrs
-            weights_GS = np.exp(-GOF_GS)
-        else:
-            M0_plot_GS = np.hstack((M0_plot_GS, M0))
-            MT_GS = np.vstack((MT_GS, MT_Full))
-            MT_sdrs = np.vstack((MT_sdrs, sdrs))
-            weights_GS = np.hstack((weights_GS, np.exp(-GOF_GS)))
-
         # else:
         if event_name == "S0183a":
             pass
@@ -2513,6 +2483,11 @@ def Source_Uncertainty(
                 angles,
                 cond_nr,
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=len(phases))
+            if Epsilon > 0.2:
+                continue
+            # if event_name == "S0173a" and depth > 60.0:
+            #     continue
+            print(f"chosen depth: {depth}")
             Total_L2_Direct = np.sum(misfit_L2_Direct)
             GOF_Direct = Total_L2_Direct / DOF
             DC_MT = np.expand_dims(DC_MT, axis=0)
@@ -2529,29 +2504,91 @@ def Source_Uncertainty(
             (s1, d1, r1), (s2, d2, r2) = m.both_strike_dip_rake()
             sdr_1 = np.expand_dims([s1, d1, r1], axis=0)
             sdr_2 = np.expand_dims([s2, d2, r2], axis=0)
-            if idepth == 0:
+            if "M0_plot_Direct" not in locals():
                 M0_plot_Direct = M0_DC
                 MT_Direct = DC_MT
                 sdr_Direct1 = sdr_1
-                sdr_Direct2 = sdr_2
+                sdr_Direct1 = np.vstack((sdr_Direct1, sdr_2))
+                # sdr_Direct2 = sdr_2
                 weights_Direct = np.exp(-GOF_Direct)
+                weights_Direct = np.hstack((weights_Direct, np.exp(-GOF_Direct)))
             else:
                 M0_plot_Direct = np.hstack((M0_plot_Direct, M0_DC))
                 MT_Direct = np.vstack((MT_Direct, DC_MT))
                 sdr_Direct1 = np.vstack((sdr_Direct1, sdr_1))
-                sdr_Direct2 = np.vstack((sdr_Direct2, sdr_2))
+                sdr_Direct1 = np.vstack((sdr_Direct1, sdr_2))
+                # sdr_Direct2 = np.vstack((sdr_Direct2, sdr_2))
+                weights_Direct = np.hstack((weights_Direct, np.exp(-GOF_Direct)))
                 weights_Direct = np.hstack((weights_Direct, np.exp(-GOF_Direct)))
 
             color_plot = "r"
+        color_plot = "b"
+        h5_file_path = pjoin(
+            h5_file_folder,
+            f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+        )
+        depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
+            Filename=h5_file_path, amount_of_phases=len(phases)
+        )
+        Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+        lowest_ind = Total_L2_GS.argsort()
+        Total_L2_GS.sort()
+        misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
+        uncert = 0.05 * Total_L2_GS[0]
+        inds = np.where(misfit_low < uncert)
+        lowest_indices = lowest_ind[inds][:50]
+        GOF_GS = (np.sum(misfit_L2_GS, axis=1) / DOF)[lowest_indices]
+        M0 = M0_GS[lowest_indices]
+
+        sdrs = sdr[lowest_indices, :]
+        MT_Full = np.zeros((sdrs.shape[0], 6))
+        for i in range(MT_Full.shape[0]):
+            MT_Full[i, :] = _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i])
+
+        if "M0_plot_GS" not in locals():
+            M0_plot_GS = M0
+            MT_GS = MT_Full
+            MT_sdrs = sdrs
+            weights_GS = np.exp(-GOF_GS)
+        else:
+            M0_plot_GS = np.hstack((M0_plot_GS, M0))
+            MT_GS = np.vstack((MT_GS, MT_Full))
+            MT_sdrs = np.vstack((MT_sdrs, sdrs))
+            weights_GS = np.hstack((weights_GS, np.exp(-GOF_GS)))
 
     mean_Full = []
     std_Full = []
+    n, bins = np.histogram(M0_plot_GS, bins=18)  # , weights=weights_GS)
+    mids = 0.5 * (bins[1:] + bins[:-1])
+
+    mean = np.average(mids, weights=n)
+    std = np.sqrt(np.average((mids - mean) ** 2, weights=n))
+    print("M0", mean, std)
+    print("MW", 2.0 / 3.0 * (np.log10(mean) - 9.1), 2.0 / 3.0 * (np.log10(std) - 9.1))
+    # from scipy import stats
+    MT_names = ["mzz", "myy", "mxx", "myz", "mxz", "mxy"]
     for i in range(6):
         hist_1 = MT_GS[:, i]
+
         n, bins = np.histogram(hist_1, bins=18, weights=weights_GS)
         mids = 0.5 * (bins[1:] + bins[:-1])
 
         mean = np.average(mids, weights=n)
+        std = np.sqrt(np.average((mids - mean) ** 2, weights=n))
+        print(MT_names[i], "%.2e" % mean, "%.2e" % std)
+        # (values, counts) = np.unique(hist_1, return_counts=True)
+        # ind = np.argmax(counts)
+        # mean = values[ind]
+
+        # n, bins = np.histogram(hist_1, bins=18, weights=weights_GS)
+        # mids = 0.5 * (bins[1:] + bins[:-1])
+        # mean = stats.mode(hist_1).mode[0]
+        # if mean == -0.0:
+        #     print("hallo")
+        #     mean = 0.0
+        # print(f"{mean}")
+        # mean = np.average(hist_1, weights=weights_GS)
+        # mean = np.mean(hist_1)
         mean_Full.append(mean)
         std_Full.append(np.sqrt(np.average((mids - mean) ** 2, weights=n)))
 
@@ -2566,7 +2603,9 @@ def Source_Uncertainty(
 
     (s1, d1, r1), (s2, d2, r2) = m.both_strike_dip_rake()
     mean_Full1 = [s1, d1, r1]
+    print(mean_Full1)
     mean_Full2 = [s2, d2, r2]
+    print(mean_Full2)
 
     m = mtm.MomentTensor(
         mnn=std_Full[1],
@@ -2585,7 +2624,8 @@ def Source_Uncertainty(
     sdr_mins = [0, 0, -180]
     sdr_maxs = [360, 90, 180]
 
-    fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3), sharey="row")
+    # fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3), sharey="row")
+    fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3))
     for i in range(3):
         ax1[i].hist(
             MT_sdrs[:, i],
@@ -2593,19 +2633,22 @@ def Source_Uncertainty(
             alpha=0.4,
             color="steelblue",
             edgecolor="none",
-            weights=weights_GS,
+            weights=None,
             density=True,
+            label="GS",
         )
-        # ax1[i].hist(
-        #     sdr_Direct1[:, i],
-        #     bins=18,
-        #     alpha=0.4,
-        #     color="darkred",
-        #     edgecolor="none",
-        #     weights=weights_Direct,
-        #     density=True,
-        # )
-        # ax1[i].hist(
+        ax2 = ax1[i].twinx()
+        ax2.hist(
+            sdr_Direct1[:, i],
+            bins=10,
+            alpha=0.4,
+            color="darkred",
+            edgecolor="none",
+            weights=weights_Direct,
+            density=True,
+            label="Direct",
+        )
+        # ax2.hist(
         #     sdr_Direct2[:, i],
         #     bins=18,
         #     alpha=0.4,
@@ -2614,13 +2657,13 @@ def Source_Uncertainty(
         #     weights=weights_Direct,
         #     density=True,
         # )
-        ax1[i].axvline(x=mean_Full1[i], c="red", lw=1, label="mean 1", alpha=0.5)
+        ax1[i].axvline(x=mean_Full1[i], c="black", ls="dashed", lw=2, label="mean 1", alpha=0.5)
         # ax1[i].axvline(
         #     x=mean_Full1[i] + std_Full1[i], c="red", lw=1, ls="--", label="std 1", alpha=0.5
         # )
         # ax1[i].axvline(x=mean_Full1[i] - std_Full1[i], c="red", lw=1, ls="--", alpha=0.5)
 
-        ax1[i].axvline(x=mean_Full2[i], c="steelblue", lw=1, label="mean 2", alpha=0.5)
+        ax1[i].axvline(x=mean_Full2[i], c="black", ls="dashed", lw=2, label="mean 2", alpha=0.5)
         # ax1[i].axvline(
         #     x=mean_Full2[i] + std_Full2[i], c="steelblue", lw=1, ls="--", label="std 2", alpha=0.5
         # )
@@ -2629,12 +2672,43 @@ def Source_Uncertainty(
         ax1[i].set_xlabel(sdr_names[i], fontsize=18)
         ax1[i].tick_params(axis="x", labelsize=15)
         ax1[i].tick_params(axis="y", labelsize=15)
+        ax2.tick_params(axis="y", labelsize=15)
         ax1[i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+        ax2.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+        ax1[i].yaxis.label.set_color("steelblue")
+        ax1[i].tick_params(axis="y", colors="steelblue")
+        ax2.yaxis.label.set_color("darkred")
+        ax2.tick_params(axis="y", colors="darkred")
+
         ax1[i].set_xlim(sdr_mins[i], sdr_maxs[i])
         # ax1[i].set_ylim(0, 0.01)
-        # if i == 2:
-        #     ax1[i].legend()
+        if i == 2:
+            # where some data has already been plotted to ax
+            handles, labels = ax1[i].get_legend_handles_labels()
+
+            # manually define a new patch
+            patch = mpatches.Patch(color="darkred", label="Direct", alpha=0.4)
+
+            # handles is a list, so append manual patch
+            handles.append(patch)
+
+            # ax1[i].legend(handles=handles, ncol=2)
+            ax1[i].legend(handles=handles)
     fig1.suptitle(event_name, fontsize=20)
+
+    fig = Plot_GS_BB(
+        MT_sdrs[:, 0],
+        MT_sdrs[:, 1],
+        MT_sdrs[:, 2],
+        azimuths=[10, 10, 10],
+        inc_angles=[10, 10, 10],
+        phase_names=["P", "P", "P"],
+        color="blue",
+    )
+    plt.savefig(
+        pjoin(h5_file_folder, f"Overal_BBB__{event_name}.svg",), dpi=300,
+    )
+    plt.close()
     return fig1
 
 
