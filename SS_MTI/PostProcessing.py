@@ -763,8 +763,12 @@ def plot_misfit_vs_depth(
     labels = ["", ""]
     n_lowest = 1
 
+    # fig, ax = plt.subplots(
+    #     nrows=3, ncols=1, sharex="all", figsize=(28, 17), gridspec_kw={"height_ratios": [4, 1, 1]},
+    # )
+
     fig, ax = plt.subplots(
-        nrows=3, ncols=1, sharex="all", figsize=(8, 8), gridspec_kw={"height_ratios": [4, 1, 1]},
+        nrows=3, ncols=1, sharex="all", figsize=(28, 12), gridspec_kw={"height_ratios": [4, 1, 1]},
     )
     # from matplotlib import gridspec
     # gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
@@ -780,7 +784,7 @@ def plot_misfit_vs_depth(
         Eps = np.array([])
         cond_nrs = np.array([])
 
-        for depth in depths:
+        for idepth, depth in enumerate(depths):
             print(i, depth)
             GS_File = glob.glob(
                 pjoin(
@@ -898,7 +902,7 @@ def plot_misfit_vs_depth(
                 beach(
                     [sdr[0][0], sdr[0][1], sdr[0][2]],
                     xy=(depth_GS[0], y2),
-                    width=15,
+                    width=40,
                     linewidth=1,
                     axes=ax[0],
                 )
@@ -907,7 +911,7 @@ def plot_misfit_vs_depth(
                 beach(
                     DC_MT / M0_DC,
                     xy=(depth, y1),
-                    width=15,
+                    width=40,
                     facecolor="r",
                     linewidth=1,
                     axes=ax[0],
@@ -930,7 +934,14 @@ def plot_misfit_vs_depth(
             ax[1].axvline(x=Moho, c="grey", ls="dashed", lw=3)
             if true_depth is not None:
                 ax[1].axvline(x=true_depth, c="green", ls="dotted", label="True Depth")
-        ax[2].semilogy(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
+        # ax[2].semilogy(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
+        ax[2].plot(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
+        ax[2].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+        # if event_name == "S0235b":
+        #     ax[2].set_yticks([80, 100, 200, 400])
+        # elif event_name == "S0173a":
+        #     ax[2].set_yticks([700, 1000, 1300])
+
         if i == 0:
             ax[2].axvline(x=Moho, c="grey", ls="dashed", lw=3)
             if true_depth is not None:
@@ -956,11 +967,11 @@ def plot_misfit_vs_depth(
     for bb in BB:
         ax[0].add_collection(bb)
 
-    ax[0].legend(prop={"size": 15}, loc="upper center", ncol=len(save_paths) + 1)
-    ax[0].set_ylabel(r"$\chi^2$", fontsize=25)
+    ax[0].legend(prop={"size": 45}, loc="upper center", ncol=len(save_paths) + 1)
+    ax[0].set_ylabel(r"$\chi^2$", fontsize=45)
     # ax[0].ticklabel_format(style="sci", axis='y', scilimits=(-2, 2))
-    ax[0].tick_params(axis="both", which="major", labelsize=18)
-    ax[0].tick_params(axis="both", which="minor", labelsize=10)
+    ax[0].tick_params(axis="both", which="major", labelsize=35)
+    ax[0].tick_params(axis="both", which="minor", labelsize=25)
 
     # ax[0].axvspan(53, 68, facecolor="purple", alpha=0.3)
     # y = ax[0].get_ylim()[0] * 0.8
@@ -984,16 +995,16 @@ def plot_misfit_vs_depth(
     ax[1].set_yticks(list(ax[1].get_yticks()) + extraticks)
     # ax[1].legend(prop={"size": 15}, loc="upper right")
     # ax[1].set_xlabel("Depth (km)", fontsize=20)
-    ax[1].set_ylabel(r"$\epsilon$", fontsize=25)
-    ax[1].tick_params(axis="both", which="major", labelsize=18)
-    ax[1].tick_params(axis="both", which="minor", labelsize=10)
+    ax[1].set_ylabel(r"$\epsilon$", fontsize=45)
+    ax[1].tick_params(axis="both", which="major", labelsize=35)
+    ax[1].tick_params(axis="both", which="minor", labelsize=25)
     ax[1].set_ylim(-0.05, 0.5)
     ax[1].grid(True)
 
-    ax[2].set_xlabel("Depth (km)", fontsize=25)
-    ax[2].set_ylabel(r"$\kappa$", fontsize=25)
-    ax[2].tick_params(axis="both", which="major", labelsize=18)
-    ax[2].tick_params(axis="both", which="minor", labelsize=10)
+    ax[2].set_xlabel("Depth (km)", fontsize=45)
+    ax[2].set_ylabel(r"$\kappa$", fontsize=45)
+    ax[2].tick_params(axis="both", which="major", labelsize=35)
+    ax[2].tick_params(axis="both", which="minor", labelsize=25)
     # if event_name == "S0173a":
     #     ax[2].set_ylim(0.0, 2000.0)
     ax[2].grid(True)
@@ -1040,11 +1051,12 @@ def plot_phases_vs_depth(
     baz = None
     inc = None
 
+    SHIFT = 2.5
     """ Process the observed data """
     obs_tt = []
     for i, phase in enumerate(phases):
         obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
-    t_post_new = [t + 2.5 for t in t_post]
+    t_post_new = [t + SHIFT for t in t_post]
     st_obs, sigmas = _PreProcess.prepare_event_data(
         event=event,
         phases=phases,
@@ -1082,7 +1094,7 @@ def plot_phases_vs_depth(
             if event.name == "S0173a":
                 MT_depth = 38
             elif event.name == "S0235b":
-                MT_depth = 56  # 14
+                MT_depth = 32  # 14
             h5_file_path = pjoin(
                 h5_file_folder,
                 f"GS_{event.name}_{MT_depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
@@ -1201,7 +1213,7 @@ def plot_phases_vs_depth(
                 slice=True,
                 tt=syn_tt,
                 t_pre=t_pre[i],
-                t_post=t_post[i] + 2.5,
+                t_post=t_post[i] + SHIFT,
             )
 
             color = "k"
@@ -1239,6 +1251,7 @@ def plot_phases_vs_depth(
                     extra_arrs=None,
                     color="b",
                     linewidth=2,
+                    SHIFT=SHIFT,
                 )
                 ytick = Yticks[idepth + obs]
             elif (depth > depths[[np.abs(depths - x).argmin() + 1 for x in pref_depth_end]]).any():
@@ -1258,6 +1271,7 @@ def plot_phases_vs_depth(
                 extra_arrs=extra_arrs[idepth],
                 color=color,
                 linewidth=lw,
+                SHIFT=SHIFT,
             )
             BB.append(
                 beach(
@@ -1294,7 +1308,7 @@ def plot_phases_vs_depth(
                 if event.name == "S0173a":
                     if idx_i == 0:
                         ax[i].fill(
-                            [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
+                            [17 - SHIFT, 40 - SHIFT, 40 - SHIFT, 17 - SHIFT],
                             [
                                 Yticks[fill_zero] - 0.4 * delta,
                                 Yticks[fill_zero] - 0.4 * delta,
@@ -1305,7 +1319,7 @@ def plot_phases_vs_depth(
                             alpha=0.2,
                         )
                     ax[i].fill(
-                        [17 - 2.5, 40 - 2.5, 40 - 2.5, 17 - 2.5],
+                        [17 - SHIFT, 40 - SHIFT, 40 - SHIFT, 17 - SHIFT],
                         [
                             Yticks[idx + (idx_i + 1)] - 0.4 * delta,
                             Yticks[idx + (idx_i + 1)] - 0.4 * delta,
@@ -1513,6 +1527,7 @@ def Plot_phase_vs_depth_copy(
     extra_arrs: [float] = None,
     color: str = None,
     linewidth: float = 1,
+    SHIFT: float = 0.0,
 ):
     if color is None:
         color = "k"
@@ -1528,7 +1543,7 @@ def Plot_phase_vs_depth_copy(
     ymin = global_min + Ytick
     ymax = global_max + Ytick
 
-    ax.plot(st.times() - t_pre - 2.5, st.data + Ytick, color, lw=linewidth)
+    ax.plot(st.times() - t_pre - SHIFT, st.data + Ytick, color, lw=linewidth)
 
     # ax.plot(
     #     [0, 0], [ymin, ymax], "grey",
@@ -1617,7 +1632,7 @@ def post_waveform_plotting(
                 f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
             )
             depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
-                Filename=h5_file_path, amount_of_phases=2
+                Filename=h5_file_path, amount_of_phases=5
             )
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
             lowest_ind = Total_L2_GS.argsort()
@@ -1788,6 +1803,251 @@ def post_waveform_plotting(
             plt.close()
 
 
+def post_waveform_plotting_COMBINED(
+    h5_file_folder: str,
+    misfit_name: str,
+    misfit_weight_len: float,
+    fwd: _Forward._AbstractForward,
+    event: obspy.core.event.Event,
+    rec: instaseis.Receiver,
+    phases: [str],
+    components: [str],
+    t_pre: [float],
+    t_post: [float],
+    depths: [float],
+    phase_corrs: [float] = None,
+    fmin: float = None,
+    fmax: float = None,
+    zerophase: bool = None,
+    tstars: _Union[_List[float], _List[str]] = None,
+    plot_extra_phases: [str] = None,
+    Ylims: [float] = None,
+    Return_Fig: bool = False,
+):
+    if tstars is None:
+        tstars = [None] * len(phases)
+
+    if phase_corrs is None:
+        phase_corrs = [0] * len(phases)
+
+    if (fmin == None) or (fmax == None):
+        print("Data will not be filtered due to fmin or fmax equal to None")
+        filter_par = False
+    else:
+        filter_par = True
+
+    # TODO: IMPLEMENT LQT COORDINATE SYSTEM
+    LQT_value = False
+    baz = None
+    inc = None
+
+    """ PRE-PROCESS THE OBSERVED Travel_times """
+    obs_tt = []
+    for i, phase in enumerate(phases):
+        obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
+
+    for idepth, depth in enumerate(depths):
+        print(depth)
+
+        color_plot = "b"
+        h5_file_path = pjoin(
+            h5_file_folder,
+            f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+        )
+        depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
+            Filename=h5_file_path, amount_of_phases=5
+        )
+        Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+        lowest_ind = Total_L2_GS.argsort()
+        Total_L2_GS.sort()
+        misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
+        uncert = 0.05 * Total_L2_GS[0]
+        inds = np.where(misfit_low < uncert)
+        lowest_indices = lowest_ind[inds][:50]
+
+        # n_lowest = int(len(Total_L2_GS) * 0.05)
+        # lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
+        # n_lowest = 10
+        # lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
+        MT = sdr[lowest_indices, :]
+        depth_GS = depth_GS[lowest_indices]
+        M0 = M0_GS[lowest_indices]
+
+        """ Calculate take-off angles"""
+        takeoff_angles = ["P", "S", "pP"]
+        angles = []
+        for phase in takeoff_angles:
+            angles.append(
+                fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance, takeoffs=True)
+            )
+        """ Beachball plot """
+        fig = Plot_GS_BB(
+            MT[:, 0],
+            MT[:, 1],
+            MT[:, 2],
+            azimuths=[event.az, event.az, event.az],
+            inc_angles=angles,
+            phase_names=takeoff_angles,
+            color=color_plot,
+        )
+        plt.savefig(
+            pjoin(
+                h5_file_folder,
+                f"GS_BBB__{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
+            ),
+            dpi=300,
+        )
+        plt.close()
+
+        """ Generate Green's functions per depth """
+        syn_tts = []
+        syn_GFs = []
+        for i, phase in enumerate(phases):
+            syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
+
+            syn_GF = fwd.get_greens_functions(
+                comp=components[i],
+                depth=depth,
+                distance=event.distance,
+                lat_src=event.latitude,
+                lon_src=event.longitude,
+                rec=rec,
+                tstar=tstars[i],
+                LQT=LQT_value,
+                inc=inc,
+                baz=baz,
+                M0=1.0,
+                filter=filter_par,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
+            )
+            syn_GFs.append(syn_GF)
+            syn_tts.append(syn_tt)
+
+        if plot_extra_phases is not None:
+            extra_arrs = []
+            for j, extraphase in enumerate(plot_extra_phases):
+                arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+                extra_arrs.append(arr)
+        else:
+            extra_arrs = None
+
+        fig, ax = waveform_plot(
+            syn_GFs=syn_GFs,
+            syn_tts=syn_tts,
+            obs_tts=obs_tt,
+            fwd=fwd,
+            misfit_weight_len=misfit_weight_len,
+            event=event,
+            phases=phases,
+            components=components,
+            t_pre=t_pre,
+            t_post=t_post,
+            MTs=MT,
+            M0s=M0,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+            plot_extra_phases=plot_extra_phases,
+            extra_arrs=extra_arrs,
+            color_plot=color_plot,
+            Ylims=Ylims,
+        )
+
+        """ DIRECT: """
+        h5_file_path = pjoin(
+            h5_file_folder,
+            f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+        )
+
+        (
+            depth_Direct,
+            MT,
+            DC_MT,
+            CLVD_MT,
+            misfit_L2_Direct,
+            Epsilon,
+            M0,
+            M0_DC,
+            M0_CLVD,
+            angles,
+            cond_nr,
+        ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
+        Total_L2_Direct = np.sum(misfit_L2_Direct)
+
+        color_plot = "r"
+
+        MT_FULL_ = MT  # np.array([MT[0], MT[2], MT[1], MT[4], MT[3], MT[5],])
+        DC_MT_ = DC_MT  # np.array([DC_MT[0], DC_MT[2], DC_MT[1], DC_MT[4], DC_MT[3], DC_MT[5],])
+        CLVD_MT_ = CLVD_MT  # np.array(
+        #     [CLVD_MT[0], CLVD_MT[2], CLVD_MT[1], CLVD_MT[4], CLVD_MT[3], CLVD_MT[5],]
+        # )
+
+        fig = Plot_Direct_BB(
+            MT_Full=MT_FULL_ / M0,
+            Eps=Epsilon,
+            MT_DC=DC_MT_ / M0_DC,
+            M0_DC=M0_DC,
+            MT_CLVD=CLVD_MT_ / M0_CLVD,
+            M0_CLVD=M0_CLVD,
+            azimuths=[event.az, event.az, event.az],
+            inc_angles=angles,
+            phase_names=["P", "S", "pP"],
+            color=color_plot,
+            height=19.0,
+            horizontal=True,
+        )
+
+        plt.savefig(
+            pjoin(
+                h5_file_folder,
+                f"Direct_BB_{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
+            ),
+            dpi=300,
+        )
+        plt.close()
+
+        MT = np.expand_dims(DC_MT, axis=0)
+        M0 = np.expand_dims(M0_DC, axis=0)
+
+        fig = waveform_plot(
+            syn_GFs=syn_GFs,
+            syn_tts=syn_tts,
+            obs_tts=obs_tt,
+            fwd=fwd,
+            misfit_weight_len=misfit_weight_len,
+            event=event,
+            phases=phases,
+            components=components,
+            t_pre=t_pre,
+            t_post=t_post,
+            MTs=MT,
+            M0s=M0,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+            plot_extra_phases=plot_extra_phases,
+            extra_arrs=extra_arrs,
+            color_plot=color_plot,
+            Ylims=Ylims,
+            fig=fig,
+            ax=ax,
+        )
+
+        if Return_Fig:
+            return fig
+        else:
+            plt.savefig(
+                pjoin(
+                    h5_file_folder,
+                    f"COMBINED_waveforms_{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
+                ),
+                dpi=300,
+            )
+            plt.close()
+
+
 def waveform_plot(
     syn_GFs: obspy.Stream,
     syn_tts: [float],
@@ -1808,6 +2068,8 @@ def waveform_plot(
     extra_arrs: [float] = None,
     color_plot: str = None,
     Ylims: [float] = None,
+    fig: [bool] = None,
+    ax: [bool] = None,
 ):
     """ Waveform plot """
 
@@ -1816,7 +2078,10 @@ def waveform_plot(
         filter_par = False
     else:
         filter_par = True
-    fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(10, 8))
+
+    if fig is None and ax is None:
+        # fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(18, 16))
+        fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(28, 20))
 
     for i, phase in enumerate(phases):
         for n in range(len(M0s)):
@@ -1830,13 +2095,22 @@ def waveform_plot(
             )
 
             if n == 0:
-                ax[i].plot(
-                    tr_slice.times() - t_pre[i],
-                    tr_slice.data,
-                    lw=2,
-                    c=color_plot,
-                    label="Synthetic",
-                )
+                if color_plot == "b":
+                    ax[i].plot(
+                        tr_slice.times() - t_pre[i],
+                        tr_slice.data,
+                        lw=2,
+                        c=color_plot,
+                        label="Synthetic (Grid-search)",
+                    )
+                else:
+                    ax[i].plot(
+                        tr_slice.times() - t_pre[i],
+                        tr_slice.data,
+                        lw=3,
+                        c=color_plot,
+                        label="Synthetic (Direct)",
+                    )
 
             else:
                 ax[i].plot(
@@ -1874,7 +2148,7 @@ def waveform_plot(
                     st_obs_full[i].times() - obs_tts[i], st_obs_full[i].data, lw=1, c="k",
                 )
                 ax[i].plot(
-                    st_obs[i].times() - t_pre[i], st_obs[i].data, lw=2, c="k", label="Observed",
+                    st_obs[i].times() - t_pre[i], st_obs[i].data, lw=3, c="k", label="Observed",
                 )
 
                 st += st_obs[i]
@@ -1893,12 +2167,12 @@ def waveform_plot(
                 if event.name == "S0173a" and phase == "P":
                     ax[i].axvspan(t_post[i], t_post[i] + 23, facecolor="green", alpha=0.1)
                     ax[i].text(
-                        35,
+                        29,
                         ymin * 0.8,
                         "Glitch",
                         verticalalignment="center",
                         color="green",
-                        fontsize=15,
+                        fontsize=35,
                     )
 
                 ax[i].axvline(x=0.0, c="dimgrey", lw=2)
@@ -1908,16 +2182,16 @@ def waveform_plot(
                     phase,
                     verticalalignment="center",
                     color="dimgray",
-                    fontsize=15,
+                    fontsize=30,
                 )
                 ax[i].text(
                     s="%s%s" % (phases[i], components[i]),
-                    x=0.98,
-                    y=0.7,
+                    x=0.99,
+                    y=0.75,
                     ha="right",
                     transform=ax[i].transAxes,
                     color=color_plot,
-                    fontsize=20,
+                    fontsize=40,
                 )
 
                 # Extra phase arrivals:
@@ -1932,11 +2206,11 @@ def waveform_plot(
                                 extraphase,
                                 verticalalignment="center",
                                 color="dimgrey",
-                                fontsize=15,
+                                fontsize=30,
                                 rotation=90,
                             )
-                ax[i].tick_params(axis="both", which="major", labelsize=18)
-                ax[i].tick_params(axis="both", which="minor", labelsize=10)
+                ax[i].tick_params(axis="both", which="major", labelsize=35)
+                ax[i].tick_params(axis="both", which="minor", labelsize=25)
 
                 ax[i].get_yaxis().get_offset_text().set_visible(False)
                 ax_max = max(ax[i].get_yticks())
@@ -1945,20 +2219,20 @@ def waveform_plot(
                     r"$\times$10$^{%i}$" % (exponent_axis),
                     xy=(0.01, 0.75),
                     xycoords="axes fraction",
-                    fontsize=18,
+                    fontsize=32,
                 )
 
-    fig.text(
-        0.9,
-        0.88,
-        "M0: %.2e" % (M0s[0]),
-        ha="right",
-        va="bottom",
-        size="medium",
-        color="black",
-        fontsize=25,
-    )
-    fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=25)
+    # fig.text(
+    #     0.9,
+    #     0.88,
+    #     "M0: %.2e" % (M0s[0]),
+    #     ha="right",
+    #     va="bottom",
+    #     size="medium",
+    #     color="black",
+    #     fontsize=40,
+    # )
+    fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=45)
     fig.text(
         0.5,
         0.88,
@@ -1967,18 +2241,18 @@ def waveform_plot(
         va="bottom",
         size="x-large",
         color=color_plot,
-        fontsize=25,
+        fontsize=45,
     )
 
     ax[0].legend(
-        prop={"size": 12},
+        prop={"size": 35},
         loc="center left",
         bbox_to_anchor=(0.12, 0.93),
         bbox_transform=fig.transFigure,
     )
 
-    ax[-1].set_xlim(-8.0, 45.0)
-    ax[-1].set_xlabel("time after phase (s)", fontsize=25)
+    ax[-1].set_xlim(-3.0, 32.0)
+    ax[-1].set_xlabel("time after phase (s)", fontsize=45)
     return fig, ax
 
 
@@ -2497,8 +2771,8 @@ def Source_Uncertainty(
                 M0_CLVD,
                 angles,
                 cond_nr,
-            ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=len(phases))
-            if Epsilon > 0.2:
+            ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
+            if Epsilon > 0.15:
                 continue
             if event_name == "S0173a" and depth > 60.0:
                 continue
@@ -2545,7 +2819,7 @@ def Source_Uncertainty(
             f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
         )
         depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
-            Filename=h5_file_path, amount_of_phases=len(phases)
+            Filename=h5_file_path, amount_of_phases=5
         )
         Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
         lowest_ind = Total_L2_GS.argsort()
@@ -2553,7 +2827,7 @@ def Source_Uncertainty(
         misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
         uncert = 0.05 * Total_L2_GS[0]
         inds = np.where(misfit_low < uncert)
-        lowest_indices = lowest_ind[inds]
+        lowest_indices = lowest_ind[inds][:300]
         GOF_GS = (np.sum(misfit_L2_GS, axis=1) / DOF)[lowest_indices]
         M0 = M0_GS[lowest_indices]
 
@@ -2563,12 +2837,12 @@ def Source_Uncertainty(
             MT_Full[i, :] = _GreensFunctions.convert_SDR(sdrs[i, 0], sdrs[i, 1], sdrs[i, 2], M0[i])
 
         if "M0_plot_GS" not in locals():
-            M0_plot_GS = M0
+            M0_plot_GS = M0[:1]
             MT_GS = MT_Full
             MT_sdrs = sdrs
             weights_GS = np.exp(-GOF_GS)
         else:
-            M0_plot_GS = np.hstack((M0_plot_GS, M0))
+            M0_plot_GS = np.hstack((M0_plot_GS, M0[:1]))
             MT_GS = np.vstack((MT_GS, MT_Full))
             MT_sdrs = np.vstack((MT_sdrs, sdrs))
             weights_GS = np.hstack((weights_GS, np.exp(-GOF_GS)))
@@ -2585,10 +2859,11 @@ def Source_Uncertainty(
     # from scipy import stats
     MT_names = ["mzz", "myy", "mxx", "mxz", "myz", "mxy"]
     for i in range(6):
-        # hist_1 = MT_GS[:, i]
-        hist_1 = MT_Direct[:, i]
+        hist_1 = MT_GS[:, i]
+        n, bins = np.histogram(hist_1, bins=18, weights=weights_GS)
+        # hist_1 = MT_Direct[:, i]
+        # n, bins = np.histogram(hist_1, bins=18, weights=weights_Direct_MT)
 
-        n, bins = np.histogram(hist_1, bins=18, weights=weights_Direct_MT)
         mids = 0.5 * (bins[1:] + bins[:-1])
 
         mean = np.average(mids, weights=n)
@@ -2638,27 +2913,77 @@ def Source_Uncertainty(
     std_Full1 = [s1, d1, r1]
     std_Full2 = [s2, d2, r2]
 
+    """ K-means """
+    array_convt = MT_sdrs[:, 0].reshape(len(MT_sdrs[:, 0]), 1)
+    km_s = KMeans(n_clusters=2).fit(array_convt)
+    clusters_s = km_s.predict(array_convt)
+    kmeans_s = km_s.cluster_centers_
+    c_mean_distances_s = []
+    # for i, (cx,cy) in enumerate(kmeans_s):
+    #         mean_distance = k_mean_distance_2d(h, cx,cy,i, clusters_s)
+    #         c_mean_distances_s.append(mean_distance)
+    for i, cx in enumerate(kmeans_s):
+        mean_distance = k_mean_distance(array_convt, cx, i, clusters_s)
+        c_mean_distances_s.append(mean_distance)
+
+    array_convt = MT_sdrs[:, 1].reshape(len(MT_sdrs[:, 1]), 1)
+    km_d = KMeans(n_clusters=2).fit(array_convt)
+    clusters_d = km_d.predict(array_convt)
+    kmeans_d = km_d.cluster_centers_
+    c_mean_distances_d = []
+    for i, cx in enumerate(kmeans_d):
+        mean_distance = k_mean_distance(array_convt, cx, i, clusters_d)
+        c_mean_distances_d.append(mean_distance)
+
+    array_convt = MT_sdrs[:, 2]
+    array_convt = array_convt[array_convt < 0]
+    array_convt = array_convt.reshape(len(array_convt), 1)
+    km_r = KMeans(n_clusters=2).fit(array_convt)
+    clusters_r = km_r.predict(array_convt)
+    kmeans_r = km_r.cluster_centers_
+    c_mean_distances_r = []
+    for i, cx in enumerate(kmeans_r):
+        mean_distance = k_mean_distance(array_convt, cx, i, clusters_r)
+        c_mean_distances_r.append(mean_distance)
+
+    c_mean_distances = [c_mean_distances_s, c_mean_distances_d, c_mean_distances_r]
+    print(c_mean_distances)
+
+    strike_aux, dip_aux, rake_aux = aux_plane(kmeans_s[0][0], kmeans_d[0][0], kmeans_r[0][0])
+    # strike_aux, dip_aux, rake_aux = aux_plane(strikes[0], dips[0], kmeans_r[0][0])
+    f_planes = [kmeans_s[0][0], kmeans_d[0][0], kmeans_r[0][0]]
+    # f_planes = [strikes[0], dips[0], kmeans_r[0][0]]
+    kmeans_tot = [kmeans_s[1][0], kmeans_d[1][0], kmeans_r[1][0]]
+    # kmeans_tot = [strikes[1],dips[1], kmeans_r[1][0]]
+    print(f"plane 1: {f_planes}")
+    aux_planes = [strike_aux, dip_aux, rake_aux]
+    print(f"plane 2: {aux_planes}")
+
+    """ """
+
     sdr_names = ["strike", "dip", "rake"]
     sdr_mins = [0, 0, -180]
     sdr_maxs = [360, 90, 180]
 
     # fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3), sharey="row")
-    fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3))
+    fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(14, 3))
     for i in range(3):
         ax1[i].hist(
             MT_sdrs[:, i],
             bins=18,
             alpha=0.4,
+            range=(sdr_mins[i], sdr_maxs[i]),
             color="steelblue",
             edgecolor="none",
-            weights=None,
+            weights=weights_GS,
             density=True,
             label="GS",
         )
         ax2 = ax1[i].twinx()
         ax2.hist(
             sdr_Direct1[:, i],
-            bins=10,
+            bins=18,
+            range=(sdr_mins[i], sdr_maxs[i]),
             alpha=0.4,
             color="darkred",
             edgecolor="none",
@@ -2675,19 +3000,29 @@ def Source_Uncertainty(
         #     weights=weights_Direct,
         #     density=True,
         # )
-        ax1[i].axvline(x=mean_Full1[i], c="black", ls="dashed", lw=2, label="mean 1", alpha=0.5)
+        ax1[i].axvline(
+            x=mean_Full1[i], c="black", ls="dashed", lw=2, label="Fault plane 1", alpha=0.5
+        )
         # ax1[i].axvline(
         #     x=mean_Full1[i] + std_Full1[i], c="red", lw=1, ls="--", label="std 1", alpha=0.5
         # )
         # ax1[i].axvline(x=mean_Full1[i] - std_Full1[i], c="red", lw=1, ls="--", alpha=0.5)
 
-        ax1[i].axvline(x=mean_Full2[i], c="black", ls="dashed", lw=2, label="mean 2", alpha=0.5)
+        ax1[i].axvline(
+            x=mean_Full2[i], c="black", ls="dashed", lw=2, label="Fault plane 2", alpha=0.5
+        )
         # ax1[i].axvline(
         #     x=mean_Full2[i] + std_Full2[i], c="steelblue", lw=1, ls="--", label="std 2", alpha=0.5
         # )
         # ax1[i].axvline(x=mean_Full2[i] - std_Full2[i], c="steelblue", lw=1, ls="--", alpha=0.5)
+        # ax1[i].axvline(x=f_planes[i], c="steelblue", lw=1, ls="--", alpha=0.5)
+        # ax1[i].axvline(x=aux_planes[i], c="steelblue", lw=1, ls="--", alpha=0.5)
 
         ax1[i].set_xlabel(sdr_names[i], fontsize=18)
+        if i == 0:
+            ax1[i].set_ylabel(r"$\chi^2$", fontsize=18)
+        if i == 2:
+            ax2.set_ylabel(r"$\chi^2$", fontsize=18)
         ax1[i].tick_params(axis="x", labelsize=15)
         ax1[i].tick_params(axis="y", labelsize=15)
         ax2.tick_params(axis="y", labelsize=15)
@@ -2711,7 +3046,7 @@ def Source_Uncertainty(
             handles.append(patch)
 
             # ax1[i].legend(handles=handles, ncol=2)
-            ax1[i].legend(handles=handles)
+            ax1[i].legend(handles=handles, ncol=2)
     fig1.suptitle(event_name, fontsize=20)
 
     # fig = Plot_GS_BB(

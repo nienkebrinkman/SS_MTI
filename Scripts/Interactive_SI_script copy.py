@@ -15,37 +15,9 @@ import SS_MTI
 import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
-
-from obspy.imaging.beachball import beachball
-
-# S0173a
-# mxx = -2.6e12
-# myy = 4.1e12
-# mzz = -1.8e12
-# mxy = 4.4e12
-# myz = 15e12
-# mxz = -20e12
-
-# S0235b
-# mxx = -0.15e12
-# myy = 3.8e12
-# mzz = -3.8e12
-# mxy = -3.7e12
-# myz = 10e12
-# mxz = 28e12
-
-
-# m_rr = mzz
-# m_pp = myy
-# m_tt = mxx
-# m_rp = -myz
-# m_rt = mxz
-# m_tp = -mxy
-
-# beachball([m_rr, m_tt, m_pp, m_rt, m_rp, m_tp])
-# beachball([266.68999614304369, 69.561223652066289, -86.504927172270015])
-
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/"
+save_folder = (
+    "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases_cluster/Test_2020/"
+)
 
 path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
 # path = "/home/nienke/Documents/Research/SS_MTI/Data"
@@ -78,27 +50,12 @@ lat_rec = 4.5  # 02384
 lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
-""" """
-# depths = np.arange(5, 90, 3)
-# depths = np.arange(29, 50, 3)
-# depths = [17, 32, 59]
-depths = [59]
+""" Specify depth range """
+depths = np.arange(5, 90, 3)
 
-strikes = np.arange(0, 360, 20)
-dips = np.arange(0, 91, 15)
-rakes = np.arange(-180, 180, 15)
-
-# strikes = [15.0116557194]  # [132.395557582]
-# dips = [59.551091053]  # [51.9591191063]
-# rakes = [-45.6275510954]  # [-139.94976385]
-
-# strikes = [131.464966079]
-# dips = [75.2975778142]
-# rakes = [-179.464433396]
-
-# strikes = np.arange(0, 360, 5)
-# dips = np.arange(0, 91, 5)
-# rakes = np.arange(-180, 180, 5)
+strikes = np.arange(0, 360, 5)
+dips = np.arange(0, 91, 5)
+rakes = np.arange(-180, 180, 5)
 
 """ Define different velocity models"""
 db_name_1 = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
@@ -110,8 +67,8 @@ npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 db_name_3 = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
 npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
 
-db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
-npz_file_names = [npz_file_name_1]
+db_names = [db_name_2]  # , db_name_3, db_name_4, db_name_5]
+npz_file_names = [npz_file_name_2]
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -121,13 +78,16 @@ for i, v in event_input.items():
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
     if event.name == "S0235b":
-
-        depths = [56]
+        # continue
+        depths = [32, 29]
+        # depths = [29]
     elif event.name == "S0173a":
-        continue
+        # continue
         depths = [38]
+        # depths = [14]
     else:
-        depths = [29, 41]
+        continue
+        depths = [41]
 
     if event.name == "S0183a":
         event.distance = 44.5
@@ -211,32 +171,32 @@ for i, v in event_input.items():
 
         """ Start inversion """
 
-        SS_MTI.Inversion.Grid_Search_run(
-            fwd=fwd,
-            misfit=misfit,
-            event=event,
-            rec=rec,
-            phases=phases,
-            components=components,
-            t_pre=t_pre,
-            t_post=t_post,
-            depths=depths,
-            strikes=strikes,
-            dips=dips,
-            rakes=rakes,
-            phase_corrs=phase_corrs,
-            tstars=tstars,
-            fmin=None,
-            fmax=None,
-            zerophase=zerophase,
-            list_to_correct_M0=amplitude_correction,
-            output_folder=output_folder,
-            plot=True,
-            plot_extra_phases=extra_phases,
-            color_plot="blue",
-            Ylims=ylims,
-            Parallel=False,
-        )
+        # SS_MTI.Inversion.Grid_Search_run(
+        #     fwd=fwd,
+        #     misfit=misfit,
+        #     event=event,
+        #     rec=rec,
+        #     phases=phases,
+        #     components=components,
+        #     t_pre=t_pre,
+        #     t_post=t_post,
+        #     depths=depths,
+        #     strikes=strikes,
+        #     dips=dips,
+        #     rakes=rakes,
+        #     phase_corrs=phase_corrs,
+        #     tstars=tstars,
+        #     fmin=None,
+        #     fmax=None,
+        #     zerophase=zerophase,
+        #     list_to_correct_M0=amplitude_correction,
+        #     output_folder=output_folder,
+        #     plot=True,
+        #     plot_extra_phases=extra_phases,
+        #     color_plot="blue",
+        #     Ylims=ylims,
+        #     Parallel=False,
+        # )
 
         # SS_MTI.Inversion.Direct(
         #     fwd=fwd,
@@ -263,27 +223,27 @@ for i, v in event_input.items():
         """ Post-processing """
 
         """ (waveform plotting post inversion from generated files)"""
-        _PostProcessing.post_waveform_plotting(
-            h5_file_folder=output_folder,
-            method="GS",
-            misfit_name=misfit.name,
-            misfit_weight_len=misfit.start_weight_len,
-            fwd=fwd,
-            event=event,
-            rec=rec,
-            phases=phases,
-            components=components,
-            t_pre=t_pre,
-            t_post=t_post,
-            depths=depths,
-            phase_corrs=phase_corrs,
-            fmin=fmin,
-            fmax=fmax,
-            zerophase=zerophase,
-            tstars=tstars,
-            plot_extra_phases=extra_phases,
-            Ylims=ylims,
-        )
+        # _PostProcessing.post_waveform_plotting(
+        #     h5_file_folder=output_folder,
+        #     method="GS",
+        #     misfit_name=misfit.name,
+        #     misfit_weight_len=misfit.start_weight_len,
+        #     fwd=fwd,
+        #     event=event,
+        #     rec=rec,
+        #     phases=phases,
+        #     components=components,
+        #     t_pre=t_pre,
+        #     t_post=t_post,
+        #     depths=depths,
+        #     phase_corrs=phase_corrs,
+        #     fmin=fmin,
+        #     fmax=fmax,
+        #     zerophase=zerophase,
+        #     tstars=tstars,
+        #     plot_extra_phases=extra_phases,
+        #     Ylims=ylims,
+        # )
 
         # _PostProcessing.post_waveform_plotting(
         #     h5_file_folder=output_folder,
@@ -307,8 +267,29 @@ for i, v in event_input.items():
         #     Ylims=ylims,
         # )
 
+        _PostProcessing.post_waveform_plotting_COMBINED(
+            h5_file_folder=output_folder,
+            misfit_name=misfit.name,
+            misfit_weight_len=misfit.start_weight_len,
+            fwd=fwd,
+            event=event,
+            rec=rec,
+            phases=phases,
+            components=components,
+            t_pre=t_pre,
+            t_post=t_post,
+            depths=depths,
+            phase_corrs=phase_corrs,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+            tstars=tstars,
+            plot_extra_phases=extra_phases,
+            Ylims=ylims,
+        )
+
         # # """ (misfit vs depth analysis)"""
-        DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
+        # DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
         # Moho_d = 24
         # depths = np.arange(5, 90, 3)
         # fig = _PostProcessing.plot_misfit_vs_depth(
@@ -353,8 +334,8 @@ for i, v in event_input.items():
         #     start_depth_range = [32, 77]
         #     end_depth_range = [41, 77]
         # elif event.name == "S0235b":
-        #     start_depth_range = [17, 56]
-        #     end_depth_range = [17, 65]
+        #     start_depth_range = [32, 56]
+        #     end_depth_range = [32, 65]
 
         # fig = _PostProcessing.plot_phases_vs_depth(
         #     h5_file_folder=output_folder,
@@ -381,7 +362,7 @@ for i, v in event_input.items():
         # plt.savefig(
         #     pjoin(
         #         save_folder,
-        #         f"PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+        #         f"Full_PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
         #     ),
         #     dpi=600,
         # )
@@ -402,8 +383,8 @@ for i, v in event_input.items():
         #     start_depth_range = [32, 77]
         #     end_depth_range = [41, 77]
         # elif event.name == "S0235b":
-        #     start_depth_range = [17, 56]
-        #     end_depth_range = [17, 65]
+        #     start_depth_range = [32, 56]
+        #     end_depth_range = [32, 65]
 
         # fig = _PostProcessing.plot_phases_vs_depth(
         #     h5_file_folder=output_folder,
@@ -439,6 +420,10 @@ for i, v in event_input.items():
         """ Uncertainty estimates:"""
         # depths = np.arange(5, 90, 3)
         # # depts = [14, 29, 32, 35, 41, 38, 65]
+        # if event.name == "S0235b":
+        #     depts = [29, 32, 35, 38, 56, 59, 62, 65]
+        # elif event.name == "S0173a":
+        #     depts = [29, 32, 35, 41, 38]
         # fig_sdr = _PostProcessing.Source_Uncertainty(
         #     h5_file_folder=output_folder,
         #     event_name=event.name,

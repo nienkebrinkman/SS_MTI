@@ -1,4 +1,5 @@
 """ Script to compute synthetic time & frequency ASCII files """
+__author__ = "Nienke Brinkman"
 
 from os.path import join as pjoin
 from os import listdir as lsdir
@@ -21,42 +22,42 @@ folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases_cl
 Normalize = False
 
 
-event_name = "S0183a"
-phases = ["P"]
-phase_corrs = [2.1, 2.1]
-components = ["Z"]
-tstar = [1.5, 1.5]
-# tstar = [None, None, None, None, None]
-t_pres = [60]
-t_posts = [400]
-depth = 29
-fmin = 0.2
-fmax = 0.4
-misfit_name = "L2"
-amount_of_phases = 2
-
-
-# event_name = "S0235b"
+# event_name = "S0183a"
 # phases = ["P"]
-# # phase_corrs = [0.2, 10.4, 11.1, 0.2, 11.1]
-# phase_corrs = [0.2, 10.4, 11.1, 0.2, 11.1]
+# phase_corrs = [2.1, 2.1]
 # components = ["Z"]
-# tstar = [0.4]
+# tstar = [1.5, 1.5]
 # # tstar = [None, None, None, None, None]
 # t_pres = [60]
 # t_posts = [400]
-# depth = 59
-# fmin = 0.1
-# fmax = 0.5
+# depth = 29
+# fmin = 0.2
+# fmax = 0.4
 # misfit_name = "L2"
-# amount_of_phases = 5
+# amount_of_phases = 2
+
+
+event_name = "S0235b"
+phases = ["P"]
+# phase_corrs = [0.2, 10.4, 11.1, 0.2, 11.1]
+phase_corrs = [0.2, 10.4, 11.1, 0.2, 11.1]
+components = ["Z"]
+tstar = [0.4, 0.2]
+# tstar = [None, None, None, None, None]
+t_pres = [60]
+t_posts = [400]
+depth = 32
+fmin = 0.1
+fmax = 0.5
+misfit_name = "L2"
+amount_of_phases = 5
 
 # event_name = "S0173a"
 # phases = ["P"]
 # phase_corrs = [-0.3, 2.9]
 # components = ["Z"]
 # tstar = [
-#     0.3,
+#     0.1,
 #     0.2,
 #     0.2,
 #     0.3,
@@ -180,6 +181,7 @@ S = utct(event.picks["S"]) + phase_corrs[1] - utct(event.picks["P"])
 
 st_obs_filt = obspy.Stream()
 st_obs_raw = obspy.Stream()
+st_obs_pre_noise = obspy.Stream()
 for i, tr in enumerate(st_obs_full):
     tr_copy = tr.copy()
     _PreProcess.filter_tr(tr_copy, fmin=fmin, fmax=fmax, zerophase=zerophase)
@@ -188,6 +190,11 @@ for i, tr in enumerate(st_obs_full):
         endtime=event.origin_time + obs_tt[i] + t_posts[i],
     )
     st_obs_filt += tr_window
+
+    tr_pre_noise = tr.copy()
+    st_obs_pre_noise += tr_pre_noise.slice(
+        starttime=event.origin_time - 100.0, endtime=event.origin_time - 10.0
+    )
 
     st_obs_raw += tr.slice(
         starttime=event.origin_time + obs_tt[i] - t_pres[i],
@@ -240,7 +247,7 @@ def calc_freq(tr):
 
 
 """ Generate Green's functions per depth """
-fig, ax = plt.subplots(nrows=len(phases), ncols=2, figsize=(18, 6 * len(phases)))
+fig, ax = plt.subplots(nrows=len(phases), ncols=2, figsize=(26, 6 * len(phases)))
 for i, phase in enumerate(phases):
     syn_GF = fwd.get_greens_functions(
         comp=components[i],
@@ -249,7 +256,7 @@ for i, phase in enumerate(phases):
         lat_src=event.latitude,
         lon_src=event.longitude,
         rec=rec,
-        tstar=tstar[i],
+        tstar=tstar[1],
         LQT=False,
         inc=None,
         baz=None,
@@ -286,8 +293,27 @@ for i, phase in enumerate(phases):
     ) as file:
         np.save(file, td_syn_raw, allow_pickle=False)
 
-    f_syn_filt, p_syn_filt = calc_PSD(tr_syn_filt, winlen_sec=win_len_sec[i])
-    f_syn_raw, p_syn_raw = calc_PSD(tr_syn_raw, winlen_sec=win_len_sec[i])
+    if event_name == "S0183a":
+        f_syn_filt, p_syn_filt = calc_PSD(tr_syn_filt, winlen_sec=win_len_sec[i])
+        f_syn_raw, p_syn_raw = calc_PSD(tr_syn_raw, winlen_sec=win_len_sec[i])
+    else:
+        t_pre_window = 10
+        t_post_window = 50
+        syn_tt_window = fwd.get_phase_tt(phase="S", depth=depth, distance=event.distance)
+        # if event_name == "S0173a":
+        #     t_post_window = 17
+        tr_syn_filt_freq = tr_syn_filt.copy()
+        tr_syn_filt_freq = tr_syn_filt_freq.slice(
+            starttime=event.origin_time + syn_tt_window - t_pre_window,
+            endtime=event.origin_time + syn_tt_window + t_post_window,
+        )
+        tr_syn_raw_freq = tr_syn_raw.copy()
+        tr_syn_raw_freq = tr_syn_raw_freq.slice(
+            starttime=event.origin_time + syn_tt_window - t_pre_window,
+            endtime=event.origin_time + syn_tt_window + t_post_window,
+        )
+        f_syn_filt, p_syn_filt = calc_PSD(tr_syn_filt_freq, winlen_sec=win_len_sec[i])
+        f_syn_raw, p_syn_raw = calc_PSD(tr_syn_raw_freq, winlen_sec=win_len_sec[i])
 
     fd_syn_filt = np.vstack((f_syn_filt, p_syn_filt))
     with open(
@@ -308,9 +334,32 @@ for i, phase in enumerate(phases):
     # freq = np.vstack((f, p))
     # with open(pjoin(save_folder, f"{event.name}_{veloc_name}_{phase}_spectra.txt"), "wb") as file:
     #     np.save(file, freq, allow_pickle=False)
+    if event_name == "S0183a":
+        f_obs_filt, p_obs_filt = calc_PSD(st_obs_filt[i], winlen_sec=win_len_sec[i])
+        f_obs_raw, p_obs_raw = calc_PSD(st_obs_raw[i], winlen_sec=win_len_sec[i])
+        f_obs_pre_noise, p_obs_pre_noise = calc_PSD(st_obs_pre_noise[i], winlen_sec=win_len_sec[i])
 
-    f_obs_filt, p_obs_filt = calc_PSD(st_obs_filt[i], winlen_sec=win_len_sec[i])
-    f_obs_raw, p_obs_raw = calc_PSD(st_obs_raw[i], winlen_sec=win_len_sec[i])
+    else:
+        t_pre_window = 10
+        t_post_window = 50
+        obs_tt_window = utct(event.picks["S"]) - event.origin_time + phase_corrs[1]
+        # if event_name == "S0173a":
+        #     t_post_window = 17
+        st_obs_filt_freq = st_obs_filt.copy()
+        st_obs_filt_freq[i] = st_obs_filt_freq[i].slice(
+            starttime=event.origin_time + obs_tt_window - t_pre_window,
+            endtime=event.origin_time + obs_tt_window + t_post_window,
+        )
+        st_obs_raw_freq = st_obs_raw.copy()
+        st_obs_raw_freq[i] = st_obs_raw_freq[i].slice(
+            starttime=event.origin_time + obs_tt_window - t_pre_window,
+            endtime=event.origin_time + obs_tt_window + t_post_window,
+        )
+
+        f_obs_filt, p_obs_filt = calc_PSD(st_obs_filt_freq[i], winlen_sec=win_len_sec[i])
+        f_obs_raw, p_obs_raw = calc_PSD(st_obs_raw_freq[i], winlen_sec=win_len_sec[i])
+        f_obs_pre_noise, p_obs_pre_noise = calc_PSD(st_obs_pre_noise[i], winlen_sec=win_len_sec[i])
+
     # f_obs_new, p_obs_new = calc_freq(st_obs[i])
 
     if Normalize:
@@ -320,9 +369,23 @@ for i, phase in enumerate(phases):
         st_obs_filt[i].normalize()
 
     if len(phases) == 1:
-        for t in [0.1, 0.5, 1.0, 2.0]:
-            p_tstar = p_syn_raw[0] * np.exp(-np.pi * f_syn_raw * t * 2)
-            # ax[1].semilogy(f_syn_raw, p_tstar, label=f"t*:{t}", lw=3, alpha=0.2)
+        cols = ["dodgerblue", "gold", "limegreen", "pink"]
+        for t_i, t in enumerate([0.1, 0.5, 1.0, 2.0]):
+
+            if event_name == "S0173a":
+                p_tstar = p_syn_raw[2] * np.exp(-np.pi * f_syn_raw * t * 2)
+            else:
+                p_tstar = p_syn_raw[0] * np.exp(-np.pi * f_syn_raw * t * 2)
+            ax[1].semilogx(
+                f_syn_raw,
+                10 * np.log10(p_tstar),
+                c=cols[t_i],
+                ls="--",
+                label=f"t*:{t}",
+                lw=2,
+                alpha=0.6,
+            )
+
         max_val = max(np.abs(tr_syn_raw.max()), np.abs(st_obs_raw[i].max()))
         max_val = max_val + 0.2 * max_val
         if Normalize:
@@ -347,14 +410,15 @@ for i, phase in enumerate(phases):
             st_obs_raw[i].data,
             color="black",
             label="raw observed",
-            alpha=0.7,
+            lw=2,
         )
         ax[0].plot(
             st_obs_filt[i].times() - t_pres[i],
             st_obs_filt[i].data + max_val,
             color="black",
-            ls="--",
+            lw=1,
             label="filtered observed",
+            alpha=0.7,
         )
         ax[0].set_xlabel("Time (s)", fontsize=25)
 
@@ -380,48 +444,47 @@ for i, phase in enumerate(phases):
             ha="left",
             transform=ax[0].transAxes,
             color="black",
-            fontsize=20,
+            fontsize=25,
         )
         ymax = ax[0].get_ylim()[0]
         ax[0].axvline(0, color="blue")
         ax[0].text(
-            0 - 1, ymax * 0.85, "P", verticalalignment="center", color="blue", fontsize=25,
+            0 - 1, ymax * 0.85, "P", verticalalignment="center", color="blue", fontsize=30,
         )
 
         ax[0].axvline(S, color="blue")
         ax[0].text(
-            S - 1, ymax * 0.85, "S", verticalalignment="center", color="blue", fontsize=25,
+            S - 1, ymax * 0.85, "S", verticalalignment="center", color="blue", fontsize=30,
         )
         if Normalize:
             ax[0].axes.get_yaxis().set_ticks([])
         print(S)
         ax[1].semilogx(
-            f_syn_raw, 10 * np.log10(p_syn_raw), color="red", alpha=0.7, label="raw synthetic"
+            f_syn_raw, 10 * np.log10(p_syn_raw), color="red", lw=3, label="raw synthetic"
         )
+        # ax[1].semilogx(
+        #     f_syn_filt, 10 * np.log10(p_syn_filt), color="red", lw=2, label="filtered synthetic"
+        # )
         ax[1].semilogx(
-            f_syn_filt, 10 * np.log10(p_syn_filt), color="red", ls="--", label="filtered synthetic"
+            f_obs_raw, 10 * np.log10(p_obs_raw), color="black", lw=3, label="raw observed"
         )
+        # ax[1].semilogx(
+        #     f_obs_filt, 10 * np.log10(p_obs_filt), color="black", lw=2, label="filtered observed",
+        # )
         ax[1].semilogx(
-            f_obs_raw, 10 * np.log10(p_obs_raw), color="black", alpha=0.7, label="raw observed"
-        )
-        ax[1].semilogx(
-            f_obs_filt,
-            10 * np.log10(p_obs_filt),
-            color="black",
-            ls="--",
-            label="filtered observed",
+            f_obs_filt, 10 * np.log10(p_obs_pre_noise), lw=3, color="slateblue", label="noise",
         )
         ax[1].axvline(fmin, color="black")
         ax[1].axvline(fmax, color="black")
         ax[1].axvspan(fmin, fmax, facecolor="orange", alpha=0.3)
-        ax[1].set_xlabel("Frequency (Hz)", fontsize=25)
-        ax[1].set_ylabel("displacement PSD [dB]", fontsize=25)
+        ax[1].set_xlabel("Frequency (Hz)", fontsize=30)
+        ax[1].set_ylabel("displacement PSD [dB]", fontsize=30)
         ax[1].axis("tight")
         # ax[1].set_title(f"{phase}{components[i]} t* used: {tstar[i]}", color="blue")
         # ax[1].set_xlim(0, 1.5)
-        ax[1].set_xlim(5e-2, 5e0)
+        ax[1].set_xlim(9e-2, 4e0)
         # ax[1].set_ylim(1e-24, 1e-16)
-        ax[1].set_ylim(-250, -100)
+        ax[1].set_ylim(-240, -170)
 
         ax[0].text(
             s=f"{event.name}",
@@ -430,17 +493,18 @@ for i, phase in enumerate(phases):
             ha="right",
             transform=ax[0].transAxes,
             color="blue",
-            fontsize=25,
+            fontsize=30,
         )
 
-        ax[0].tick_params(axis="both", which="major", labelsize=18)
-        ax[1].tick_params(axis="both", which="major", labelsize=18)
-        ax[0].tick_params(axis="both", which="minor", labelsize=10)
-        ax[1].tick_params(axis="both", which="minor", labelsize=10)
+        ax[0].tick_params(axis="both", which="major", labelsize=26)
+        ax[1].tick_params(axis="both", which="major", labelsize=26)
+        ax[0].tick_params(axis="both", which="minor", labelsize=15)
+        ax[1].tick_params(axis="both", which="minor", labelsize=15)
 
         if i == 0:
             # ax[0].legend()
-            ax[1].legend(fontsize=20)
+            ax[1].legend(fontsize=20, ncol=2)
+            # ax[1].legend(fontsize=25)
 
     else:
         for t in [0.1, 0.5, 1.0, 2.0]:
@@ -482,9 +546,9 @@ for i, phase in enumerate(phases):
         ax[i, 0].set_title(f"{phase}{components[i]}", color="blue")
 
         ax[i, 1].semilogy(f_syn_raw, p_syn_raw, color="red", alpha=0.7)
-        ax[i, 1].semilogy(f_syn_filt, p_syn_filt, color="red", ls="--")
+        ax[i, 1].semilogy(f_syn_filt, p_syn_filt, color="red", lw=2)
         ax[i, 1].semilogy(f_obs_raw, p_obs_raw, color="black", alpha=0.7)
-        ax[i, 1].semilogy(f_obs_filt, p_obs_filt, color="black", ls="--")
+        ax[i, 1].semilogy(f_obs_filt, p_obs_filt, color="black", lw=2)
         ax[i, 1].axvline(fmin, ls=":", color="darkgreen")
         ax[i, 1].axvline(fmax, ls=":", color="darkgreen")
         ax[i, 1].axvspan(fmin, fmax, facecolor="orange", alpha=0.3)
