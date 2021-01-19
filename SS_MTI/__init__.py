@@ -22,6 +22,7 @@ from SS_MTI import (
     MTDecompose,
     SourceTimeFunction,
     Read_H5,
+    RadiationPattern,
 )
 
 
@@ -38,4 +39,5 @@ __all__ = [
     "MTDecompose",
     "SourceTimeFunction",
     "Read_H5",
+    "RadiationPattern",
 ]

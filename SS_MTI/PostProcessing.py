@@ -32,6 +32,7 @@ from SS_MTI import MTDecompose as _MTDecompose
 from SS_MTI import Forward as _Forward
 from SS_MTI import PreProcess as _PreProcess
 from SS_MTI import GreensFunctions as _GreensFunctions
+from SS_MTI import RadiationPattern as _RadiationPattern
 
 
 def Plot_veloc_models(Taup_model, depth_event=None, depth_syn=None):
@@ -766,10 +767,16 @@ def plot_misfit_vs_depth(
     # fig, ax = plt.subplots(
     #     nrows=3, ncols=1, sharex="all", figsize=(28, 17), gridspec_kw={"height_ratios": [4, 1, 1]},
     # )
-
-    fig, ax = plt.subplots(
-        nrows=3, ncols=1, sharex="all", figsize=(28, 12), gridspec_kw={"height_ratios": [4, 1, 1]},
-    )
+    if event_name == "S0183a":
+        fig, ax = plt.subplots(nrows=1, ncols=1, sharex="all", figsize=(28, 5.33),)
+    else:
+        fig, ax = plt.subplots(
+            nrows=3,
+            ncols=1,
+            sharex="all",
+            figsize=(28, 8),
+            gridspec_kw={"height_ratios": [4, 1, 1]},
+        )
     # from matplotlib import gridspec
     # gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
     BB = []
@@ -792,12 +799,15 @@ def plot_misfit_vs_depth(
                     f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
                 )
             )[0]
-            Direct_File = glob.glob(
-                pjoin(
-                    save_path,
-                    f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
-                )
-            )[0]
+            if event_name == "S0183a":
+                pass
+            else:
+                Direct_File = glob.glob(
+                    pjoin(
+                        save_path,
+                        f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
+                    )
+                )[0]
 
             ## ================ READ GS =============================
             (depth_GS, sdr, M0_GS, misfit_L2_GS,) = _ReadH5.Read_GS_h5(
@@ -826,28 +836,30 @@ def plot_misfit_vs_depth(
             #     L2_GS = np.append(L2_GS, GOF_GS[lowest_indices][0])
             # else:
             #     L2_GS = np.append(L2_GS, GOF_GS[lowest_indices][0])
+            if event_name == "S0183a":
+                pass
+            else:
+                ## ============ Read Direct ========================
+                (
+                    depth_Direct,
+                    FULL_MT,
+                    DC_MT,
+                    CLVD_MT,
+                    misfit_L2_Direct,
+                    Epsilon,
+                    M0,
+                    M0_DC,
+                    M0_CLVD,
+                    angles,
+                    cond_nr,
+                ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
 
-            ## ============ Read Direct ========================
-            (
-                depth_Direct,
-                FULL_MT,
-                DC_MT,
-                CLVD_MT,
-                misfit_L2_Direct,
-                Epsilon,
-                M0,
-                M0_DC,
-                M0_CLVD,
-                angles,
-                cond_nr,
-            ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
-
-            Total_L2_Direct = np.sum(misfit_L2_Direct)
-            # Total_L2_norm_Direct = np.sum(misfit_L2_norm_Direct, axis=1)
-            # GOF_Direct = (Total_L2_norm_Direct / DOF) * 100
-            GOF_Direct = Total_L2_Direct / DOF
-            # L2_Direct = np.append(L2_Direct, Total_L2_Direct[0])
-            L2_Direct = np.append(L2_Direct, GOF_Direct)
+                Total_L2_Direct = np.sum(misfit_L2_Direct)
+                # Total_L2_norm_Direct = np.sum(misfit_L2_norm_Direct, axis=1)
+                # GOF_Direct = (Total_L2_norm_Direct / DOF) * 100
+                GOF_Direct = Total_L2_Direct / DOF
+                # L2_Direct = np.append(L2_Direct, Total_L2_Direct[0])
+                L2_Direct = np.append(L2_Direct, GOF_Direct)
 
             # ============== CREATE BEACHBALL PATCHES ===============
 
@@ -855,48 +867,31 @@ def plot_misfit_vs_depth(
             # y2 = Total_L2_Direct[0]
 
             y2 = GOF_GS[lowest_indices][0]
-            y1 = GOF_Direct
-
-            y_dist = np.log(np.abs(y1 - y2))
-
-            # if y_dist < 100:
-            #     adding_value = 2e-1
-            #     # adding_value = 2e0
-            #     Line_x.append(depth)
-            #     if y1 > y2:
-            #         y1 = y1 + adding_value
-            #         y2 = y2 - adding_value
-            #         Line1_ymin.append(GOF_GS[lowest_indices][0])
-            #         Line1_ymax.append(y1)
-            #         Line2_ymin.append(y2)
-            #         Line2_ymax.append(GOF_Direct)
-            #     else:
-            #         diff = y2 - y1
-            #         y1 = y1 + adding_value + diff
-            #         y2 = y2 - adding_value - diff
-            #         Line1_ymin.append(GOF_GS[lowest_indices][0])
-            #         Line1_ymax.append(y1)
-            #         Line2_ymin.append(y2)
-            #         Line2_ymax.append(GOF_Direct)
-
-            if y_dist < 100:
-                adding_value = 2e-1
-                Line_x.append(depth)
-                if y1 > y2:
-                    y1 = y1 + adding_value
-                    y2 = y2 - adding_value
-                    Line1_ymin.append(GOF_Direct)
-                    Line1_ymax.append(y1)
-                    Line2_ymin.append(y2)
-                    Line2_ymax.append(GOF_GS[lowest_indices][0])
-                else:
-                    diff = y2 - y1
-                    y1 = y1 + adding_value + diff
-                    y2 = y2 - adding_value - diff
-                    Line1_ymax.append(GOF_Direct)
-                    Line1_ymin.append(y1)
-                    Line2_ymax.append(y2)
-                    Line2_ymin.append(GOF_GS[lowest_indices][0])
+            if event_name == "S0183a":
+                ax_current = ax
+                pass
+            else:
+                y1 = GOF_Direct
+                ax_current = ax[0]
+                y_dist = np.log(np.abs(y1 - y2))
+                if y_dist < 100:
+                    adding_value = 2e-1
+                    Line_x.append(depth)
+                    if y1 > y2:
+                        y1 = y1 + adding_value
+                        y2 = y2 - adding_value
+                        Line1_ymin.append(GOF_Direct)
+                        Line1_ymax.append(y1)
+                        Line2_ymin.append(y2)
+                        Line2_ymax.append(GOF_GS[lowest_indices][0])
+                    else:
+                        diff = y2 - y1
+                        y1 = y1 + adding_value + diff
+                        y2 = y2 - adding_value - diff
+                        Line1_ymax.append(GOF_Direct)
+                        Line1_ymin.append(y1)
+                        Line2_ymax.append(y2)
+                        Line2_ymin.append(GOF_GS[lowest_indices][0])
 
             BB.append(
                 beach(
@@ -904,110 +899,104 @@ def plot_misfit_vs_depth(
                     xy=(depth_GS[0], y2),
                     width=40,
                     linewidth=1,
-                    axes=ax[0],
+                    axes=ax_current,
                 )
             )
-            BB.append(
-                beach(
-                    DC_MT / M0_DC,
-                    xy=(depth, y1),
-                    width=40,
-                    facecolor="r",
-                    linewidth=1,
-                    axes=ax[0],
+            if event_name == "S0183a":
+                pass
+            else:
+                BB.append(
+                    beach(
+                        DC_MT / M0_DC,
+                        xy=(depth, y1),
+                        width=40,
+                        facecolor="r",
+                        linewidth=1,
+                        axes=ax_current,
+                    )
                 )
-            )
 
-            Eps = np.append(Eps, Epsilon)
-            cond_nrs = np.append(cond_nrs, cond_nr)
+                Eps = np.append(Eps, Epsilon)
+                cond_nrs = np.append(cond_nrs, cond_nr)
 
-        ax[0].plot(depths, L2_GS, "-bo", label="Grid-Search %s" % labels[i], lw=i + 1)
-        ax[0].plot(depths, L2_Direct, "-ro", label="Direct %s" % labels[i], lw=i + 1)
+        ax_current.plot(depths, L2_GS, "-bo", label="Grid-Search %s" % labels[i], lw=i + 1)
+        if event_name == "S0183a":
+            pass
+        else:
+            ax_current.plot(depths, L2_Direct, "-ro", label="Direct %s" % labels[i], lw=i + 1)
         if i == 0:
-            ax[0].axvline(x=Moho, c="grey", ls="dashed", label="Moho", lw=3)
+            ax_current.axvline(x=Moho, c="grey", ls="dashed", label="Moho", lw=3)
             # true_depth = 45.
             if true_depth is not None:
-                ax[0].axvline(x=true_depth, c="green", ls="dotted", label="True Depth", lw=2)
+                ax_current.axvline(x=true_depth, c="green", ls="dotted", label="True Depth", lw=2)
 
-        ax[1].plot(depths, Eps, "--ko", label="Epsilon %s" % labels[i], lw=0.5)
-        if i == 0:
-            ax[1].axvline(x=Moho, c="grey", ls="dashed", lw=3)
-            if true_depth is not None:
-                ax[1].axvline(x=true_depth, c="green", ls="dotted", label="True Depth")
-        # ax[2].semilogy(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
-        ax[2].plot(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
-        ax[2].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
-        # if event_name == "S0235b":
-        #     ax[2].set_yticks([80, 100, 200, 400])
-        # elif event_name == "S0173a":
-        #     ax[2].set_yticks([700, 1000, 1300])
+        if event_name == "S0183a":
+            pass
+        else:
+            ax[1].plot(depths, Eps, "--ko", label="Epsilon %s" % labels[i], lw=0.5)
+            if i == 0:
+                ax[1].axvline(x=Moho, c="grey", ls="dashed", lw=3)
+                if true_depth is not None:
+                    ax[1].axvline(x=true_depth, c="green", ls="dotted", label="True Depth")
+            # ax[2].semilogy(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
+            ax[2].plot(depths, cond_nrs, "--ko", label="Condition number %s" % labels[i], lw=0.5)
+            ax[2].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+            # if event_name == "S0235b":
+            #     ax[2].set_yticks([80, 100, 200, 400])
+            # elif event_name == "S0173a":
+            #     ax[2].set_yticks([700, 1000, 1300])
 
-        if i == 0:
-            ax[2].axvline(x=Moho, c="grey", ls="dashed", lw=3)
-            if true_depth is not None:
-                ax[2].axvline(x=true_depth, c="green", ls="dotted", label="True Depth")
+            if i == 0:
+                ax[2].axvline(x=Moho, c="grey", ls="dashed", lw=3)
+                if true_depth is not None:
+                    ax[2].axvline(x=true_depth, c="green", ls="dotted", label="True Depth")
 
-    for iline in range(len(Line_x)):
-        ax[0].plot(
-            [Line_x[iline], Line_x[iline]],
-            [Line1_ymin[iline], Line1_ymax[iline]],
-            c="r",
-            ls="dashed",
-            alpha=0.5,
-            lw=0.5,
-        )
-        ax[0].plot(
-            [Line_x[iline], Line_x[iline]],
-            [Line2_ymin[iline], Line2_ymax[iline]],
-            c="b",
-            ls="dashed",
-            alpha=0.5,
-            lw=0.5,
-        )
+        for iline in range(len(Line_x)):
+            ax_current.plot(
+                [Line_x[iline], Line_x[iline]],
+                [Line1_ymin[iline], Line1_ymax[iline]],
+                c="r",
+                ls="dashed",
+                alpha=0.5,
+                lw=0.5,
+            )
+            ax_current.plot(
+                [Line_x[iline], Line_x[iline]],
+                [Line2_ymin[iline], Line2_ymax[iline]],
+                c="b",
+                ls="dashed",
+                alpha=0.5,
+                lw=0.5,
+            )
     for bb in BB:
-        ax[0].add_collection(bb)
+        ax_current.add_collection(bb)
 
-    ax[0].legend(prop={"size": 45}, loc="upper center", ncol=len(save_paths) + 1)
-    ax[0].set_ylabel(r"$\chi^2$", fontsize=45)
-    # ax[0].ticklabel_format(style="sci", axis='y', scilimits=(-2, 2))
-    ax[0].tick_params(axis="both", which="major", labelsize=35)
-    ax[0].tick_params(axis="both", which="minor", labelsize=25)
+    ax_current.legend(prop={"size": 45}, loc="upper center", ncol=len(save_paths) + 1)
+    ax_current.set_ylabel(r"$\chi^2$", fontsize=45)
+    ax_current.tick_params(axis="both", which="major", labelsize=23)
+    ax_current.tick_params(axis="both", which="minor", labelsize=23)
+    ax_current.grid(True)
 
-    # ax[0].axvspan(53, 68, facecolor="purple", alpha=0.3)
-    # y = ax[0].get_ylim()[0] * 0.8
-    # ax[0].text(
-    #     52, 9, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
-    # )
-    # ax[0].axvspan(26, 44, facecolor="purple", alpha=0.3)
-    # y = ax[0].get_ylim()[0] * 0.8
-    # ax[0].text(
-    #     26, 2, "Preferred depth range", verticalalignment="center", color="purple", fontsize=8
-    # )
+    if event_name == "S0183a":
+        pass
+    else:
+        extraticks = [0.1, 0.2, 0.3, 0.4]
+        ax[1].set_yticks(list(ax[1].get_yticks()) + extraticks)
+        # ax[1].legend(prop={"size": 15}, loc="upper right")
+        # ax[1].set_xlabel("Depth (km)", fontsize=20)
+        ax[1].set_ylabel(r"$\epsilon$", fontsize=45)
+        ax[1].tick_params(axis="both", which="major", labelsize=23)
+        ax[1].tick_params(axis="both", which="minor", labelsize=23)
+        ax[1].set_ylim(-0.05, 0.5)
+        ax[1].grid(True)
 
-    # ax[0].set_yscale('log')
-    ax[0].grid(True)
-    # ax[0].set_ylim(-0.1, 1.1)
-    # ax[0].set_xlim(6, 10)
-    # ax[0].set_ylim(4.5, 9)
-    # ax[0].set_xlabel('Depth (km)', fontsize=20)
-
-    extraticks = [0.1, 0.2, 0.3, 0.4]
-    ax[1].set_yticks(list(ax[1].get_yticks()) + extraticks)
-    # ax[1].legend(prop={"size": 15}, loc="upper right")
-    # ax[1].set_xlabel("Depth (km)", fontsize=20)
-    ax[1].set_ylabel(r"$\epsilon$", fontsize=45)
-    ax[1].tick_params(axis="both", which="major", labelsize=35)
-    ax[1].tick_params(axis="both", which="minor", labelsize=25)
-    ax[1].set_ylim(-0.05, 0.5)
-    ax[1].grid(True)
-
-    ax[2].set_xlabel("Depth (km)", fontsize=45)
-    ax[2].set_ylabel(r"$\kappa$", fontsize=45)
-    ax[2].tick_params(axis="both", which="major", labelsize=35)
-    ax[2].tick_params(axis="both", which="minor", labelsize=25)
-    # if event_name == "S0173a":
-    #     ax[2].set_ylim(0.0, 2000.0)
-    ax[2].grid(True)
+        ax[2].set_xlabel("Depth (km)", fontsize=45)
+        ax[2].set_ylabel(r"$\kappa$", fontsize=45)
+        ax[2].tick_params(axis="both", which="major", labelsize=23)
+        ax[2].tick_params(axis="both", which="minor", labelsize=23)
+        # if event_name == "S0173a":
+        #     ax[2].set_ylim(0.0, 2000.0)
+        ax[2].grid(True)
     return fig
 
 
@@ -1632,7 +1621,7 @@ def post_waveform_plotting(
                 f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
             )
             depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
-                Filename=h5_file_path, amount_of_phases=5
+                Filename=h5_file_path, amount_of_phases=len(phases)
             )
             Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
             lowest_ind = Total_L2_GS.argsort()
@@ -1640,8 +1629,8 @@ def post_waveform_plotting(
             misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
             uncert = 0.05 * Total_L2_GS[0]
             inds = np.where(misfit_low < uncert)
-            lowest_indices = lowest_ind[inds][:50]
-
+            lowest_indices = lowest_ind[inds][0:1]
+            print(np.sum(misfit_L2_GS, axis=1)[lowest_indices])
             # n_lowest = int(len(Total_L2_GS) * 0.05)
             # lowest_indices = Total_L2_GS.argsort()[0:n_lowest:50]
             # n_lowest = 10
@@ -2081,7 +2070,7 @@ def waveform_plot(
 
     if fig is None and ax is None:
         # fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(18, 16))
-        fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(28, 20))
+        fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(18, 20))
 
     for i, phase in enumerate(phases):
         for n in range(len(M0s)):
@@ -2199,40 +2188,41 @@ def waveform_plot(
                     for j, extraphase in enumerate(plot_extra_phases):
                         arr = extra_arrs[j]
                         if arr:
-                            ax[i].axvline(x=arr - syn_tts[i], c="dimgrey", lw=2)
-                            ax[i].text(
-                                arr - syn_tts[i] + 0.1,
-                                ymax * 0.75,
-                                extraphase,
-                                verticalalignment="center",
-                                color="dimgrey",
-                                fontsize=30,
-                                rotation=90,
-                            )
+                            if arr - syn_tts[i] > 0 and arr - syn_tts[i] < 31:
+                                ax[i].axvline(x=arr - syn_tts[i], c="dimgrey", lw=2)
+                                ax[i].text(
+                                    arr - syn_tts[i] + 0.1,
+                                    ymax * 0.75,
+                                    extraphase,
+                                    verticalalignment="center",
+                                    color="dimgrey",
+                                    fontsize=30,
+                                    rotation=90,
+                                )
                 ax[i].tick_params(axis="both", which="major", labelsize=35)
                 ax[i].tick_params(axis="both", which="minor", labelsize=25)
 
                 ax[i].get_yaxis().get_offset_text().set_visible(False)
                 ax_max = max(ax[i].get_yticks())
                 exponent_axis = np.floor(np.log10(ax_max)).astype(int)
-                ax[i].annotate(
-                    r"$\times$10$^{%i}$" % (exponent_axis),
-                    xy=(0.01, 0.75),
-                    xycoords="axes fraction",
-                    fontsize=32,
-                )
+                # ax[i].annotate(
+                #     r"$\times$10$^{%i}$" % (exponent_axis),
+                #     xy=(0.01, 0.75),
+                #     xycoords="axes fraction",
+                #     fontsize=32,
+                # )
 
-    # fig.text(
-    #     0.9,
-    #     0.88,
-    #     "M0: %.2e" % (M0s[0]),
-    #     ha="right",
-    #     va="bottom",
-    #     size="medium",
-    #     color="black",
-    #     fontsize=40,
-    # )
-    fig.text(0.01, 0.5, "Displacement (m)", va="center", rotation="vertical", fontsize=45)
+    fig.text(
+        0.9,
+        0.88,
+        "M0: %.2e" % (M0s[0]),
+        ha="right",
+        va="bottom",
+        size="medium",
+        color="black",
+        fontsize=40,
+    )
+    fig.text(0.01, 0.5, "Displacement (nm)", va="center", rotation="vertical", fontsize=45)
     fig.text(
         0.5,
         0.88,
@@ -2819,7 +2809,7 @@ def Source_Uncertainty(
             f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
         )
         depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
-            Filename=h5_file_path, amount_of_phases=5
+            Filename=h5_file_path, amount_of_phases=len(phases)
         )
         Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
         lowest_ind = Total_L2_GS.argsort()
@@ -2964,33 +2954,37 @@ def Source_Uncertainty(
     sdr_names = ["strike", "dip", "rake"]
     sdr_mins = [0, 0, -180]
     sdr_maxs = [360, 90, 180]
+    ticklabels = [[0, 90, 180, 270, 360], [0, 15, 30, 45, 60, 75, 90], [-180, -90, 0, 90, 180]]
 
     # fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(12, 3), sharey="row")
-    fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(14, 3))
+    fig1, ax1 = plt.subplots(nrows=1, ncols=3, figsize=(28, 5))
     for i in range(3):
         ax1[i].hist(
             MT_sdrs[:, i],
             bins=18,
-            alpha=0.4,
+            alpha=0.8,
             range=(sdr_mins[i], sdr_maxs[i]),
-            color="steelblue",
+            color="blue",
             edgecolor="none",
             weights=weights_GS,
             density=True,
             label="GS",
         )
-        ax2 = ax1[i].twinx()
-        ax2.hist(
-            sdr_Direct1[:, i],
-            bins=18,
-            range=(sdr_mins[i], sdr_maxs[i]),
-            alpha=0.4,
-            color="darkred",
-            edgecolor="none",
-            weights=weights_Direct,
-            density=True,
-            label="Direct",
-        )
+        if event_name == "S0183a":
+            pass
+        else:
+            ax2 = ax1[i].twinx()
+            ax2.hist(
+                sdr_Direct1[:, i],
+                bins=18,
+                range=(sdr_mins[i], sdr_maxs[i]),
+                alpha=0.8,
+                color="red",
+                edgecolor="none",
+                weights=weights_Direct,
+                density=True,
+                label="Direct",
+            )
         # ax2.hist(
         #     sdr_Direct2[:, i],
         #     bins=18,
@@ -3000,17 +2994,13 @@ def Source_Uncertainty(
         #     weights=weights_Direct,
         #     density=True,
         # )
-        ax1[i].axvline(
-            x=mean_Full1[i], c="black", ls="dashed", lw=2, label="Fault plane 1", alpha=0.5
-        )
+        ax1[i].axvline(x=mean_Full1[i], c="black", ls="dashed", lw=3, label="Fault plane 1")
         # ax1[i].axvline(
         #     x=mean_Full1[i] + std_Full1[i], c="red", lw=1, ls="--", label="std 1", alpha=0.5
         # )
         # ax1[i].axvline(x=mean_Full1[i] - std_Full1[i], c="red", lw=1, ls="--", alpha=0.5)
 
-        ax1[i].axvline(
-            x=mean_Full2[i], c="black", ls="dashed", lw=2, label="Fault plane 2", alpha=0.5
-        )
+        ax1[i].axvline(x=mean_Full2[i], c="black", ls="dashed", lw=3, label="Fault plane 2")
         # ax1[i].axvline(
         #     x=mean_Full2[i] + std_Full2[i], c="steelblue", lw=1, ls="--", label="std 2", alpha=0.5
         # )
@@ -3018,36 +3008,50 @@ def Source_Uncertainty(
         # ax1[i].axvline(x=f_planes[i], c="steelblue", lw=1, ls="--", alpha=0.5)
         # ax1[i].axvline(x=aux_planes[i], c="steelblue", lw=1, ls="--", alpha=0.5)
 
-        ax1[i].set_xlabel(sdr_names[i], fontsize=18)
+        ax1[i].set_xlabel(sdr_names[i], fontsize=45)
         if i == 0:
-            ax1[i].set_ylabel(r"$\chi^2$", fontsize=18)
-        if i == 2:
-            ax2.set_ylabel(r"$\chi^2$", fontsize=18)
-        ax1[i].tick_params(axis="x", labelsize=15)
-        ax1[i].tick_params(axis="y", labelsize=15)
-        ax2.tick_params(axis="y", labelsize=15)
+            ax1[i].set_ylabel("Probability", fontsize=45)
+
+        ax1[i].tick_params(axis="x", labelsize=23)
+        ax1[i].tick_params(axis="y", labelsize=23)
         ax1[i].ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
-        ax2.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
-        ax1[i].yaxis.label.set_color("steelblue")
-        ax1[i].tick_params(axis="y", colors="steelblue")
-        ax2.yaxis.label.set_color("darkred")
-        ax2.tick_params(axis="y", colors="darkred")
+        tx = ax1[i].yaxis.get_offset_text()
+        tx.set_fontsize(23)
+        ax1[i].yaxis.label.set_color("blue")
+        ax1[i].tick_params(axis="y", colors="blue")
+        ax1[i].xaxis.set_ticks(ticklabels[i])
+        ax1[i].set_xticklabels(ticklabels[i])
+        ax1[i].locator_params(axis="y", nbins=4)
+
+        if event_name == "S0183a":
+            pass
+        else:
+            if i == 2:
+                ax2.set_ylabel("Probability", fontsize=45)
+            ax2.locator_params(axis="y", nbins=4)
+            ax2.yaxis.label.set_color("red")
+            ax2.tick_params(axis="y", colors="red")
+            ax2.ticklabel_format(style="sci", axis="y", scilimits=(-2, 2))
+            tx = ax2.yaxis.get_offset_text()
+            tx.set_fontsize(23)
+            ax2.tick_params(axis="y", labelsize=23)
+            if i == 2:
+                # where some data has already been plotted to ax
+                handles, labels = ax1[i].get_legend_handles_labels()
+
+                # manually define a new patch
+                patch = mpatches.Patch(color="red", label="Direct", alpha=0.8)
+
+                # handles is a list, so append manual patch
+                handles.append(patch)
+
+                # ax1[i].legend(handles=handles, ncol=2)
+                ax1[i].legend(handles=handles, ncol=2)
 
         ax1[i].set_xlim(sdr_mins[i], sdr_maxs[i])
         # ax1[i].set_ylim(0, 0.01)
-        if i == 2:
-            # where some data has already been plotted to ax
-            handles, labels = ax1[i].get_legend_handles_labels()
 
-            # manually define a new patch
-            patch = mpatches.Patch(color="darkred", label="Direct", alpha=0.4)
-
-            # handles is a list, so append manual patch
-            handles.append(patch)
-
-            # ax1[i].legend(handles=handles, ncol=2)
-            ax1[i].legend(handles=handles, ncol=2)
-    fig1.suptitle(event_name, fontsize=20)
+    fig1.suptitle(event_name, fontsize=30)
 
     # fig = Plot_GS_BB(
     #     MT_sdrs[:, 0],
@@ -3063,6 +3067,476 @@ def Source_Uncertainty(
     # )
     # plt.close()
     return fig1
+
+
+def polarization(
+    h5_file_folder: str,
+    event: obspy.core.event.Event,
+    method: str,
+    misfit_name: str,
+    fwd: _Forward._AbstractForward,
+    phases: [str],
+    components: [str],
+    depths: [float],
+    DOF: float,
+    fmin: float = None,
+    fmax: float = None,
+):
+    amount_of_phases = len(phases)
+    n_lowest = 1
+    for idepth, depth in enumerate(depths):
+        print(depth)
+        GS_File = glob.glob(
+            pjoin(
+                h5_file_folder,
+                f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+            )
+        )[0]
+        Direct_File = glob.glob(
+            pjoin(
+                h5_file_folder,
+                f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
+            )
+        )[0]
+
+        ## ================ READ GS =============================
+        (depth_GS, sdr, M0_GS, misfit_L2_GS,) = _ReadH5.Read_GS_h5(
+            Filename=GS_File, amount_of_phases=amount_of_phases
+        )
+        Total_L2_GS = np.sum(misfit_L2_GS, axis=1)
+        # Total_L2_norm_GS = np.sum(misfit_L2_norm_GS, axis=1)
+        # GOF = ( (Total_L2_GS - DOF ) * 100 ) / DOF
+        # GOF_GS = (Total_L2_norm_GS / DOF) * 100
+        GOF_GS = Total_L2_GS / DOF
+
+        lowest_indices = Total_L2_GS.argsort()[0:n_lowest]
+        # lowest_indices = GOF_GS.argsort()[0:n_lowest]
+
+        sdr = sdr[lowest_indices, :]
+        print("strike", sdr[0][0], "dip", sdr[0][1], "rake", sdr[0][2])
+        depth_GS = depth_GS[lowest_indices]
+        M0_GS = M0_GS[lowest_indices]
+        # shifts["P"] = shifts["P"][lowest_indices]
+        # shifts["S"] = shifts["S"][lowest_indices]
+
+        # L2_GS = np.append(L2_GS, Total_L2_GS[lowest_indices][0])
+        # L2_GS = np.append(L2_GS, GOF_GS[lowest_indices][0])
+        # if depth == 8:
+        #     lowest_indices[0] = lowest_indices[2]
+        #     L2_GS = np.append(L2_GS, GOF_GS[lowest_indices][0])
+        # else:
+        #     L2_GS = np.append(L2_GS, GOF_GS[lowest_indices][0])
+
+        ## ============ Read Direct ========================
+        (
+            depth_Direct,
+            FULL_MT,
+            DC_MT,
+            CLVD_MT,
+            misfit_L2_Direct,
+            Epsilon,
+            M0,
+            M0_DC,
+            M0_CLVD,
+            angles,
+            cond_nr,
+        ) = _ReadH5.Read_Direct_Inversion(Direct_File, amount_of_phases=amount_of_phases)
+
+        Total_L2_Direct = np.sum(misfit_L2_Direct)
+        # Total_L2_norm_Direct = np.sum(misfit_L2_norm_Direct, axis=1)
+        # GOF_Direct = (Total_L2_norm_Direct / DOF) * 100
+        GOF_Direct = Total_L2_Direct / DOF
+        # L2_Direct = np.append(L2_Direct, Total_L2_Direct[0])
+        # L2_Direct = np.append(L2_Direct, GOF_Direct)
+
+        RP = np.array([])
+        RSV = np.array([])
+        RSH = np.array([])
+        incs = np.array([])
+        take_off_with_az = {}
+        az = event.az
+
+        azs = np.arange(0, 360, 10)
+        to_angles = np.arange(0, 90, 5)
+
+        Combs = np.array(np.meshgrid(azs, to_angles)).T.reshape(-1, 2)
+        azs = Combs[:, 0]
+        # distances = Combs[:,1]
+        angles = Combs[:, 1]
+
+        strike = sdr[0][0]
+        dip = sdr[0][1]
+        rake = sdr[0][2]
+        phase_names = ["P", "S"]
+        for j, comb in enumerate(Combs):
+            az = comb[0]
+            to_angle = comb[1]
+
+            inc = to_angle
+            incs = np.append(incs, inc)
+            RP = np.append(
+                RP,
+                _RadiationPattern.R_P(
+                    take_off_angle=inc, strike=strike, dip=dip, rake=rake, az=az
+                ),
+            )
+            RSV = np.append(
+                RSV,
+                _RadiationPattern.R_SV(
+                    take_off_angle=inc, strike=strike, dip=dip, rake=rake, az=az
+                ),
+            )
+            RSH = np.append(
+                RSH,
+                _RadiationPattern.R_SH(
+                    take_off_angle=inc, strike=strike, dip=dip, rake=rake, az=az
+                ),
+            )
+        RP.shape = (RP.size, 1)
+        RSV.shape = (RSV.size, 1)
+        RSH.shape = (RSH.size, 1)
+
+        tt = fwd.taup_veloc.get_travel_times(
+            source_depth_in_km=depth, distance_in_degree=event.distance, phase_list=["P", "S"]
+        )
+        take_off_with_az = {}
+        take_off_with_az[tt[0].name] = [tt[0].takeoff_angle, event.az]
+        take_off_with_az[tt[1].name] = [tt[1].takeoff_angle, event.az]
+
+        fig = Plot_Radiation_BB(
+            [strike, dip, rake],
+            RP,
+            RSV,
+            RSH,
+            azs,
+            incs,
+            "grey",
+            take_offs_with_azs=take_off_with_az,
+            plot_take_offs=True,
+        )
+        plt.savefig(
+            pjoin(
+                h5_file_folder,
+                f"Polarization_{event.name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.svg",
+            ),
+            dpi=300,
+        )
+        plt.close()
+
+
+def Plot_Radiation_BB(
+    MT,
+    RP,
+    RSV,
+    RSH,
+    azimuths,
+    inc_angles,
+    color,
+    height=None,
+    take_offs_with_azs=None,
+    plot_take_offs=True,
+    horizontal=False,
+):
+
+    if horizontal:
+        width = 15.0
+        height = 7.0
+
+        axis_heigt = 5.0 / height
+        resid_heigt = 1.0 - axis_heigt
+        title_height = resid_heigt
+
+        axis_width = 5.0 / width
+    else:
+        if height == None:
+            height = 19.0
+        axis_height = 5.0 / height
+        resid_height = 1.0 - 3.0 * axis_height
+        title_height = resid_height / 3.0
+
+    ## Full moment tensor:
+    img1, buf1 = Get_bb_img(MT, color, alpha=0.4)
+
+    if horizontal:
+        fig = plt.figure(figsize=(width, height), dpi=200)
+        ax_1 = fig.add_axes([2 * (axis_width), 0.0, axis_width, axis_heigt])
+    else:
+        fig = plt.figure(figsize=(5, height), dpi=200)
+        ax_1 = fig.add_axes([0.0, 2 * (axis_height + title_height), 1.0, axis_height])
+
+    if img1 is not None:
+        ax_1.imshow(img1 / np.max(img1.flatten()))
+    if horizontal:
+        ax_X = fig.add_axes([2 * (axis_width), 0.0, axis_width, axis_heigt], label="Circle_ray")
+    else:
+        ax_X = fig.add_axes(
+            [0.0, 2 * (axis_height + title_height), 1.0, axis_height], label="Circle_ray"
+        )
+    ax_X.set_xlim((-1, 1))
+    ax_X.set_ylim((-1, 1))
+    p = Circle((0.0, 0,), 0.99, linewidth=2, edgecolor="k", zorder=0, fill=False)
+    ax_X.add_patch(p)
+
+    min_max_scaler = preprocessing.MinMaxScaler()
+    x_scaled = min_max_scaler.fit_transform(RP)
+    x_scaled = 0.5 * (RP) + 0.5  # min_max_scaler.fit_transform(RSV)
+    df_S = pd.DataFrame(x_scaled)
+    c2 = df_S[0]
+    colors = [cm.seismic(color) for color in c2]
+
+    x_tot = np.array([])
+    y_tot = np.array([])
+
+    if azimuths is not None and inc_angles is not None:
+        for a, i, color_i in zip(azimuths, inc_angles, colors):
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+
+            x_tot = np.append(x_tot, x)
+            y_tot = np.append(y_tot, y)
+
+            p = Circle(
+                (x, y),
+                0.02,
+                linewidth=2,
+                edgecolor=color_i,
+                color=color_i,
+                zorder=0,
+                facecolor="k",
+                fill=True,
+            )
+            ax_X.add_patch(p)
+
+    if take_offs_with_azs is not None:
+        for phase in take_offs_with_azs:
+            a = take_offs_with_azs[phase][1]
+            i = take_offs_with_azs[phase][0]
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+            if plot_take_offs:
+                p = Circle(
+                    (x, y), 0.02, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+                )
+                ax_X.add_patch(p)
+            ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=25)
+    for a in [ax_1, ax_X]:
+        a.set_xticks([])
+        a.set_yticks([])
+        a.axis("off")
+
+    sc = plt.scatter(
+        x_tot, y_tot, s=0, c=RP[:, 0], vmin=-1.0, vmax=1.0, cmap="seismic", facecolors="none",
+    )
+    if horizontal:
+        cbar_1 = fig.add_axes([2 * axis_width, axis_heigt, axis_width, title_height])
+    else:
+        cbar_1 = fig.add_axes([0.0, 3 * axis_height + 2 * title_height, 1.0, title_height])
+    cbar_1.set_xticks([])
+    cbar_1.set_yticks([])
+    cbar_1.axis("off")
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+    cbaxes = inset_axes(cbar_1, width="80%", height="25%", loc="center")
+    cbar = plt.colorbar(sc, cax=cbaxes, orientation="horizontal")
+    cbar.set_label("Radiation P", rotation=0, labelpad=10, fontsize=25)
+
+    ###
+    if horizontal:
+        ax_2 = fig.add_axes([axis_width, 0.0, axis_width, axis_heigt])
+    else:
+        ax_2 = fig.add_axes([0.0, axis_height + title_height, 1.0, axis_height])
+    img2, buf2 = Get_bb_img(MT, color, alpha=0.4)
+
+    if img2 is not None:
+        ax_2.imshow(img2 / np.max(img2.flatten()))
+
+    if horizontal:
+        ax_X = fig.add_axes([axis_width, 0.0, axis_width, axis_heigt], label="Circle_ray")
+    else:
+        ax_X = fig.add_axes(
+            [0.0, axis_height + title_height, 1.0, axis_height], label="Circle_ray"
+        )
+    ax_X.set_xlim((-1, 1))
+    ax_X.set_ylim((-1, 1))
+    p = Circle((0.0, 0,), 0.99, linewidth=2, edgecolor="k", zorder=0, fill=False)
+    ax_X.add_patch(p)
+    min_max_scaler = preprocessing.MinMaxScaler()
+    x_scaled = 0.5 * (RSV) + 0.5  # min_max_scaler.fit_transform(RSV)
+    df_S = pd.DataFrame(x_scaled)
+    c2 = df_S[0]
+    colors = [cm.seismic(color) for color in c2]
+
+    x_tot = np.array([])
+    y_tot = np.array([])
+
+    if azimuths is not None and inc_angles is not None:
+        for a, i, color_i in zip(azimuths, inc_angles, colors):
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+
+            x_tot = np.append(x_tot, x)
+            y_tot = np.append(y_tot, y)
+
+            p = Circle(
+                (x, y),
+                0.02,
+                linewidth=2,
+                edgecolor=color_i,
+                color=color_i,
+                zorder=0,
+                facecolor="k",
+                fill=True,
+            )
+            ax_X.add_patch(p)
+    if take_offs_with_azs is not None:
+        for phase in take_offs_with_azs:
+            a = take_offs_with_azs[phase][1]
+            i = take_offs_with_azs[phase][0]
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+            if plot_take_offs:
+                p = Circle(
+                    (x, y), 0.02, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+                )
+                ax_X.add_patch(p)
+            ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=25)
+
+    for a in [ax_2, ax_X]:
+        a.set_xticks([])
+        a.set_yticks([])
+        a.axis("off")
+
+    sc = plt.scatter(
+        x_tot,
+        y_tot,
+        s=0,
+        c=RSV[:, 0],
+        vmin=-1.0,  # RP.min(),
+        vmax=1.0,  # RP.max(),
+        cmap="seismic",
+        facecolors="none",
+    )
+
+    if horizontal:
+        cbar_2 = fig.add_axes([axis_width, axis_heigt, axis_width, title_height])
+    else:
+        cbar_2 = fig.add_axes([0.0, 2 * axis_height + title_height, 1.0, title_height])
+    cbar_2.set_xticks([])
+    cbar_2.set_yticks([])
+    cbar_2.axis("off")
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+    cbaxes = inset_axes(cbar_2, width="80%", height="25%", loc="center")
+    cbar = plt.colorbar(sc, cax=cbaxes, orientation="horizontal")
+    cbar.set_label("Radiation SV", rotation=0, labelpad=10, fontsize=25)
+
+    ### Radiation SH
+
+    if horizontal:
+        ax_3 = fig.add_axes([0.0, 0.0, axis_width, axis_heigt])
+    else:
+        ax_3 = fig.add_axes([0.0, 0.0, 1.0, axis_height])
+    img3, buf3 = Get_bb_img(MT, color, alpha=0.4)
+
+    if img3 is not None:
+        ax_3.imshow(img3 / np.max(img3.flatten()))
+
+    if horizontal:
+        ax_X = fig.add_axes([0.0, 0.0, axis_width, axis_heigt], label="Circle_ray")
+    else:
+        ax_X = fig.add_axes([0.0, 0.0, 1.0, axis_height], label="Circle_ray")
+    ax_X.set_xlim((-1, 1))
+    ax_X.set_ylim((-1, 1))
+    p = Circle((0.0, 0,), 0.99, linewidth=2, edgecolor="k", zorder=0, fill=False)
+    ax_X.add_patch(p)
+    # min_max_scaler = preprocessing.MinMaxScaler()
+    x_scaled = 0.5 * (RSH) + 0.5  # min_max_scaler.fit_transform(RSV)
+    # x_scaled = min_max_scaler.fit_transform(RSH)
+    df_S = pd.DataFrame(x_scaled)
+    c2 = df_S[0]
+    colors = [cm.seismic(color) for color in c2]
+
+    x_tot = np.array([])
+    y_tot = np.array([])
+
+    if azimuths is not None and inc_angles is not None:
+        for a, i, color_i in zip(azimuths, inc_angles, colors):
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+
+            x_tot = np.append(x_tot, x)
+            y_tot = np.append(y_tot, y)
+
+            p = Circle(
+                (x, y),
+                0.02,
+                linewidth=2,
+                edgecolor=color_i,
+                color=color_i,
+                zorder=0,
+                facecolor="k",
+                fill=True,
+            )
+            ax_X.add_patch(p)
+    if take_offs_with_azs is not None:
+        for iphase, phase in enumerate(take_offs_with_azs):
+            a = take_offs_with_azs[phase][1]
+            i = take_offs_with_azs[phase][0]
+            if i > 90.0:
+                x = np.sin(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+                y = np.cos(np.deg2rad(a + 180)) * (180.0 - i) / 90.0
+            else:
+                x = np.sin(np.deg2rad(a)) * i / 90.0
+                y = np.cos(np.deg2rad(a)) * i / 90.0
+            if plot_take_offs:
+                p = Circle(
+                    (x, y), 0.02, linewidth=2, edgecolor="k", zorder=0, facecolor="k", fill=True
+                )
+                ax_X.add_patch(p)
+            ax_X.text(x - 0.005, y + 0.03, s=phase, fontsize=25)
+
+    for a in [ax_3, ax_X]:
+        a.set_xticks([])
+        a.set_yticks([])
+        a.axis("off")
+
+    sc = plt.scatter(
+        x_tot, y_tot, s=0, c=RSH[:, 0], vmin=-1.0, vmax=1.0, cmap="seismic", facecolors="none",
+    )
+    if horizontal:
+        cbar_3 = fig.add_axes([0.0, axis_heigt, axis_width, title_height])
+    else:
+        cbar_3 = fig.add_axes([0.0, axis_height, 1.0, title_height])
+    cbar_3.set_xticks([])
+    cbar_3.set_yticks([])
+    cbar_3.axis("off")
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+    cbaxes = inset_axes(cbar_3, width="80%", height="25%", loc="center")
+    cbar = plt.colorbar(sc, cax=cbaxes, orientation="horizontal")
+    cbar.set_label("Radiation SH", rotation=0, labelpad=10, fontsize=25)
+
+    return fig
 
 
 def k_mean_distance(data, cx, i_centroid, cluster_labels):

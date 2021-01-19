@@ -169,8 +169,18 @@ class reflectivity(_AbstractForward):
 
     name = "reflectivity based forward model"
 
-    def __init__(self):
-        raise ValueError("REFLECTIVITY CODE NEEDS TO BE IMPLEMENTED!!")
+    def __init__(
+        self,
+        or_time: obspy.UTCDateTime,
+        dt: float = 0.05,
+        start_cut: float = 100.0,
+        end_cut: float = 800.0,
+    ) -> None:
+        """ Setup of reflectivity forward modeller """
+        self.or_time = or_time
+        self.dt = dt
+        self.start_cut = start_cut
+        self.end_cut = end_cut
 
     def get_greens_functions(self, depth: float, phases: [str]):
         """ GREENS FUNCTIONS FOR REFLECTIVITY FORWARD MODELING: """

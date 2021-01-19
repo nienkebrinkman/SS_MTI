@@ -4,11 +4,13 @@ SS_MTI/DataGetter.py
 SS_MTI/Forward.py
 SS_MTI/GreensFunctions.py
 SS_MTI/Inversion.py
+SS_MTI/MTDecompose.py
 SS_MTI/Misfit.py
 SS_MTI/PhaseTracer.py
 SS_MTI/PostProcessing.py
 SS_MTI/PreProcess.py
 SS_MTI/PullData.py
+SS_MTI/SourceTimeFunction.py
 SS_MTI/__init__.py
 SS_MTI.egg-info/PKG-INFO
 SS_MTI.egg-info/SOURCES.txt

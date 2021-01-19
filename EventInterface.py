@@ -78,7 +78,7 @@ class EventObj:
     :param instaseis_db_path: path or url to instaseis database
     :param rec_lat: latitude receiver
     :param rec_lon: longitude receiver
-    :param focal_mech: strike,dip,rake or m_rr, m_pp, m_tt, m_rp, m_rt, m_tp
+    :param focal_mech: strike,dip,rake or m_rr, m_tt, m_pp, m_rt, m_rp, m_tp
     :param M0: scalar moment, only necessesary when focal_mech strike,dip,rake
     :param components: components of the seismogram (ZRT, ZNE, LQT)
     :param noise: real Martian noise will be added to the seismogram  
@@ -89,7 +89,7 @@ class EventObj:
         ), (
             "focal_mech length is incorrect. "
             "If you specify M0, focal_mech is [strike,dip,rake]. "
-            "Otherwise focal_mech is [m_rr, m_pp, m_tt, m_rp, m_rt, m_tp]"
+            "Otherwise focal_mech is [m_rr, m_tt, m_pp, m_rt, m_rp, m_tp]"
         )
 
         receiver = instaseis.Receiver(
