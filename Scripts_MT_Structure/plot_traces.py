@@ -125,7 +125,7 @@ dt_ins = st_ins[0].stats.delta
 # ==========================================================================
 # REFLECTIVITY
 # Read traces and info
-path = "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_BKE/mxx/"
+path = "/home/nienke/Documents/Research/SS_MTI/External_packages/reflectivity_Mars/SRC/test/"
 st_ref = read(path + "st001.z")
 st_ref += read(path + "st001.r")
 st_ref += read(path + "st001.t")

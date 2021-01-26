@@ -129,7 +129,7 @@ def Grid_Search_run(
         # M0_corrs_range = [1.26126e14]  # _np.linspace(0, 2, 1000)
         print(depth)
         """ Open .h5 file """
-        file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.hdf5"
+        file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}_{event.baz}.hdf5"
         f = _h5.File(pjoin(output_folder, file_name), "w")
         data_len = 6 + len(phases)
         file_len = len(strikes) * len(dips) * len(rakes)
@@ -161,9 +161,14 @@ def Grid_Search_run(
             syn_GFs.append(syn_GF)
             syn_tts.append(syn_tt)
 
+        shift_CC = _np.zeros(len(phases))
+        misfit_CC = _np.zeros(len(phases))
+
         for strike in strikes:
             for dip in dips:
                 for rake in rakes:
+                    shifts = {"P": None, "S": None}
+
                     focal_mech = [strike, dip, rake]
                     st_syn = obspy.Stream()
                     st_syn_full = obspy.Stream()
@@ -179,6 +184,32 @@ def Grid_Search_run(
                             starttime=fwd.or_time + syn_tts[i] - t_pre[i],
                             endtime=fwd.or_time + syn_tts[i] + t_post[i],
                         )
+
+                        # """ Calculate cross-correlation """
+                        # from obspy.signal.cross_correlation import xcorr_max, correlate
+
+                        # max_shift = int(1.5 / fwd.dt)
+                        # corrarray = correlate(tr_syn, st_obs[i], domain="time", shift=max_shift)
+                        # shift_CC[i], misfit_CC[i] = xcorr_max(corrarray, abs_max=False)
+
+                        # if shifts[phases[i]] is None:
+                        #     shifts[phases[i]] = shift_CC[i]
+                        #     # print(shift_CC[iphase], misfit_CC[iphase],
+                        #     #       corrarray[(len(corrarray) - 1) // 2
+                        #     #                 + int(shifts[phases[iphase]])])
+                        # else:
+                        #     misfit_CC[i] = corrarray[
+                        #         (len(corrarray) - 1) // 2 + int(shifts[phases[i]])
+                        #     ]
+                        #     shift_CC[i] = shifts[phases[i]]
+
+                        # shift_in_sec = shift_CC[i] * fwd.dt
+
+                        # tr_syn = tr_syn_full.slice(
+                        #     starttime=fwd.or_time + syn_tts[i] - t_pre[i] - shift_in_sec,
+                        #     endtime=fwd.or_time + syn_tts[i] + t_post[i] - shift_in_sec,
+                        # )
+
                         if phases[i] + components[i] in list_to_correct_M0:
                             d_obs = _np.expand_dims(st_obs[i].data, axis=1)
                             d_syn = _np.expand_dims(tr_syn.data, axis=1)
@@ -276,7 +307,7 @@ def Grid_Search_run(
             plt.savefig(
                 pjoin(
                     output_folder,
-                    f"GS_BBB__{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                    f"GS_BBB__{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
                 ),
                 dpi=300,
             )
@@ -315,7 +346,7 @@ def Grid_Search_run(
             plt.savefig(
                 pjoin(
                     output_folder,
-                    f"GS_waveforms_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                    f"GS_waveforms_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
                 ),
                 dpi=300,
             )
@@ -570,7 +601,7 @@ def Direct(
         plt.savefig(
             pjoin(
                 output_folder,
-                f"Condition_nr_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+                f"Condition_nr_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
             ),
             dpi=600,
         )
@@ -725,9 +756,7 @@ def Direct(
             )
 
         """ Open .h5 file """
-        file_name = (
-            f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.hdf5"
-        )
+        file_name = f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}_{event.baz}.hdf5"
         f = _h5.File(pjoin(output_folder, file_name), "w")
         data_len = 6 + 3 * 6 + len(angles) + len(phases)
         file_len = 1
@@ -781,7 +810,7 @@ def Direct(
             plt.savefig(
                 pjoin(
                     output_folder,
-                    f"Direct_BB_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                    f"Direct_BB_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
                 ),
                 dpi=300,
             )
@@ -822,7 +851,7 @@ def Direct(
             plt.savefig(
                 pjoin(
                     output_folder,
-                    f"Direct_waveforms_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}.svg",
+                    f"Direct_waveforms_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
                 ),
                 dpi=300,
             )

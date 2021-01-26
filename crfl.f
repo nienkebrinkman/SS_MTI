@@ -229,8 +229,8 @@ c
 c
 c
          ztrue(i)=zs(i)
- 104     if(iss(12).eq.1) zs(i)=3390.*alog(3390./(3390.-zs(i)))
-c104     if(iss(12).eq.1) zs(i)=3390.*(1.-exp(-zs(i)/3390.))
+ 104     if(iss(12).eq.1) zs(i)=3389.5*alog(3389.5/(3389.5-zs(i)))
+c104     if(iss(12).eq.1) zs(i)=3389.5*(1.-exp(-zs(i)/3389.5))
 c
 c
 c
@@ -1604,16 +1604,19 @@ c
       go to 3500
  3400 l1 = 2
       l2 = 2
- 3500 sphred=1.
-      if(iss(12).eq.1)  sphred=sqrt((x(ke)/3390.)/abs(sin(x(ke)/3390.)))
-     1*((3390.-dso)/3390.)**(float(nrho+1)/2.)
+c
+c     sphred changed to srd
+c
+ 3500 srd=1.
+      if(iss(12).eq.1)  srd=sqrt((x(ke)/3389.5)/abs(sin(x(ke)/3389.5)))
+     1*((3389.5-dso)/3389.5)**(float(nrho+1)/2.)
       do 3600 kom = l1,l2
       go to(3610,3630),kom
  3610 do 3620 j=1,npts
- 3620 balla(j)=sphred*real(s(j))
+ 3620 balla(j)=srd*real(s(j))
       go to 3650
  3630 do 3640 j=1,npts
- 3640 balla(j)=sphred*aimag(s(j))
+ 3640 balla(j)=srd*aimag(s(j))
  3650 balmax = amax(balla,npts)
       bal = abs(amin(balla,npts))
       if(bal.gt.balmax) balmax = bal
@@ -3728,7 +3731,7 @@ c **********************************************************************
 c
 c
 c
-         if(iss(12).eq.1) dso=3390.*(1.-exp(-dso/3390.))
+         if(iss(12).eq.1) dso=3389.5*(1.-exp(-dso/3389.5))
  900     dre=0.
          ii=ire
          if(ii.eq.0)  go to 920
@@ -3866,8 +3869,8 @@ c
  9030 format(//,1x,'modification after earth-flattening approximation :'
      &/)
       do  300  i=1,npkt
-      y0=3390./(3390.-zz(i))
-      zz(i)=3390.*alog(3390./(3390.-zz(i)))
+      y0=3389.5/(3389.5-zz(i))
+      zz(i)=3389.5*alog(3389.5/(3389.5-zz(i)))
       aa(i)=y0*aa(i)
       aai(i)=y0*aai(i)
       bb(i)=y0*bb(i)
@@ -5257,11 +5260,14 @@ c      *1./sqrt(u) * window(i)
 c
 c     write out seismograms on units 6 and ioutsh
 c
-      sphred=1.
-      if(iss(12).eq.1)  sphred=sqrt((x(ke)/3390.)/abs(sin(x(ke)/3390.)))
-     1*((3390.-dso)/3390.)**(float(nrho+1)/2.)
+      srd=1.
+c
+c     sphred changed to srd
+c
+      if(iss(12).eq.1)  srd=sqrt((x(ke)/3389.5)/abs(sin(x(ke)/3389.5)))
+     1*((3389.5-dso)/3389.5)**(float(nrho+1)/2.)
       do 4710 j=1,npts
- 4710 balla(j)=sphred*real(s(j))
+ 4710 balla(j)=srd*real(s(j))
       balmax = amax(balla,npts)
       bal = abs(amin(balla,npts))
       if(bal.gt.balmax) balmax = bal

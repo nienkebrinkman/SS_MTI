@@ -6,6 +6,7 @@ __author__ = "Nienke Brinkman"
 from os.path import join as pjoin
 from os.path import exists as exist
 from os import listdir as lsdir
+from os import makedirs
 import instaseis
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,22 +16,20 @@ import SS_MTI
 import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
-save_folder = (
-    "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases_cluster/Test_2020/"
-)
-
-path = "/home/nienke/Documents/Research/Data/MTI/old_catalog"
-# path = "/home/nienke/Documents/Research/SS_MTI/Data"
-path_to_inventory = pjoin(path, "inventory.xml")
-path_to_catalog = pjoin(path, "catalog.xml")
-
-""" Specify input file """
-input_file = "/home/nienke/Documents/Research/SS_MTI/Input/TAYAK_BKE_tstar_update.toml"
-event_input = toml.load(input_file, _dict=dict)
+save_folder = "/home/nienke/Documents/Research/Data/MTI/Data_2021/Event_325/5phases/"
 
 """ Read the inventory and catalog file (the once that contain info about the marsquakes) """
+# path = "/home/nienke/Documents/Research/Data/MTI/Catalog/old_catalog"
+path = "/home/nienke/Documents/Research/Data/MTI/Catalog"
+path_to_inventory = pjoin(path, "inventory.xml")
+path_to_catalog = pjoin(path, "catalog.xml")
 inv = SS_MTI.DataGetter.read_inv(inv_path=path_to_inventory)  # Inventory file
 cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
+
+""" Specify input file """
+input_file = "/home/nienke/Documents/Research/SS_MTI/Input/325_5phases.toml"
+# input_file = "/home/nienke/Documents/Research/SS_MTI/Input/TAYAK_BKE_tstar_update.toml"
+event_input = toml.load(input_file, _dict=dict)
 
 """ Get the data into a list of obspy.Event objects """
 events = SS_MTI.DataGetter.read_events_from_cat(
@@ -51,10 +50,14 @@ rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ Specify depth range """
 depths = np.arange(5, 90, 3)
+# depths = [35]
 
 strikes = np.arange(0, 360, 20)
 dips = np.arange(0, 91, 20)
 rakes = np.arange(-180, 180, 5)
+
+bazs = np.arange(0, 360, 20)
+# bazs = [140]
 
 """ Define different velocity models"""
 db_name_1 = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
@@ -66,8 +69,8 @@ npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 db_name_3 = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
 npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
 
-db_names = [db_name_1, db_name_2]  # , db_name_3, db_name_4, db_name_5]
-npz_file_names = [npz_file_name_1, npz_file_name_2]
+db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
+npz_file_names = [npz_file_name_1]
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -76,17 +79,17 @@ for i, v in event_input.items():
     print(event.name)
     event_nr += 1
     assert event.name == i, "Dictionary and events do not iterate correct"
-    if event.name == "S0235b":
-        # continue
-        depths = [38]  # , 32, 59]
-        # depths = [29]
-    elif event.name == "S0173a":
-        continue
-        depths = [14, 38, 65]
-        # depths = [14]
-    else:
-        continue
-        depths = [29, 41]
+    # if event.name == "S0235b":
+    #     # continue
+    #     depths = [38]  # , 32, 59]
+    #     # depths = [29]
+    # elif event.name == "S0173a":
+    #     continue
+    #     depths = [14, 38, 65]
+    #     # depths = [14]
+    # else:
+    #     continue
+    #     depths = [29, 41]
 
     if event.name == "S0183a":
         event.distance = 44.5
@@ -94,6 +97,20 @@ for i, v in event_input.items():
         event.az = 253
         event.latitude = 15.09
         event.longitude = 179.59
+    elif event.name == "S0325a":
+        event.distance = 38.4
+        event.baz = 0.0
+        event.az = 180.0
+        from geographiclib.geodesic import Geodesic
+
+        radius = 3389.5
+        flattening = 0.0
+
+        dict = Geodesic(a=radius, f=flattening).ArcDirect(
+            lat1=rec.latitude, lon1=rec.longitude, azi1=event.baz, a12=event.distance, outmask=1929
+        )
+        event.latitude = dict["lat2"]
+        event.longitude = dict["lon2"]
 
     """ Define forward modeler """
     forward_method = "INSTASEIS"
@@ -169,80 +186,85 @@ for i, v in event_input.items():
             raise ValueError("misfit can be L2, CC or POL in [MISFIT] of .toml file")
 
         """ Start inversion """
+        for baz in bazs:
+            event.baz = baz
+            # new_output = pjoin(output_folder, f"{baz}")
+            # if not exist(new_output):
+            #     makedirs(new_output)
+            SS_MTI.Inversion.Grid_Search_run(
+                fwd=fwd,
+                misfit=misfit,
+                event=event,
+                rec=rec,
+                phases=phases,
+                components=components,
+                t_pre=t_pre,
+                t_post=t_post,
+                depths=depths,
+                strikes=strikes,
+                dips=dips,
+                rakes=rakes,
+                phase_corrs=phase_corrs,
+                tstars=tstars,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
+                list_to_correct_M0=amplitude_correction,
+                output_folder=output_folder,
+                plot=True,
+                plot_extra_phases=extra_phases,
+                color_plot="blue",
+                Ylims=ylims,
+                Parallel=True,
+            )
 
-        # SS_MTI.Inversion.Grid_Search_run(
-        #     fwd=fwd,
-        #     misfit=misfit,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     strikes=strikes,
-        #     dips=dips,
-        #     rakes=rakes,
-        #     phase_corrs=phase_corrs,
-        #     tstars=tstars,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     list_to_correct_M0=amplitude_correction,
-        #     output_folder=output_folder,
-        #     plot=True,
-        #     plot_extra_phases=extra_phases,
-        #     color_plot="blue",
-        #     Ylims=ylims,
-        #     Parallel=False,
-        # )
-
-        # SS_MTI.Inversion.Direct(
-        #     fwd=fwd,
-        #     misfit=misfit,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     phase_corrs=phase_corrs,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     tstars=tstars,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     output_folder=output_folder,
-        #     plot=True,
-        #     plot_extra_phases=extra_phases,
-        #     color_plot="red",
-        #     Ylims=ylims,
-        # )
+            SS_MTI.Inversion.Direct(
+                fwd=fwd,
+                misfit=misfit,
+                event=event,
+                rec=rec,
+                phases=phases,
+                components=components,
+                phase_corrs=phase_corrs,
+                t_pre=t_pre,
+                t_post=t_post,
+                depths=depths,
+                tstars=tstars,
+                fmin=fmin,
+                fmax=fmax,
+                zerophase=zerophase,
+                output_folder=output_folder,
+                plot=True,
+                plot_extra_phases=extra_phases,
+                color_plot="red",
+                Ylims=ylims,
+                Parallel=True,
+            )
 
         """ Post-processing """
 
         """ (waveform plotting post inversion from generated files)"""
-        _PostProcessing.post_waveform_plotting(
-            h5_file_folder=output_folder,
-            method="GS",
-            misfit_name=misfit.name,
-            misfit_weight_len=misfit.start_weight_len,
-            fwd=fwd,
-            event=event,
-            rec=rec,
-            phases=phases,
-            components=components,
-            t_pre=t_pre,
-            t_post=t_post,
-            depths=depths,
-            phase_corrs=phase_corrs,
-            fmin=fmin,
-            fmax=fmax,
-            zerophase=zerophase,
-            tstars=tstars,
-            plot_extra_phases=extra_phases,
-            Ylims=ylims,
-        )
+        # _PostProcessing.post_waveform_plotting(
+        #     h5_file_folder=output_folder,
+        #     method="GS",
+        #     misfit_name=misfit.name,
+        #     misfit_weight_len=misfit.start_weight_len,
+        #     fwd=fwd,
+        #     event=event,
+        #     rec=rec,
+        #     phases=phases,
+        #     components=components,
+        #     t_pre=t_pre,
+        #     t_post=t_post,
+        #     depths=depths,
+        #     phase_corrs=phase_corrs,
+        #     fmin=fmin,
+        #     fmax=fmax,
+        #     zerophase=zerophase,
+        #     tstars=tstars,
+        #     plot_extra_phases=extra_phases,
+        #     Ylims=ylims,
+        # )
 
         # _PostProcessing.post_waveform_plotting(
         #     h5_file_folder=output_folder,

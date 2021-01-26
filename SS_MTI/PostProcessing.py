@@ -2241,7 +2241,7 @@ def waveform_plot(
         bbox_transform=fig.transFigure,
     )
 
-    ax[-1].set_xlim(-3.0, 32.0)
+    ax[-1].set_xlim(-10.0, 32.0)
     ax[-1].set_xlabel("time after phase (s)", fontsize=45)
     return fig, ax
 

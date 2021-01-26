@@ -1,6 +1,28 @@
 import obspy
 import numpy as _np
+from matplotlib import mlab as _mlab
+from obspy.geodetics import gps2dist_azimuth, kilometer2degrees
 from typing import Tuple as _Tuple
+
+
+def Get_location(la_s, lo_s, la_r, lo_r, radius=3389.5, flattening=0):
+    dist, az, baz = gps2dist_azimuth(
+        lat1=la_s, lon1=lo_s, lat2=la_r, lon2=lo_r, a=radius, f=flattening
+    )
+    epi = kilometer2degrees(dist, radius=radius)
+    return epi, az, baz
+
+
+def calc_PSD(tr, winlen_sec):
+    # tr.taper(0.05)
+    Fs = tr.stats.sampling_rate
+    winlen = min(winlen_sec * Fs, (tr.stats.endtime - tr.stats.starttime) * Fs / 2.0)
+    NFFT = obspy.signal.util.next_pow_2(winlen)
+    pad_to = _np.max((NFFT * 2, 1024))
+    p, f = _mlab.psd(
+        tr.data, Fs=Fs, NFFT=NFFT, detrend="linear", pad_to=pad_to, noverlap=NFFT // 2
+    )
+    return f, p
 
 
 def filter_tr(tr, fmin=1.0 / 10.0, fmax=1.0 / 2, zerophase=False):

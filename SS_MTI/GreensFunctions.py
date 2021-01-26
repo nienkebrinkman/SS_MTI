@@ -209,6 +209,12 @@ def from_GF_get_G(st_in: obspy.Stream, az: float, comp: str):
     m6 = 1.0 * m_rr + 1.0 * m_tt + 1.0 * m_pp
     cl = 2.0 * m_rr + -1.0 * m_tt + -1.0 * m_pp
 
+    # if ba < 0 or ba > 360:
+    #     raise ValueError("Back Azimuth should be between 0 and 360 degrees.")
+    # baz = np.deg2rad(360.0 - ba)
+    # N = -T * np.sin(baz) - R * np.cos(baz)
+    # E = -T * np.cos(baz) + R * np.sin(baz)
+
     if comp == "Z" or comp == "R" or comp == "L" or comp == "Q":
         SS = m2
         DS = m4

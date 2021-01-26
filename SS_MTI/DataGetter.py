@@ -73,10 +73,12 @@ def read_waveforms_from_saved_dir(
     :param file_path: path to waveform data
     :param event: add data to event if not None
     """
-    sp_data = obspy.read(pjoin(file_path, "waveforms_SP.mseed"))
+    if exist(pjoin(file_path, "waveforms_SP.mseed")):
+        sp_data = obspy.read(pjoin(file_path, "waveforms_SP.mseed"))
     vbb_data = obspy.read(pjoin(file_path, "waveforms_VBB.mseed"))
     if event is not None:
-        event.waveforms_SP = sp_data
+        if exist(pjoin(file_path, "waveforms_SP.mseed")):
+            event.waveforms_SP = sp_data
         event.waveforms_VBB = vbb_data
         return event
     else:
