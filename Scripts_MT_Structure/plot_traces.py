@@ -51,11 +51,11 @@ db = instaseis.open_db("http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/")
 # Event parameters
 lat_ev = 0.0  # latitude
 lon_ev = 0.0  # longitude
-depth_ev = 40.1e3  # depth [m]
+depth_ev = 20.1e3  # depth [m]
 time_ev = obspy.UTCDateTime(2019, 1, 2, 0, 0, 0)
 
 # Station parameters
-lat_st = -30.0
+lat_st = -20.0
 lon_st = 0.0
 
 # Moment tensor
@@ -125,7 +125,7 @@ dt_ins = st_ins[0].stats.delta
 # ==========================================================================
 # REFLECTIVITY
 # Read traces and info
-path = "/home/nienke/Documents/Research/SS_MTI/External_packages/reflectivity_Mars/SRC/test/"
+path = "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/Test_1/"
 st_ref = read(path + "st001.z")
 st_ref += read(path + "st001.r")
 st_ref += read(path + "st001.t")

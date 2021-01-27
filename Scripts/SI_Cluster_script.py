@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import argparse
 import toml
 import mpi4py.MPI
+from os import makedirs
 
 import SS_MTI
 import EventInterface
@@ -36,10 +37,15 @@ if __name__ == "__main__":
     args = define_arguments()
     print(f"Inversion based on input file: {args.input_file}")
     event_input = toml.load(args.input_file, _dict=dict)
-    save_folder = "/home/nienke/Data_2020/Test_2021/"
+    save_folder = pjoin(
+        "/home/nienke/Data_2020/Test_2021/", args.input_file.split("/")[-1].strip(".toml")
+    )
+    if not exist(save_folder):
+        makedirs(save_folder)
+
     # save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Test/"
 
-    path = "/home/nienke/Data_2020/old_catalog"
+    path = "/home/nienke/Data_2020/catalog"
     # path = "/home/nienke/Documents/Research/Data/MTI/catalog"
     path_to_inventory = pjoin(path, "inventory.xml")
     path_to_catalog = pjoin(path, "catalog.xml")
@@ -66,13 +72,13 @@ if __name__ == "__main__":
     rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
     """ """
-    depths = np.arange(5, 90, 3)
+    depths = np.arange(5, 90, 6)
     # depths = np.arange(29, 50, 3)
     # depths = [59]
 
-    strikes = np.arange(0, 360, 5)
-    dips = np.arange(0, 91, 5)
-    rakes = np.arange(-180, 180, 5)
+    strikes = np.arange(0, 360, 20)
+    dips = np.arange(0, 91, 10)
+    rakes = np.arange(-180, 180, 15)
 
     # strikes = [15.0116557194]  # [132.395557582]
     # dips = [59.551091053]  # [51.9591191063]
@@ -96,8 +102,8 @@ if __name__ == "__main__":
     # db_name_3 = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
     # npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
 
-    db_names = [db_name_1, db_name_2]  # , db_name_3, db_name_4, db_name_5]
-    npz_file_names = [npz_file_name_1, npz_file_name_2]
+    db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
+    npz_file_names = [npz_file_name_1]
 
     """ Loop over events to invert for: """
     event_nr = 0
@@ -221,6 +227,7 @@ if __name__ == "__main__":
 
             """ Start inversion """
             for baz in bazs:
+                event.baz = baz
                 SS_MTI.Inversion.Grid_Search_run(
                     fwd=fwd,
                     misfit=misfit,
@@ -272,14 +279,14 @@ if __name__ == "__main__":
                 )
 
                 """ Post-processing """
-                if Parallel:
-                    mpi4py.MPI.COMM_WORLD.Barrier()
-                    rank = mpi4py.MPI.COMM_WORLD.Get_rank()
-                    if not rank == 0:
-                        print(
-                            "rank {rank} will go to next simulation and does not doe post processing"
-                        )
-                        continue
+                # if Parallel:
+                #     mpi4py.MPI.COMM_WORLD.Barrier()
+                #     rank = mpi4py.MPI.COMM_WORLD.Get_rank()
+                #     if not rank == 0:
+                #         print(
+                #             "rank {rank} will go to next simulation and does not doe post processing"
+                #         )
+                #         continue
 
                 """ (waveform plotting post inversion from generated files)"""
                 # _PostProcessing.post_waveform_plotting(

@@ -1,6 +1,104 @@
 from obspy.taup import TauPyModel as TauPyModel
 from os.path import isfile, join
 import numpy as np
+import re
+
+
+def update_dat_file(dat_file: str, m: np.array, vpvs: bool, depth: bool):
+    """ 
+    This function will update an existing dat file with only changes 
+    in the moment tensor and the Vp and Vs
+    :param dat_file: folder to your .dat file
+    :param m: vector including model parameters (fmech(6), structure(x))
+    :param vpvs: if true, vpvs updates will be done (starts from depth layer zero)
+    :param depth: if true, depth layer updates will be done 
+                  (if only 1 depth given: MOHO will change)
+    """
+    fmech = m[:6]
+
+    with open(join(dat_file, "crfl.dat"), "r+") as f:
+        data = f.readlines()
+        skiprows = 3  # Always need to skip first 3 lines
+        """ Updating the moment tensor in .dat file"""
+        fmech_update = f"{fmech[0]:10.4f}{fmech[1]:10.4f}{fmech[2]:10.4f}{fmech[3]:10.4f}{fmech[4]:10.4f}{fmech[5]:10.4f}\n"
+        data[103] = fmech_update
+        """ Updating the structural parameters in .dat file """
+        if vpvs and depth == False:
+            print("vpvs are changed in dat file starting from depth 0")
+            n_params = int((len(m) - 6) / 2)
+            vp = m[6 : 6 + n_params]
+            vs = m[6 + n_params : 6 + 2 * n_params]
+            for i in range(n_params):
+                line = data[skiprows + i * 2]
+                """ search for and create floats from the string line """
+                flt = np.array(re.findall("\d+\.\d+", line), dtype=float)
+                """ replace vp and vs """
+                text = f"{flt[0]:10.4f}{vp[i]:10.4f}{flt[2]:10.4f}{vs[i]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
+                data[skiprows + i * 2] = text
+                if i != n_params - 1:
+                    line = data[skiprows + i * 2 + 1]
+                    """ search for and create floats from the string line """
+                    flt1 = np.array(re.findall("\d+\.\d+", line), dtype=float)
+                    """ replace depth """
+                    text = f"{flt1[0]:10.4f}{vp[i]:10.4f}{flt[2]:10.4f}{vs[i]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
+                    data[skiprows + i * 2 + 1] = text
+        elif depth and vpvs == False:
+            n_params = int((len(m) - 6))
+            depth = m[6 : 6 + n_params]
+            if n_params == 1:
+                print("depth of MOHO (from TAYAK) will be changed")
+                flt = np.array(re.findall("\d+\.\d+", data[8]), dtype=float)
+                data[
+                    8
+                ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
+                flt = np.array(re.findall("\d+\.\d+", data[9]), dtype=float)
+                data[
+                    9
+                ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
+            else:
+                print("depths are changed in dat file starting from depth 0")
+                for i in range(n_params):
+                    line = data[skiprows + i * 2]
+                    """ search for and create floats from the string line """
+                    flt = np.array(re.findall("\d+\.\d+", line), dtype=float)
+                    """ replace vp and vs """
+                    text = f"{depth[i]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
+                    data[skiprows + i * 2] = text
+                    if i != n_params - 1:
+                        line = data[skiprows + i * 2 + 1]
+                        """ search for and create floats from the string line """
+                        flt1 = np.array(re.findall("\d+\.\d+", line), dtype=float)
+                        """ replace depth """
+                        text = f"{depth[i+1]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
+                        data[skiprows + i * 2 + 1] = text
+
+        elif depth and vpvs:
+            n_params = int((len(m) - 6) / 3)
+            depth = m[6 : 6 + n_params]
+            vp = m[6 + n_params : 6 + 2 * n_params]
+            vs = m[6 + 2 * n_params : 6 + 3 * n_params]
+            for i in range(n_params):
+                line = data[skiprows + i * 2]
+                """ search for and create floats from the string line """
+                flt = np.array(re.findall("\d+\.\d+", line), dtype=float)
+                """ replace vp and vs """
+                text = f"{depth[i]:10.4f}{vp[i]:10.4f}{flt[2]:10.4f}{vs[i]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
+                data[skiprows + i * 2] = text
+                if i != n_params - 1:
+                    line = data[skiprows + i * 2 + 1]
+                    """ search for and create floats from the string line """
+                    flt1 = np.array(re.findall("\d+\.\d+", line), dtype=float)
+                    """ replace depth """
+                    text = f"{depth[i+1]:10.4f}{vp[i]:10.4f}{flt[2]:10.4f}{vs[i]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
+                    data[skiprows + i * 2 + 1] = text
+        else:
+            raise ValueError("vpvs either True or False & depth either True or False")
+
+        f.close()
+    with open(join(dat_file, "crfl.dat"), "w") as f:
+        f.write("".join(data))
+        f.close()
+    a = 1
 
 
 def create_dat_file(
@@ -86,8 +184,6 @@ def create_dat_file(
             if layer[0] == 0.0:
                 continue
             depth = (radius_mars - layer[0]) * 1e-3
-            if depth > 160:
-                break
             dens = layer[1] * 1e-3
             vp = layer[2] * 1e-3
             vs = layer[3] * 1e-3
@@ -106,67 +202,23 @@ def create_dat_file(
 
             # Check if part of velocity model is part of the gradient:
             if i not in inds and vs != 0.0:
-                # if vs != 0.0 and i != 0:
-                dens0 = f_ud[i - 1, 1] * 1e-3
-                vp0 = f_ud[i - 1, 2] * 1e-3
-                vs0 = f_ud[i - 1, 3] * 1e-3
-                qka0 = f_ud[i - 1, 4]
-                qmu0 = f_ud[i - 1, 5]
-                qs0 = qmu0
-                L0 = (4 / 3) * (vs0 / vp0) ** 2
-                qp0 = 1 / (L0 * (1 / qmu0) + (1 - L0) * (1 / qka0))
-                if np.isnan(qp):
-                    qp0 = qka0
-                    qs0 = 10.0
-
                 prev_depth = (radius_mars - f_ud[i - 1, 0]) * 1e-3
                 layer_thickness = depth - prev_depth
                 factor = 0.07
                 layer_thickness_lim = factor * (
                     vs / fdom
                 )  # layer limit should be less then 1/10 of wavelength
+                vs0 = f_ud[i - 1, 3] * 1e-3
                 if layer_thickness_lim > factor * (vs0 / fdom):
                     layer_thickness_lim = factor * (vs0 / fdom)
                 import math
 
-                n_layers = math.ceil(layer_thickness / layer_thickness_lim)
-                from scipy import interpolate
-
-                int_dens = interpolate.interp1d([prev_depth, depth], [dens0, dens])
-                int_vp = interpolate.interp1d([prev_depth, depth], [vp0, vp])
-                int_vs = interpolate.interp1d([prev_depth, depth], [vs0, vs])
-                int_qka = interpolate.interp1d([prev_depth, depth], [qka0, qka])
-                int_qmu = interpolate.interp1d([prev_depth, depth], [qmu0, qmu])
-                for new_layer in np.linspace(0, layer_thickness, n_layers):
-                    if new_layer == 0:
-                        continue
-                    depth1 = prev_depth + new_layer
-                    dens1 = int_dens(depth1)
-                    vp1 = int_vp(depth1)
-                    vs1 = int_vs(depth1)
-                    qka1 = int_qka(depth1)
-                    qmu1 = int_qmu(depth1)
-
-                    qs1 = qmu1
-                    L1 = (4 / 3) * (vs1 / vp1) ** 2
-                    qp1 = 1 / (L1 * (1 / qmu1) + (1 - L1) * (1 / qka1))
-                    if np.isnan(qp):
-                        qp1 = qka1
-                        qs1 = 10.0
-                    text = f"{depth1:10.4f}{vp0:10.4f}{qp0:10.4f}{vs0:10.4f}{qs0:10.4f}{dens0:10.4f}{1:10d}\n"
-                    f.write(text)
-                    vp0 = vp1
-                    vs0 = vs1
-                    qp0 = qp1
-                    qs0 = qs1
-                    dens0 = dens1
-                    text = f"{depth1:10.4f}{vp1:10.4f}{qp1:10.4f}{vs1:10.4f}{qs1:10.4f}{dens1:10.4f}{0:10d}\n"
-                    f.write(text)
+                # n_layers = math.ceil(layer_thickness / layer_thickness_lim)
+                n_layers = 1
             else:
-                text = (
-                    f"{depth:10.4f}{vp:10.4f}{qp:10.4f}{vs:10.4f}{qs:10.4f}{dens:10.4f}{1:10d}\n"
-                )
-                f.write(text)
+                n_layers = 1
+            text = f"{depth:10.4f}{vp:10.4f}{qp:10.4f}{vs:10.4f}{qs:10.4f}{dens:10.4f}{n_layers:10d}\n"
+            f.write(text)
         f.write("\n")
         f.write(f"{rec_z:10.4f}\n")
         f.write(f"{src_x:10.4f}{src_y:10.4f}{src_z:10.4f}{or_time:10.4f}{s_strength:10.4f}\n")
@@ -182,15 +234,61 @@ def create_dat_file(
     f.close()
 
 
-save_path = "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/"
+def plot_dat_file(dat_paths: [str]):
+    """ 
+    This function plots the list of .dat files for Vp, Vs and Density over depth
+    :paran dat_path: List of file_paths to your dat files
+    """
+    import pandas as pd
+    import matplotlib.pyplot as plt
 
-bm_file_path = "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/bm_models/TAYAK.bm"
-create_dat_file(
-    src_depth=20.0,
-    focal_mech=[0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-    M0=None,
-    epi=20.0,
-    baz=0.0,
-    save_path=save_path,
-    bm_file_path=bm_file_path,
-)
+    fig, ax = plt.subplots(1, 3, sharey="all", sharex="col", figsize=(8, 6))
+    for i, dat_path in enumerate(dat_paths):
+        if i == i:
+            skipfoot = 11 + 9
+        else:
+            skipfoot = 11
+        dat_file = pd.read_csv(
+            dat_path,
+            skiprows=3,
+            skipfooter=skipfoot,
+            header=None,
+            delim_whitespace=True,
+            engine="python",
+        )
+        depth = dat_file.values[:, 0]
+        vp = dat_file.values[:, 1]
+        vs = dat_file.values[:, 3]
+        dens = dat_file.values[:, 5]
+
+        ax[0].plot(vp, depth, label=f"nr {i}")
+
+        ax[1].plot(vs, depth)
+        ax[2].plot(dens, depth)
+    ax[0].set_ylim(ax[0].get_ylim()[::-1])
+    ax[0].legend()
+    plt.show()
+
+
+# save_path = "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/Test_5/"
+
+# bm_file_path = "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/bm_models/TAYAK.bm"
+# create_dat_file(
+#     src_depth=20.0,
+#     focal_mech=[0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+#     M0=None,
+#     epi=20.0,
+#     baz=0.0,
+#     save_path=save_path,
+#     bm_file_path=bm_file_path,
+# )
+
+# # plot_files = [
+# #     "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/Test_2/crfl.dat",
+# #     "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/Test_3/crfl.dat",
+# #     "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/Test_4/crfl.dat",
+# # ]
+# plot_files = [
+#     "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/Test_5/crfl.dat",
+# ]
+# plot_dat_file(plot_files)

@@ -749,17 +749,18 @@ def Plot_GS_BB(
 
 
 def plot_misfit_vs_depth(
-    save_paths=[],
-    depths=[45],
-    DOF=700,
-    event_name="S0235b",
-    misfit_name="L2",
-    veloc_model="TAYAK_BKE",
-    true_depth=None,
-    Moho=30,
-    fmin=1.0 / 10.0,
-    fmax=1.0 / 2.0,
-    amount_of_phases=5,
+    baz: float,
+    save_paths: [str] = [],
+    depths: [int] = [45],
+    DOF: float = 700,
+    event_name: str = "S0235b",
+    misfit_name: str = "L2",
+    veloc_model: str = "TAYAK_BKE",
+    true_depth: float = None,
+    Moho: float = 30,
+    fmin: float = 1.0 / 10.0,
+    fmax: float = 1.0 / 2.0,
+    amount_of_phases: int = 5,
 ):
     labels = ["", ""]
     n_lowest = 1
@@ -796,7 +797,7 @@ def plot_misfit_vs_depth(
             GS_File = glob.glob(
                 pjoin(
                     save_path,
-                    f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
+                    f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}_{baz}.hdf5",
                 )
             )[0]
             if event_name == "S0183a":
@@ -805,7 +806,7 @@ def plot_misfit_vs_depth(
                 Direct_File = glob.glob(
                     pjoin(
                         save_path,
-                        f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
+                        f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}_{baz}.hdf5",
                     )
                 )[0]
 

@@ -7,18 +7,33 @@ from os.path import join as pjoin
 from os.path import exists as exist
 from os.path import isfile
 from os import listdir as lsdir
+from os import makedirs
 from obspy.taup import TauPyModel
 import obspy
-import instaseis
 import matplotlib.pyplot as plt
 import numpy as np
 from obspy.signal.cross_correlation import xcorr_max, correlate
 import scipy.signal as signal
-
+from obspy.geodetics import gps2dist_azimuth
+from obspy.geodetics import kilometer2degrees
+from scipy.optimize import approx_fprime as af
 
 import SS_MTI
+import Create_Vmod
 from EventInterface import EventObj
+import subprocess
 from SS_MTI import PostProcessing as _PostProcessing
+
+
+def Get_location(la_s, lo_s, la_r, lo_r, radius=3389.5, flattening=0):
+    """
+    Get the epicentral distance, azimuth and backazimuth
+    """
+    dist, az, baz = gps2dist_azimuth(
+        lat1=la_s, lon1=lo_s, lat2=la_r, lon2=lo_r, a=radius, f=flattening
+    )
+    epi = kilometer2degrees(dist, radius=radius)
+    return epi, az, baz
 
 
 def bandpass_filt(stream, f1, f2, dt, order=2):
@@ -60,172 +75,19 @@ def scale_traces(st1, st2):
     return st1, st2
 
 
-## Step 1: Define parameters
-or_time = obspy.UTCDateTime("2020-3-10T12:00:00")
-lat_src = 0
-lon_src = 0
-depth = 20.0
-name = "Test_Event"
+def read_refl_mseeds(path: str, stack: bool = False):
+    """ 
+    This functions reads in the output of reflectivity code (miniseeds)
+    :param pat:the path where the miniseeds are located
+    :param stack: stacks the streams in one array (Z,R,T) -> numpy.array
+    :returns: obspy stream for stack = False, numpy.array for stack = True
+    """
 
-phases = ["P", "S", "S", "P", "S"]
-
-mnt_folder = "/mnt/marshost/"
-
-if not lsdir(mnt_folder):
-    print(f"{mnt_folder} is still empty, mounting now...")
-    SS_MTI.DataGetter.mnt_remote_folder(
-        host_ip="marshost.ethz.ch",
-        host_usr="sysop",
-        remote_folder="/data/",
-        mnt_folder=mnt_folder,
-    )
-
-
-npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
-# npz_file = "/home/nienke/Data_2020/npz_files/TAYAK_BKE.npz"
-# npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
-model = TauPyModel(npz_file)
-
-db_path = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/TAYAK_1s"
-# db_path = "/opt/databases/TAYAK_15s_BKE"
-# db_path = "http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/"
-db = instaseis.open_db(db_path)
-
-# SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
-
-
-lat_rec = -20
-lon_rec = 0
-
-strike = 0
-dip = 45  # 45
-rake = 0  # -90
-M0 = 5.62e13
-# [m_rr, m_tt, m_pp, m_rt, m_rp, m_tp] = SS_MTI.GreensFunctions.convert_SDR(strike, dip, rake, M0)
-[m_rr, m_tt, m_pp, m_rt, m_rp, m_tp] = [0.0, 1.0e17, 0.0, 0.0, 0.0, 0.0]
-focal_mech = [m_rr, m_tt, m_pp, m_rt, m_rp, m_tp]
-
-dt = 0.025
-
-components = "ZNE"
-kind = "displacement"
-noise = False
-
-Parallel = False
-
-## Step 2:
-"""Create observed data and waveforms """
-event = EventObj(
-    or_time=or_time,
-    lat_src=lat_src,
-    lon_src=lon_src,
-    lat_rec=lat_rec,
-    lon_rec=lon_rec,
-    depth=depth,
-    name=name,
-)
-event.add_picks(taup_model=model, depth=depth, phases=phases)
-event.add_waveforms(
-    instaseis_db_path=db_path,
-    focal_mech=focal_mech,
-    M0=None,
-    dt=dt,
-    components=components,
-    kind=kind,
-    noise=noise,
-)
-event = event.event
-rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
-
-## Get the P and S arrivals
-P_arr = event.picks["P"] - event.origin_time
-S_arr = event.picks["S"] - event.origin_time
-
-## Copy event data
-st_ins = event.waveforms_VBB.copy()
-
-## Rotate event
-# Determine back azimuth
-lon_st = lon_rec
-lon_ev = event.longitude
-lat_ev = event.latitude
-lat_st = lat_rec
-x1_tan = np.sin((lon_st - lon_ev) * 180.0 / np.pi)
-x2_tan = np.cos(lat_st * 180.0 / np.pi) * np.sin(lat_ev * 180.0 / np.pi) - np.sin(
-    lat_st * 180.0 / np.pi
-) * np.cos(lat_ev * 180.0 / np.pi) * np.cos((lon_st - lon_ev) * 180.0 / np.pi)
-azi = np.arctan2(x1_tan, x2_tan) * 180.0 / np.pi
-# azi += 180
-if azi <= 0:
-    bazi = azi + 180.0
-elif azi > 0:
-    bazi = azi - 180.0
-print(bazi)
-# st_ins = st_ins.rotate("NE->RT", back_azimuth=event.baz)
-
-## Filter the event
-dt_ins = st_ins[0].stats.delta
-ff = np.array([0.03, 0.4])
-st_ins = taper_trace(st_ins)
-st_ins = bandpass_filt(st_ins, ff[0], ff[1], dt_ins)
-
-## Plot the synthetic event
-# fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(28, 12))
-# colours = ["r", "b", "k"]
-# for i, comp in enumerate(["Z", "R", "T"]):
-#     ax.axvline(x=P_arr, c="red", ls="dashed", label="P-arrival")
-#     ax.axvline(x=S_arr, c="blue", ls="dashed", label="S-arrival")
-#     st_select = event.waveforms_VBB.select(channel="BH" + comp)
-#     print(st_select[0].stats.starttime)
-#     for j, tr in enumerate(st_select):
-#         ax.plot(
-#             tr.times(), tr.data + j * 1e-9, colours[i], label=f"Comp: {comp}",
-#         )
-#         # ax.plot([P_arr, P_arr], [-0.5e-9 + j * 1e-9, 0.5e-9 + j * 1e-9])
-# plt.legend()
-# plt.show()
-
-
-save_path = (
-    "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/Test_2/",
-    "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/Test_4/",
-)
-
-# save_path = [
-#     "/home/nienke/Documents/Research/SS_MTI/External_packages/reflectivity_Mars/SRC/test/",
-#     "/home/nienke/Documents/Research/SS_MTI/External_packages/reflectivity_Mars/SRC/test/Test_1/",
-#     "/home/nienke/Documents/Research/SS_MTI/External_packages/reflectivity_Mars/SRC/test/Test_2/",
-#     "/home/nienke/Documents/Research/SS_MTI/External_packages/reflectivity_Mars/SRC/test/Test_3/",
-#     "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_BKE/mxx/",
-# ]
-# import Create_Vmod
-
-
-# bm_file_path = "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/bm_models/TAYAK.bm"
-# Create_Vmod.create_dat_file(
-#     src_depth=depth,
-#     focal_mech=[0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-#     M0=None,
-#     epi=event.distance,
-#     baz=bazi,
-#     save_path=save_path,
-#     bm_file_path=bm_file_path,
-# )
-
-# import subprocess
-
-# subprocess.call("./crfl_sac_mars", shell=True, cwd=save_path)
-
-## Open de files from the reflectivity code:
-
-
-st_refls = []
-for folder in save_path:
-    st_refl = obspy.Stream()
-    st_files = [f for f in lsdir(folder) if f.startswith("st") if isfile(pjoin(folder, f))]
+    st = obspy.Stream()
+    st_files = [f for f in lsdir(path) if f.startswith("st") if isfile(pjoin(path, f))]
 
     for st_file in st_files:
-        st_temp = obspy.read(pjoin(folder, st_file))
+        st_temp = obspy.read(pjoin(path, st_file))
 
         st_temp[0].stats.channel = "xx" + st_file.split(".")[-1]
         distance = st_temp[0].stats.sac.gcarc
@@ -237,136 +99,179 @@ for folder in save_path:
         st_temp[0] = st_temp[0].trim(
             starttime=tstart - B, endtime=st_temp[0].stats.endtime, pad=True, fill_value=0.0
         )
-        st_refl += st_temp
+        st += st_temp
 
-    st_refl.select(channel="xxz")[0].data *= -1
-    st_refl.select(channel="xxt")[0].data *= -1
-    # st_refl.select(channel="xxr")[0].data *= -1
-    st_refls.append(st_refl)
-
-print(st_refls)
-
-st_refl_cop = st_refl.copy()
-# st_refl_cop = st_refl_cop.rotate("NE->RT", back_azimuth=180)
-
-fig, ax = plt.subplots(nrows=3, ncols=1, sharex="all", sharey="all", figsize=(15, 15))
-for j, st in enumerate(st_refls):
-    st_refl = st.copy()
-    dt_ref = st_refl[0].stats.delta
-    ff = np.array([0.03, 0.4])
-    st_refl = taper_trace(st_refl)
-    st_refl = bandpass_filt(st_refl, ff[0], ff[1], dt_ref)
-
-    # ## Scale both
-    # st_ins, st_refl = scale_traces(st_ins, st_refl)
-
-    for i, comp in enumerate(["Z", "R", "T"]):
-        if j == 0:
-            ax[i].axvline(x=P_arr, c="red", ls="dashed", label="P-arrival")
-            ax[i].axvline(x=S_arr, c="blue", ls="dashed", label="S-arrival")
-            ax[i].plot(
-                st_ins[i].times(),
-                st_ins[i].data,
-                label=f"INSTASEIS {st_ins[i].stats.channel}",
-                c="k",
-            )
-            ax[i].set_ylabel("Displacement (m)")
-
-        st_select = st_refl.select(channel="xx" + comp)
-        for k, tr in enumerate(st_select):
-            ax[i].plot(
-                tr.times(), tr.data * 0.4e4, label=f"REFLECTIVITY {st_select[k].stats.channel}",
-            )
-            ax[i].set_xlim(P_arr - 10.0, S_arr + 100.0)
-        ax[i].legend()
-        # ax[i].set_ylim(-0.2, 0.2)
-
-    ax[-1].set_xlabel("Time (s)")
-    # ax[2].set_ylim(-0.2e-30,0.2e-30)
-plt.show()
-
-# ## Cross-correlate the reflectivity traces with the instaseis traces:
-# # 1. copy the stream:
-# st_refl_cop2 = st_refl_cop.copy()
-# st_ins_cop2 = Stream_object.copy()
-# # 2. cut out a window around the S-wave:
-# timing = st_refl_cop2[0].stats.starttime + S_arr
-# min_range = 5
-# max_range = 50
-# st_refl_cop2 = st_refl_cop2.trim(
-#     starttime=timing - min_range, endtime=timing + max_range, pad=True, fill_value=0.0
-# )
-# timing = event.origin_time + S_arr
-# st_ins_cop2 = st_ins_cop2.trim(
-#     starttime=timing - min_range, endtime=timing + max_range, pad=True, fill_value=0.0
-# )
-# fig, ax = plt.subplots(nrows=3, ncols=1, sharex="all", sharey="all", figsize=(15, 15))
-# for i, (comp_ins, comp_refl) in enumerate(zip(["Z", "R", "T"], ["Z", "R", "T"])):
-#     tr_ins = st_ins_cop2.select(channel="BH" + comp_ins).traces[0]
-#     tr_refl = st_refl_cop2.select(channel="xx" + comp_refl).traces[0]
-#     tr_refl.data *= 0.4e4
-
-#     # tr_refl.data *= 0.0
-#     # tr_refl.data[10:20] = 1.0
-
-#     # tr_ins.data *= 0.0
-#     # tr_ins.data[30:40] = 1.0
-
-#     # 3. Correlate
-#     corrarray = correlate(tr_refl, tr_ins, domain="time", shift=128)
-#     shift_CC, misfit_CC = xcorr_max(corrarray, abs_max=False)
-#     print(shift_CC)
-#     # 4. Shift
-#     # misfit_CC[iphase] = corrarray[(len(corrarray) - 1) // 2 + int(shifts[phases[iphase]])]
-#     # shift_CC[iphase] = shifts[phases[iphase]]
-
-#     ax[i].axvline(x=0, c="blue", ls="dashed", label="S-arrival")
-#     ax[i].plot(
-#         tr_ins.times() - min_range, tr_ins.data, label=f"INSTASEIS {tr_ins.stats.channel}", c="k",
-#     )
-
-#     ax[i].plot(
-#         tr_refl.times() - min_range - shift_CC * dt_ref,
-#         tr_refl.data,
-#         label=f"REFLECTIVITY {tr_refl.stats.channel}",
-#     )
-#     ax[i].plot(
-#         tr_refl.times() - min_range,
-#         tr_refl.data,
-#         label=f"No-shift REFLECTIVITY {tr_refl.stats.channel}",
-#     )
-#     ax[i].set_ylabel("Displacement (m)")
-#     ax[i].legend()
-# ax[-1].set_xlabel("Time (s)")
-# # ax[2].set_ylim(-0.2e-30,0.2e-30)
-# plt.show()
+    st.select(channel="xxz")[0].data *= -1
+    st.select(channel="xxt")[0].data *= -1
+    if stack:
+        Z = st.select(channel="xxz")[0].data
+        R = st.select(channel="xxr")[0].data
+        T = st.select(channel="xxt")[0].data
+        return np.hstack((np.hstack((Z, R)), T))
+    else:
+        return st
 
 
-## Step 3:
-# """ Define forward modeler """
-# fwd = SS_MTI.Forward.reflectivity(
-#     or_time=event.origin_time, dt=dt, start_cut=100.0, end_cut=800.0,
-# )
+class SRC_STR:
+    """ 
+    This class does source and structure inversion
+    """
 
-# """ Create a synthetic seismogram """
-# syn_GF = fwd.get_greens_functions(
-#     comp=["Z"],
-#     depth=depth,
-#     distance=event.distance,
-#     lat_src=event.latitude,
-#     lon_src=event.longitude,
-#     rec=rec,
-#     tstar=None,
-#     LQT=False,
-#     inc=None,
-#     baz=baz,
-#     M0=M0,
-#     filter=False,
-#     fmin=None,
-#     fmax=None,
-#     zerophase=zerophase,
-# )
+    def __init__(self, binary_file_path: str, path_to_dat: str, vpvs: bool, depth: bool):
+        """ 
+        If vpvs and depth are both True (depth and vpvs are both inverted)
+        :param binary_path: path to reflectivity code binary file
+        :param path_to_dat: path to dat file
+        :param vpvs: if true vpvs updates will be done
+        :param depth: if true layer depth updates will be done 
+        """
 
-# tr_syn_full = fwd.generate_synthetic_data(
-#     st_GF=syn_GFs[i], focal_mech=focal_mech, M0=M0, slice=False,
-# )
+        """ Step 1. copy binary file into datfile folder"""
+        subprocess.call(f"scp {binary_file_path} .", shell=True, cwd=path_to_dat)
+
+        self.f_dat = path_to_dat
+        self.it = 0
+        self.vpvs = vpvs
+        self.depth = depth
+
+    def forward(self, m: np.array):
+        """
+        forward function that runs the reflectivity code based on the model parameters(m).
+        :param m: array of source and structure parameters
+        :returns s_syn: synthetic output based on input m
+        """
+
+        """ step 1. plug in the model parameters in the .dat file """
+        Create_Vmod.update_dat_file(self.f_dat, m, self.vpvs, self.depth)
+        """ step 2. run the dat file """
+        # subprocess.call("./crfl_sac", shell=True, cwd=self.f_dat)
+        """ step 3. read in the output of the run """
+        return read_refl_mseeds(path=self.f_dat, stack=True)
+
+    def misfit(self, m: np.array, s_obs):
+        """
+        Misfit function (L2) based on model parameters (m) and observed data.
+        It runs the forward model (reflectvitiy code under the hood)
+        :param m: array of source and structure parameters
+        :param s_obs: array with observed data
+        :returns xi: misfit of synthetic data vs observed data
+        """
+        print(f"model paramer nr {self.it} is updated now")
+        """ Run the forward modeller"""
+        s_syn = self.forward(m)
+
+        """ Windowing s_syn and s_obs around P and S"""
+
+        plt.plot(s_obs, c="r", label="obs")
+        plt.plot(s_syn, c="b", label="syn")
+        plt.legend()
+        plt.savefig(pjoin(self.f_dat, f"syn_obs_{self.it}.svg"))
+        plt.close()
+
+        xi = np.linalg.norm((s_syn - s_obs), ord=2)
+        self.it += 1
+        return xi
+
+
+# path of the reclectivity binary:
+bin_path = (
+    "/home/nienke/Documents/Research/SS_MTI/External_packages/reflectivity_Mars/SRC/test/crfl_sac"
+)
+
+""" Create observed data array """
+path_observed = "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/obs/"
+s_obs = read_refl_mseeds(path_observed, stack=True)
+
+""" Define starting parameters """
+or_time = obspy.UTCDateTime("2020-3-10T12:00:00")
+lat_src = 0
+lon_src = 0
+depth = 20.0
+name = "Test_Event"
+
+npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
+model = TauPyModel(npz_file)
+
+lat_rec = -20
+lon_rec = 0
+
+dt = 0.025
+
+epi, az, baz = Get_location(lat_src, lon_src, lat_rec, lon_rec)
+
+m_rr0 = 0.0
+m_tt0 = 1.0
+m_pp0 = 0.0
+m_rt0 = 0.0
+m_rp0 = 0.0
+m_tp0 = 0.0
+focal_mech0 = [m_rr0, m_tt0, m_pp0, m_rt0, m_rp0, m_tp0]
+
+# This is basically your prior model, you need to set this up once:
+save_path = "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/m0/"
+# check if folder exists:
+if not exist(save_path):
+    makedirs(save_path)
+# check if folder is empty
+if not lsdir(save_path):
+    subprocess.call(f"scp {bin_path} .", shell=True, cwd=save_path)
+bm_file_path = "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/bm_models/TAYAK.bm"
+Create_Vmod.create_dat_file(
+    src_depth=depth,
+    focal_mech=focal_mech0,
+    M0=None,
+    epi=epi,
+    baz=baz,
+    save_path=save_path,
+    bm_file_path=bm_file_path,
+)
+
+""" Get the parameter (m) array ready """
+import pandas as pd
+
+dat_path = pjoin(save_path, "crfl.dat")
+dat_file = pd.read_csv(
+    dat_path, skiprows=3, skipfooter=11 + 7, header=None, delim_whitespace=True, engine="python",
+)
+moment_param = np.loadtxt(dat_path, skiprows=103, max_rows=1)
+depths = dat_file.values[0:10:2, 0] + 10.0
+MOHO = 40.0  # depths[5]
+vp = dat_file.values[0:10:2, 1] + dat_file.values[0:10:2, 1] * 0.01
+vs = dat_file.values[0:10:2, 3] + dat_file.values[0:10:2, 3] * 0.01
+
+"""
+4 different cases that you can try:
+1. Changing only the MOHO depth (depth = True, vpvs = False)
+2. Changing the depths only (depth = True, vpvs = False) 
+3. Changing the vpvs only (depth = False, vpvps = True)
+4. Changing the depth and vpvps (depth = True, vpvps = True)
+"""
+m0 = np.hstack((moment_param, MOHO))  # Case 1
+# m0 = np.hstack((moment_param, depths)) # Case 2
+# m0 = np.hstack((np.hstack((moment_param, vp)), vs)) # Case 3
+# m0 = np.hstack((np.hstack((np.hstack((moment_param, depths)), vp)), vs)) # Case 4
+
+depth = True
+vpvs = False
+
+""" 
+Start the misfit function with your initial model 
+(i.e., it will run the forward model and calculates the misfit)
+"""
+n_it = 1
+fac = 1  # factor that you want to multiply with the gradient
+xis = np.zeros(n_it)
+dxi_dms = np.zeros((len(m0), n_it))
+m0s = np.zeros((len(m0), n_it + 1))
+m0s[:, 0] = m0
+for i in range(n_it):
+    src_str = SRC_STR(binary_file_path=bin_path, path_to_dat=save_path, depth=depth, vpvs=vpvs)
+    xis[i] = src_str.misfit(m0, s_obs)
+    dxi_dm = af(m0, src_str.misfit, 0.01, s_obs)
+    dxi_dms[:, i] = dxi_dm
+    m0 -= fac * dxi_dm
+    m0s[:, i + 1] = m0
+
+np.save(pjoin(save_path, "dxi_dms.npy"), dxi_dms)
+np.save(pjoin(save_path, "xis.npy"), xis)
+np.save(pjoin(save_path, "m0s.npy"), m0s)

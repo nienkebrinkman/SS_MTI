@@ -23,19 +23,19 @@ from SS_MTI import PostProcessing as _PostProcessing
 from SS_MTI import PreProcess as _PreProcess
 
 # Event325a:
-# t_start = -700
-# t_end = 1100
-# pre_noise = 600.0  # Time for the noise window  (for event S0409d: 1100)
-# S_zoom = 5e-9
-# P_zoom = 1e-9
-# P_pre = 5.0
-# P_post = 5.0
-# S_pre = 10.0
-# S_post = 10.0
-# P_shift = 0.0
-# S_shift = 5.0
-# left_BP = 0.2
-# right_BP = 0.6
+t_start = -700
+t_end = 1100
+pre_noise = 600.0  # Time for the noise window  (for event S0409d: 1100)
+S_zoom = 5e-9
+P_zoom = 1e-9
+P_pre = 5.0
+P_post = 5.0
+S_pre = 10.0
+S_post = 10.0
+P_shift = 0.0
+S_shift = -25.0  # 5.0
+left_BP = 0.2
+right_BP = 0.6
 
 # Event 407a:
 # t_start = -700
@@ -52,28 +52,44 @@ from SS_MTI import PreProcess as _PreProcess
 # left_BP = 0.3
 # right_BP = 0.7
 
-Event_names = {"S0409d": {}}
+# Event 409d:
+# t_start = -1200
+# t_end = 1100
+# pre_noise = 1100.0  # Time for the noise window  (for event S0409d: 1100)
+# S_zoom = 2e-10
+# P_zoom = 2e-10
+# P_shift = 0.0
+# S_shift = 0.0
+# P_pre = 1.0
+# P_post = 20.0
+# S_pre = 5.0
+# S_post = 5.0
+# left_BP = 0.2
+# right_BP = 0.8
+
+
+Event_names = {"S0325a": {}}
 components = ["Z", "N", "E"]
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Data_2021/"
 
-""" Parameters for Time domain plot (set these parameters to None if you dont know) """
-t_start = -1200
-t_end = 1100
-pre_noise = 1100.0  # Time for the noise window  (for event S0409d: 1100)
-S_zoom = 2e-10
-P_zoom = 2e-10
+# """ Parameters for Time domain plot (set these parameters to None if you dont know) """
+# t_start = -1200
+# t_end = 1100
+# pre_noise = 1100.0  # Time for the noise window  (for event S0409d: 1100)
+# S_zoom = 2e-10
+# P_zoom = 2e-10
 
-P_shift = 0.0
-S_shift = 0.0
-""" This is for the Hodogram plot: """
-P_pre = 1.0
-P_post = 20.0
-S_pre = 5.0
-S_post = 5.0
+# P_shift = 0.0
+# S_shift = 0.0
+# """ This is for the Hodogram plot: """
+# P_pre = 1.0
+# P_post = 20.0
+# S_pre = 5.0
+# S_post = 5.0
 
-""" Parameters for Frequency domain plot (set these parameters to None if you dont know) """
-left_BP = 0.2
-right_BP = 0.8
+# """ Parameters for Frequency domain plot (set these parameters to None if you dont know) """
+# left_BP = 0.2
+# right_BP = 0.8
 
 
 """ Read the inventory and catalog file (the once that contain info about the marsquakes) """

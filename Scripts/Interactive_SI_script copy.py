@@ -56,7 +56,7 @@ strikes = np.arange(0, 360, 20)
 dips = np.arange(0, 91, 20)
 rakes = np.arange(-180, 180, 5)
 
-bazs = np.arange(0, 360, 20)
+bazs = np.arange(160, 360, 20)
 # bazs = [140]
 
 """ Define different velocity models"""
@@ -241,254 +241,255 @@ for i, v in event_input.items():
                 Parallel=True,
             )
 
-        """ Post-processing """
+            """ Post-processing """
 
-        """ (waveform plotting post inversion from generated files)"""
-        # _PostProcessing.post_waveform_plotting(
-        #     h5_file_folder=output_folder,
-        #     method="GS",
-        #     misfit_name=misfit.name,
-        #     misfit_weight_len=misfit.start_weight_len,
-        #     fwd=fwd,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     phase_corrs=phase_corrs,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     tstars=tstars,
-        #     plot_extra_phases=extra_phases,
-        #     Ylims=ylims,
-        # )
+            """ (waveform plotting post inversion from generated files)"""
+            # _PostProcessing.post_waveform_plotting(
+            #     h5_file_folder=output_folder,
+            #     method="GS",
+            #     misfit_name=misfit.name,
+            #     misfit_weight_len=misfit.start_weight_len,
+            #     fwd=fwd,
+            #     event=event,
+            #     rec=rec,
+            #     phases=phases,
+            #     components=components,
+            #     t_pre=t_pre,
+            #     t_post=t_post,
+            #     depths=depths,
+            #     phase_corrs=phase_corrs,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            #     zerophase=zerophase,
+            #     tstars=tstars,
+            #     plot_extra_phases=extra_phases,
+            #     Ylims=ylims,
+            # )
 
-        # _PostProcessing.post_waveform_plotting(
-        #     h5_file_folder=output_folder,
-        #     method="Direct",
-        #     misfit_name=misfit.name,
-        #     misfit_weight_len=misfit.start_weight_len,
-        #     fwd=fwd,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     phase_corrs=phase_corrs,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     tstars=tstars,
-        #     plot_extra_phases=extra_phases,
-        #     Ylims=ylims,
-        # )
+            # _PostProcessing.post_waveform_plotting(
+            #     h5_file_folder=output_folder,
+            #     method="Direct",
+            #     misfit_name=misfit.name,
+            #     misfit_weight_len=misfit.start_weight_len,
+            #     fwd=fwd,
+            #     event=event,
+            #     rec=rec,
+            #     phases=phases,
+            #     components=components,
+            #     t_pre=t_pre,
+            #     t_post=t_post,
+            #     depths=depths,
+            #     phase_corrs=phase_corrs,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            #     zerophase=zerophase,
+            #     tstars=tstars,
+            #     plot_extra_phases=extra_phases,
+            #     Ylims=ylims,
+            # )
 
-        # _PostProcessing.post_waveform_plotting_COMBINED(
-        #     h5_file_folder=output_folder,
-        #     misfit_name=misfit.name,
-        #     misfit_weight_len=misfit.start_weight_len,
-        #     fwd=fwd,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths,
-        #     phase_corrs=phase_corrs,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     tstars=tstars,
-        #     plot_extra_phases=extra_phases,
-        #     Ylims=ylims,
-        # )
+            # _PostProcessing.post_waveform_plotting_COMBINED(
+            #     h5_file_folder=output_folder,
+            #     misfit_name=misfit.name,
+            #     misfit_weight_len=misfit.start_weight_len,
+            #     fwd=fwd,
+            #     event=event,
+            #     rec=rec,
+            #     phases=phases,
+            #     components=components,
+            #     t_pre=t_pre,
+            #     t_post=t_post,
+            #     depths=depths,
+            #     phase_corrs=phase_corrs,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            #     zerophase=zerophase,
+            #     tstars=tstars,
+            #     plot_extra_phases=extra_phases,
+            #     Ylims=ylims,
+            # )
 
-        # # """ (misfit vs depth analysis)"""
-        DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
-        # Moho_d = 24
-        # depths = np.arange(5, 89, 3)
-        # fig = _PostProcessing.plot_misfit_vs_depth(
-        #     save_paths=[output_folder],
-        #     event_name=event.name,
-        #     DOF=DOF,
-        #     depths=depths,
-        #     misfit_name=misfit.name,
-        #     veloc_model=fwd.veloc_name,
-        #     true_depth=None,
-        #     Moho=Moho_d,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     amount_of_phases=len(v["phases"]),
-        # )
-        # plt.tight_layout()
-        # plt.savefig(
-        #     pjoin(
-        #         save_folder,
-        #         f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        #     ),
-        #     dpi=600,
-        # )
-        # plt.close()
+            # # """ (misfit vs depth analysis)"""
+            DOF = sum([int((x + y) / v["dt"]) for x, y in zip(v["t_pre"], v["t_post"])])
+            Moho_d = 24
+            # depths = np.arange(5, 89, 3)
+            fig = _PostProcessing.plot_misfit_vs_depth(
+                baz=event.baz,
+                save_paths=[output_folder],
+                event_name=event.name,
+                DOF=DOF,
+                depths=depths,
+                misfit_name=misfit.name,
+                veloc_model=fwd.veloc_name,
+                true_depth=None,
+                Moho=Moho_d,
+                fmin=fmin,
+                fmax=fmax,
+                amount_of_phases=len(v["phases"]),
+            )
+            plt.tight_layout()
+            plt.savefig(
+                pjoin(
+                    save_folder,
+                    f"Misfit_vs_Depth_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
+                ),
+                dpi=600,
+            )
+            plt.close()
 
-        """ (best MT vs depth phase arrivals) """
-        # depths_phases = np.arange(5, 90, 3)  # np.array([23, 26, 29])  #
-        # t_pre = [5, 5, 5, 5, 5]
-        # t_post = [20, 30, 30, 20, 30]
-        # phases = [phases[0], phases[1], phases[2], phases[3], phases[4]]
-        # components = [components[0], components[1], components[2], components[3], components[4]]
-        # phase_corrs = [
-        #     phase_corrs[0],
-        #     phase_corrs[1],
-        #     phase_corrs[2],
-        #     phase_corrs[3],
-        #     phase_corrs[4],
-        # ]
-        # tstars = [tstars[0], tstars[1], tstars[2], tstars[3], tstars[4]]
-        # # tstars = [tstar_P, tstar_S]
-        # if event.name == "S0173a":
-        #     start_depth_range = [32, 77]
-        #     end_depth_range = [41, 77]
-        # elif event.name == "S0235b":
-        #     start_depth_range = [32, 56]
-        #     end_depth_range = [32, 65]
+            """ (best MT vs depth phase arrivals) """
+            # depths_phases = np.arange(5, 90, 3)  # np.array([23, 26, 29])  #
+            # t_pre = [5, 5, 5, 5, 5]
+            # t_post = [20, 30, 30, 20, 30]
+            # phases = [phases[0], phases[1], phases[2], phases[3], phases[4]]
+            # components = [components[0], components[1], components[2], components[3], components[4]]
+            # phase_corrs = [
+            #     phase_corrs[0],
+            #     phase_corrs[1],
+            #     phase_corrs[2],
+            #     phase_corrs[3],
+            #     phase_corrs[4],
+            # ]
+            # tstars = [tstars[0], tstars[1], tstars[2], tstars[3], tstars[4]]
+            # # tstars = [tstar_P, tstar_S]
+            # if event.name == "S0173a":
+            #     start_depth_range = [32, 77]
+            #     end_depth_range = [41, 77]
+            # elif event.name == "S0235b":
+            #     start_depth_range = [32, 56]
+            #     end_depth_range = [32, 65]
 
-        # fig = _PostProcessing.plot_phases_vs_depth(
-        #     h5_file_folder=output_folder,
-        #     method="GS",
-        #     misfit_name=misfit.name,
-        #     fwd=fwd,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths_phases,
-        #     phase_corrs=phase_corrs,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     tstars=tstars,
-        #     color_plot="blue",
-        #     pref_depth_start=start_depth_range,
-        #     pref_depth_end=end_depth_range,
-        # )
-        # # plt.tight_layout()
-        # plt.savefig(
-        #     pjoin(
-        #         save_folder,
-        #         f"Full_PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        #     ),
-        #     dpi=600,
-        # )
-        # plt.close()
+            # fig = _PostProcessing.plot_phases_vs_depth(
+            #     h5_file_folder=output_folder,
+            #     method="GS",
+            #     misfit_name=misfit.name,
+            #     fwd=fwd,
+            #     event=event,
+            #     rec=rec,
+            #     phases=phases,
+            #     components=components,
+            #     t_pre=t_pre,
+            #     t_post=t_post,
+            #     depths=depths_phases,
+            #     phase_corrs=phase_corrs,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            #     zerophase=zerophase,
+            #     tstars=tstars,
+            #     color_plot="blue",
+            #     pref_depth_start=start_depth_range,
+            #     pref_depth_end=end_depth_range,
+            # )
+            # # plt.tight_layout()
+            # plt.savefig(
+            #     pjoin(
+            #         save_folder,
+            #         f"Full_PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+            #     ),
+            #     dpi=600,
+            # )
+            # plt.close()
 
-        # depths_phases = np.arange(5, 90, 3)
-        # t_pre = [5, 5]
-        # t_post = [30, 30]
-        # phases = [phases[0], phases[1]]
-        # components = [components[0], components[1]]
-        # phase_corrs = [
-        #     phase_corrs[0],
-        #     phase_corrs[1],
-        # ]
-        # tstars = [tstars[0], tstars[1]]
-        # # tstars = [tstar_P, tstar_S]
-        # if event.name == "S0173a":
-        #     start_depth_range = [32, 77]
-        #     end_depth_range = [41, 77]
-        # elif event.name == "S0235b":
-        #     start_depth_range = [32, 56]
-        #     end_depth_range = [32, 65]
+            # depths_phases = np.arange(5, 90, 3)
+            # t_pre = [5, 5]
+            # t_post = [30, 30]
+            # phases = [phases[0], phases[1]]
+            # components = [components[0], components[1]]
+            # phase_corrs = [
+            #     phase_corrs[0],
+            #     phase_corrs[1],
+            # ]
+            # tstars = [tstars[0], tstars[1]]
+            # # tstars = [tstar_P, tstar_S]
+            # if event.name == "S0173a":
+            #     start_depth_range = [32, 77]
+            #     end_depth_range = [41, 77]
+            # elif event.name == "S0235b":
+            #     start_depth_range = [32, 56]
+            #     end_depth_range = [32, 65]
 
-        # fig = _PostProcessing.plot_phases_vs_depth(
-        #     h5_file_folder=output_folder,
-        #     method="GS",
-        #     misfit_name=misfit.name,
-        #     fwd=fwd,
-        #     event=event,
-        #     rec=rec,
-        #     phases=phases,
-        #     components=components,
-        #     t_pre=t_pre,
-        #     t_post=t_post,
-        #     depths=depths_phases,
-        #     phase_corrs=phase_corrs,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        #     zerophase=zerophase,
-        #     tstars=tstars,
-        #     color_plot="blue",
-        #     pref_depth_start=start_depth_range,
-        #     pref_depth_end=end_depth_range,
-        # )
-        # # plt.tight_layout()
-        # plt.savefig(
-        #     pjoin(
-        #         save_folder,
-        #         f"PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        #     ),
-        #     dpi=600,
-        # )
-        # plt.close()
+            # fig = _PostProcessing.plot_phases_vs_depth(
+            #     h5_file_folder=output_folder,
+            #     method="GS",
+            #     misfit_name=misfit.name,
+            #     fwd=fwd,
+            #     event=event,
+            #     rec=rec,
+            #     phases=phases,
+            #     components=components,
+            #     t_pre=t_pre,
+            #     t_post=t_post,
+            #     depths=depths_phases,
+            #     phase_corrs=phase_corrs,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            #     zerophase=zerophase,
+            #     tstars=tstars,
+            #     color_plot="blue",
+            #     pref_depth_start=start_depth_range,
+            #     pref_depth_end=end_depth_range,
+            # )
+            # # plt.tight_layout()
+            # plt.savefig(
+            #     pjoin(
+            #         save_folder,
+            #         f"PhaseTracking_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+            #     ),
+            #     dpi=600,
+            # )
+            # plt.close()
 
-        """ Uncertainty estimates:"""
-        # depths = np.arange(5, 90, 3)
-        # # depts = [14, 29, 32, 35, 41, 38, 65]
-        # if event.name == "S0235b":
-        #     depts = [29, 32, 35, 38, 56, 59, 62, 65]
-        # elif event.name == "S0173a":
-        #     depts = [29, 32, 35, 41, 38]
-        # fig_sdr = _PostProcessing.Source_Uncertainty(
-        #     h5_file_folder=output_folder,
-        #     event_name=event.name,
-        #     method="GS",
-        #     misfit_name=misfit.name,
-        #     fwd=fwd,
-        #     phases=phases,
-        #     components=components,
-        #     depths=depths,
-        #     DOF=DOF,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        # )
-        # fig.tight_layout()
-        # fig.savefig(
-        #     pjoin(
-        #         save_folder,
-        #         f"Uncertainties_FULL_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        #     ),
-        #     dpi=600,
-        # )
-        # plt.close(fig)
-        # fig_sdr.tight_layout()
-        # fig_sdr.savefig(
-        #     pjoin(
-        #         save_folder,
-        #         f"Uncertainties_SDR_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
-        #     ),
-        #     dpi=600,
-        # )
-        # plt.close(fig_sdr)
+            """ Uncertainty estimates:"""
+            # depths = np.arange(5, 90, 3)
+            # # depts = [14, 29, 32, 35, 41, 38, 65]
+            # if event.name == "S0235b":
+            #     depts = [29, 32, 35, 38, 56, 59, 62, 65]
+            # elif event.name == "S0173a":
+            #     depts = [29, 32, 35, 41, 38]
+            # fig_sdr = _PostProcessing.Source_Uncertainty(
+            #     h5_file_folder=output_folder,
+            #     event_name=event.name,
+            #     method="GS",
+            #     misfit_name=misfit.name,
+            #     fwd=fwd,
+            #     phases=phases,
+            #     components=components,
+            #     depths=depths,
+            #     DOF=DOF,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            # )
+            # fig.tight_layout()
+            # fig.savefig(
+            #     pjoin(
+            #         save_folder,
+            #         f"Uncertainties_FULL_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+            #     ),
+            #     dpi=600,
+            # )
+            # plt.close(fig)
+            # fig_sdr.tight_layout()
+            # fig_sdr.savefig(
+            #     pjoin(
+            #         save_folder,
+            #         f"Uncertainties_SDR_{event.name}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}.svg",
+            #     ),
+            #     dpi=600,
+            # )
+            # plt.close(fig_sdr)
 
-        """ Polarization plot """
-        # _PostProcessing.polarization(
-        #     h5_file_folder=output_folder,
-        #     event=event,
-        #     method="GS",
-        #     misfit_name=misfit.name,
-        #     fwd=fwd,
-        #     phases=phases,
-        #     components=components,
-        #     depths=np.arange(5, 90, 3),
-        #     DOF=DOF,
-        #     fmin=fmin,
-        #     fmax=fmax,
-        # )
+            """ Polarization plot """
+            # _PostProcessing.polarization(
+            #     h5_file_folder=output_folder,
+            #     event=event,
+            #     method="GS",
+            #     misfit_name=misfit.name,
+            #     fwd=fwd,
+            #     phases=phases,
+            #     components=components,
+            #     depths=np.arange(5, 90, 3),
+            #     DOF=DOF,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            # )
 
