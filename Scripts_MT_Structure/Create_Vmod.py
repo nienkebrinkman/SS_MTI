@@ -1,27 +1,65 @@
 from obspy.taup import TauPyModel as TauPyModel
+from obspy.geodetics import kilometers2degrees as kd
 from os.path import isfile, join
 import numpy as np
 import re
 
 
-def update_dat_file(dat_file: str, m: np.array, vpvs: bool, depth: bool):
+def read_depth_from_dat(dat_folder: str):
+
+    """
+    Reads out the depth of the event specified in .dat file
+    :param dat_folder: folder where .dat file is located
+    :returns depth: the depth of the event
+    """
+
+    with open(join(dat_folder, "crfl.dat"), "r+") as f:
+        data = f.readlines()
+        f.close()
+    return np.array(re.findall("\d+\.\d+", data[-9]), dtype=float)[2]
+
+
+def read_epi_from_dat(dat_folder: str, radius: float = 3389.5):
+    """
+    Reads out the depth of the event specified in .dat file
+    :param dat_folder: folder where .dat file is located
+    :returns depth: the depth of the event
+    """
+
+    with open(join(dat_folder, "crfl.dat"), "r+") as f:
+        data = f.readlines()
+        f.close()
+    return kd(np.array(re.findall("\d+\.\d+", data[-6]), dtype=float)[0], radius)
+
+
+def update_dat_file(
+    dat_folder: str,
+    m: np.array,
+    vpvs: bool,
+    depth: bool,
+    produce_tvel: bool = True,
+    tvel_name: str = "Test",
+):
     """ 
     This function will update an existing dat file with only changes 
     in the moment tensor and the Vp and Vs
-    :param dat_file: folder to your .dat file
+    :param dat_folder: folder to your .dat file
     :param m: vector including model parameters (fmech(6), structure(x))
     :param vpvs: if true, vpvs updates will be done (starts from depth layer zero)
     :param depth: if true, depth layer updates will be done 
                   (if only 1 depth given: MOHO will change)
+    :param produce_tvel: if true, a .tvel file will be produced
+                         based on the updated .dat file
+    :param tvel_name: name of the .tvel file
     """
     fmech = m[:6]
 
-    with open(join(dat_file, "crfl.dat"), "r+") as f:
+    with open(join(dat_folder, "crfl.dat"), "r+") as f:
         data = f.readlines()
         skiprows = 3  # Always need to skip first 3 lines
         """ Updating the moment tensor in .dat file"""
         fmech_update = f"{fmech[0]:10.4f}{fmech[1]:10.4f}{fmech[2]:10.4f}{fmech[3]:10.4f}{fmech[4]:10.4f}{fmech[5]:10.4f}\n"
-        data[103] = fmech_update
+        data[-8] = fmech_update
         """ Updating the structural parameters in .dat file """
         if vpvs and depth == False:
             print("vpvs are changed in dat file starting from depth 0")
@@ -95,10 +133,66 @@ def update_dat_file(dat_file: str, m: np.array, vpvs: bool, depth: bool):
             raise ValueError("vpvs either True or False & depth either True or False")
 
         f.close()
-    with open(join(dat_file, "crfl.dat"), "w") as f:
+    with open(join(dat_folder, "crfl.dat"), "w") as f:
         f.write("".join(data))
         f.close()
-    a = 1
+    """ automatically create .tvel file """
+    depth = np.zeros(len(data[3:-18]))
+    vp = np.zeros(len(data[3:-18]))
+    vs = np.zeros(len(data[3:-18]))
+    dens = np.zeros(len(data[3:-18]))
+    for i, line in enumerate(data[3:-18]):
+        """ search for and create floats from the string line """
+        flt = np.array(re.findall("\d+\.\d+", line), dtype=float)
+        depth[i] = flt[0]
+        vp[i] = flt[1]
+        vs[i] = flt[3]
+        dens[i] = flt[5]
+    create_tvel_file(depth, vp, vs, dens, dat_folder, tvel_name)
+
+
+def create_tvel_file(
+    depth: np.array,
+    vp: np.array,
+    vs: np.array,
+    dens: np.array,
+    save_folder: str,
+    name: str = "Test",
+):
+    """
+    Creating a .tvel file that can be used to compute a .npz file
+    The vectors depth, vp, vs and dens MUST be same length
+    :param depth: vector with layer depths
+    :param vp: vector with P-velocity values at each depth layer
+    :param vs: vector with S-velocity values at each depth layer
+    :param dens: vector with density values at each depth layer
+    :param save_folder: folder where .tvel file will be saved
+    :param name: name of .tvel file
+    """
+
+    assert (
+        len(depth) == len(vp) and len(depth) == len(vs) and len(depth) == len(dens)
+    ), "All arrays (depth, vp, vs and dens) should be of same length"
+
+    """ combining all the data vector """
+    data = np.vstack((np.vstack((np.vstack((depth, vp)), vs)), dens)).T
+
+    with open(join(save_folder, f"{name}.tvel"), "w") as f:
+        f.write("# Input file for TauP\n")
+        f.write("NAME         TAYAK_BKE\n")
+        for line in data:
+            f.write(f"{line[0]:8.2f}{line[1]:8.3f}{line[2]:8.3f}{line[3]:8.3f}\n")
+        f.write(
+            """ 1596.98   4.986   0.000   5.855
+ 1853.05   5.150   0.000   6.025
+ 2109.13   5.284   0.000   6.166
+ 2365.20   5.393   0.000   6.280
+ 2621.27   5.475   0.000   6.368
+ 2877.35   5.534   0.000   6.430
+ 3133.42   5.569   0.000   6.467
+ 3389.50   5.569   0.000   6.467"""
+        )
+        f.close()
 
 
 def create_dat_file(
