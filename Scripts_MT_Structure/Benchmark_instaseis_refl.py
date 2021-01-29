@@ -60,11 +60,13 @@ def scale_traces(st1, st2):
     return st1, st2
 
 
+m0 = np.load("/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/S0235b/m0s.npy")
+
 ## Step 1: Define parameters
 or_time = obspy.UTCDateTime("2020-3-10T12:00:00")
-lat_src = 0
+lat_src = 90
 lon_src = 0
-depth = 20.0
+depth = 41.0
 name = "Test_Event"
 
 phases = ["P", "S", "S", "P", "S"]
@@ -81,12 +83,13 @@ if not lsdir(mnt_folder):
     )
 
 
-npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
+npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
 # npz_file = "/home/nienke/Data_2020/npz_files/TAYAK_BKE.npz"
 # npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 model = TauPyModel(npz_file)
 
-db_path = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/TAYAK_1s"
+# db_path = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/TAYAK_1s"
+db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
 # db_path = "/opt/databases/TAYAK_15s_BKE"
 # db_path = "http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/"
 db = instaseis.open_db(db_path)
@@ -94,20 +97,20 @@ db = instaseis.open_db(db_path)
 # SS_MTI.DataGetter.unmnt_remote_folder(mnt_folder=mnt_folder)
 
 
-lat_rec = -20
-lon_rec = 0
+lat_rec = 65
+lon_rec = 74
 
 strike = 0
 dip = 45  # 45
 rake = 0  # -90
 M0 = 5.62e13
 # [m_rr, m_tt, m_pp, m_rt, m_rp, m_tp] = SS_MTI.GreensFunctions.convert_SDR(strike, dip, rake, M0)
-m_rr0 = 0.0
-m_tt0 = 1.0e17
-m_pp0 = 0.0
-m_rt0 = 0.0
-m_rp0 = 0.0
-m_tp0 = 0.0
+m_rr0 = -0.8925e17
+m_tt0 = 0.8925e17
+m_pp0 = 0.0000
+m_rt0 = 0.1574e17
+m_rp0 = -0.2717e17
+m_tp0 = 0.3237e17
 focal_mech0 = [m_rr0, m_tt0, m_pp0, m_rt0, m_rp0, m_tp0]
 
 dt = 0.025
@@ -166,7 +169,7 @@ if azi <= 0:
 elif azi > 0:
     bazi = azi - 180.0
 print(bazi)
-# st_ins = st_ins.rotate("NE->RT", back_azimuth=event.baz)
+# st_ins = st_ins.rotate("NE->RT", back_azimuth=74)
 
 ## Filter the event
 dt_ins = st_ins[0].stats.delta
@@ -191,7 +194,7 @@ st_ins = bandpass_filt(st_ins, ff[0], ff[1], dt_ins)
 # plt.show()
 
 
-save_path = ("/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/m0/",)
+save_path = ("/home/nienke/Documents/Research/SS_MTI/External_packages/Test_BKE/test/",)
 
 # save_path = [
 #     "/home/nienke/Documents/Research/SS_MTI/External_packages/reflectivity_Mars/SRC/test/",
@@ -250,101 +253,101 @@ print(st_refls)
 
 # st_refl_cop = st_refl_cop.rotate("NE->RT", back_azimuth=180)
 
-# fig, ax = plt.subplots(nrows=3, ncols=1, sharex="all", sharey="all", figsize=(15, 15))
-# for j, st in enumerate(st_refls):
-#     st_refl = st.copy()
-#     dt_ref = st_refl[0].stats.delta
-#     ff = np.array([0.03, 0.4])
-#     st_refl = taper_trace(st_refl)
-#     st_refl = bandpass_filt(st_refl, ff[0], ff[1], dt_ref)
-
-#     # ## Scale both
-#     # st_ins, st_refl = scale_traces(st_ins, st_refl)
-
-#     for i, comp in enumerate(["Z", "R", "T"]):
-#         if j == 0:
-#             ax[i].axvline(x=P_arr, c="red", ls="dashed", label="P-arrival")
-#             ax[i].axvline(x=S_arr, c="blue", ls="dashed", label="S-arrival")
-#             ax[i].plot(
-#                 st_ins[i].times(),
-#                 st_ins[i].data,
-#                 label=f"INSTASEIS {st_ins[i].stats.channel}",
-#                 c="k",
-#             )
-#             ax[i].set_ylabel("Displacement (m)")
-
-#         st_select = st_refl.select(channel="xx" + comp)
-#         for k, tr in enumerate(st_select):
-#             ax[i].plot(
-#                 tr.times(), tr.data * 0.4e4, label=f"REFLECTIVITY {st_select[k].stats.channel}",
-#             )
-#             ax[i].set_xlim(P_arr - 10.0, S_arr + 100.0)
-#         ax[i].legend()
-#         # ax[i].set_ylim(-0.2, 0.2)
-
-#     ax[-1].set_xlabel("Time (s)")
-#     # ax[2].set_ylim(-0.2e-30,0.2e-30)
-# plt.show()
-
-## Copy reflectivity stream
-st_refl_cop = st_refls[0].copy()
-dt_ref = st_refl_cop[0].stats.delta
-ff = np.array([0.03, 0.4])
-st_refl_cop = taper_trace(st_refl_cop)
-st_refl_cop = bandpass_filt(st_refl_cop, ff[0], ff[1], dt_ref)
-
-# ## Cross-correlate the reflectivity traces with the instaseis traces:
-# 1. copy the stream:
-st_refl_cop2 = st_refl_cop.copy()
-st_ins_cop2 = st_ins.copy()
-# 2. cut out a window around the S-wave:
-timing = st_refl_cop2[0].stats.starttime + S_arr
-min_range = 5
-max_range = 50
-st_refl_cop2 = st_refl_cop2.trim(
-    starttime=timing - min_range, endtime=timing + max_range, pad=True, fill_value=0.0
-)
-timing = event.origin_time + S_arr
-st_ins_cop2 = st_ins_cop2.trim(
-    starttime=timing - min_range, endtime=timing + max_range, pad=True, fill_value=0.0
-)
 fig, ax = plt.subplots(nrows=3, ncols=1, sharex="all", sharey="all", figsize=(15, 15))
-for i, (comp_ins, comp_refl) in enumerate(zip(["Z", "N", "E"], ["Z", "R", "T"])):
-    tr_ins = st_ins_cop2.select(channel="BH" + comp_ins).traces[0]
-    tr_refl = st_refl_cop2.select(channel="xx" + comp_refl).traces[0]
-    tr_refl.data *= 0.4e4
+for j, st in enumerate(st_refls):
+    st_refl = st.copy()
+    dt_ref = st_refl[0].stats.delta
+    ff = np.array([0.03, 0.4])
+    st_refl = taper_trace(st_refl)
+    st_refl = bandpass_filt(st_refl, ff[0], ff[1], dt_ref)
 
-    # tr_refl.data *= 0.0
-    # tr_refl.data[10:20] = 1.0
+    # ## Scale both
+    # st_ins, st_refl = scale_traces(st_ins, st_refl)
 
-    # tr_ins.data *= 0.0
-    # tr_ins.data[30:40] = 1.0
+    for i, comp in enumerate(["Z", "R", "T"]):
+        if j == 0:
+            ax[i].axvline(x=P_arr, c="red", ls="dashed", label="P-arrival")
+            ax[i].axvline(x=S_arr, c="blue", ls="dashed", label="S-arrival")
+            ax[i].plot(
+                st_ins[i].times(),
+                st_ins[i].data,
+                label=f"INSTASEIS {st_ins[i].stats.channel}",
+                c="k",
+            )
+            ax[i].set_ylabel("Displacement (m)")
 
-    # 3. Correlate
-    corrarray = correlate(tr_refl, tr_ins, domain="time", shift=128)
-    shift_CC, misfit_CC = xcorr_max(corrarray, abs_max=False)
-    print(shift_CC)
-    # 4. Shift
-    # misfit_CC[iphase] = corrarray[(len(corrarray) - 1) // 2 + int(shifts[phases[iphase]])]
-    # shift_CC[iphase] = shifts[phases[iphase]]
+        st_select = st_refl.select(channel="xx" + comp)
+        for k, tr in enumerate(st_select):
+            ax[i].plot(
+                tr.times(), tr.data * 0.4e4, label=f"REFLECTIVITY {st_select[k].stats.channel}",
+            )
+            ax[i].set_xlim(P_arr - 10.0, S_arr + 100.0)
+        ax[i].legend()
+        # ax[i].set_ylim(-0.2, 0.2)
 
-    ax[i].axvline(x=0, c="blue", ls="dashed", label="S-arrival")
-    ax[i].plot(
-        tr_ins.times() - min_range, tr_ins.data, label=f"INSTASEIS {tr_ins.stats.channel}", c="k",
-    )
-
-    ax[i].plot(
-        tr_refl.times() - min_range - shift_CC * dt_ref,
-        tr_refl.data,
-        label=f"REFLECTIVITY {tr_refl.stats.channel}",
-    )
-    ax[i].plot(
-        tr_refl.times() - min_range,
-        tr_refl.data,
-        label=f"No-shift REFLECTIVITY {tr_refl.stats.channel}",
-    )
-    ax[i].set_ylabel("Displacement (m)")
-    ax[i].legend()
-ax[-1].set_xlabel("Time (s)")
-# ax[2].set_ylim(-0.2e-30,0.2e-30)
+    ax[-1].set_xlabel("Time (s)")
+    # ax[2].set_ylim(-0.2e-30,0.2e-30)
 plt.show()
+
+# ## Copy reflectivity stream
+# st_refl_cop = st_refls[0].copy()
+# dt_ref = st_refl_cop[0].stats.delta
+# ff = np.array([0.03, 0.4])
+# st_refl_cop = taper_trace(st_refl_cop)
+# st_refl_cop = bandpass_filt(st_refl_cop, ff[0], ff[1], dt_ref)
+
+# # ## Cross-correlate the reflectivity traces with the instaseis traces:
+# # 1. copy the stream:
+# st_refl_cop2 = st_refl_cop.copy()
+# st_ins_cop2 = st_ins.copy()
+# # 2. cut out a window around the S-wave:
+# timing = st_refl_cop2[0].stats.starttime + S_arr
+# min_range = 5
+# max_range = 50
+# st_refl_cop2 = st_refl_cop2.trim(
+#     starttime=timing - min_range, endtime=timing + max_range, pad=True, fill_value=0.0
+# )
+# timing = event.origin_time + S_arr
+# st_ins_cop2 = st_ins_cop2.trim(
+#     starttime=timing - min_range, endtime=timing + max_range, pad=True, fill_value=0.0
+# )
+# fig, ax = plt.subplots(nrows=3, ncols=1, sharex="all", sharey="all", figsize=(15, 15))
+# for i, (comp_ins, comp_refl) in enumerate(zip(["Z", "N", "E"], ["Z", "R", "T"])):
+#     tr_ins = st_ins_cop2.select(channel="BH" + comp_ins).traces[0]
+#     tr_refl = st_refl_cop2.select(channel="xx" + comp_refl).traces[0]
+#     tr_refl.data *= 0.4e4
+
+#     # tr_refl.data *= 0.0
+#     # tr_refl.data[10:20] = 1.0
+
+#     # tr_ins.data *= 0.0
+#     # tr_ins.data[30:40] = 1.0
+
+#     # 3. Correlate
+#     corrarray = correlate(tr_refl, tr_ins, domain="time", shift=128)
+#     shift_CC, misfit_CC = xcorr_max(corrarray, abs_max=False)
+#     print(shift_CC)
+#     # 4. Shift
+#     # misfit_CC[iphase] = corrarray[(len(corrarray) - 1) // 2 + int(shifts[phases[iphase]])]
+#     # shift_CC[iphase] = shifts[phases[iphase]]
+
+#     ax[i].axvline(x=0, c="blue", ls="dashed", label="S-arrival")
+#     ax[i].plot(
+#         tr_ins.times() - min_range, tr_ins.data, label=f"INSTASEIS {tr_ins.stats.channel}", c="k",
+#     )
+
+#     ax[i].plot(
+#         tr_refl.times() - min_range - shift_CC * dt_ref,
+#         tr_refl.data,
+#         label=f"REFLECTIVITY {tr_refl.stats.channel}",
+#     )
+#     ax[i].plot(
+#         tr_refl.times() - min_range,
+#         tr_refl.data,
+#         label=f"No-shift REFLECTIVITY {tr_refl.stats.channel}",
+#     )
+#     ax[i].set_ylabel("Displacement (m)")
+#     ax[i].legend()
+# ax[-1].set_xlabel("Time (s)")
+# # ax[2].set_ylim(-0.2e-30,0.2e-30)
+# plt.show()

@@ -85,13 +85,13 @@ def update_dat_file(
             depth = m[6 : 6 + n_params]
             if n_params == 1:
                 print("depth of MOHO (from TAYAK) will be changed")
-                flt = np.array(re.findall("\d+\.\d+", data[8]), dtype=float)
+                flt = np.array(re.findall("\d+\.\d+", data[7]), dtype=float)
                 data[
-                    8
+                    7
                 ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
-                flt = np.array(re.findall("\d+\.\d+", data[9]), dtype=float)
+                flt = np.array(re.findall("\d+\.\d+", data[6]), dtype=float)
                 data[
-                    9
+                    6
                 ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
             else:
                 print("depths are changed in dat file starting from depth 0")
@@ -274,7 +274,6 @@ def create_dat_file(
         inds = np.sort(np.hstack((0, np.hstack((indices1, indices)))))
 
         for i, layer in enumerate(f_ud):
-            print(i)
             if layer[0] == 0.0:
                 continue
             depth = (radius_mars - layer[0]) * 1e-3
@@ -296,16 +295,16 @@ def create_dat_file(
 
             # Check if part of velocity model is part of the gradient:
             if i not in inds and vs != 0.0:
-                prev_depth = (radius_mars - f_ud[i - 1, 0]) * 1e-3
-                layer_thickness = depth - prev_depth
-                factor = 0.07
-                layer_thickness_lim = factor * (
-                    vs / fdom
-                )  # layer limit should be less then 1/10 of wavelength
-                vs0 = f_ud[i - 1, 3] * 1e-3
-                if layer_thickness_lim > factor * (vs0 / fdom):
-                    layer_thickness_lim = factor * (vs0 / fdom)
-                import math
+                # prev_depth = (radius_mars - f_ud[i - 1, 0]) * 1e-3
+                # layer_thickness = depth - prev_depth
+                # factor = 0.07
+                # layer_thickness_lim = factor * (
+                #     vs / fdom
+                # )  # layer limit should be less then 1/10 of wavelength
+                # vs0 = f_ud[i - 1, 3] * 1e-3
+                # if layer_thickness_lim > factor * (vs0 / fdom):
+                #     layer_thickness_lim = factor * (vs0 / fdom)
+                # import math
 
                 # n_layers = math.ceil(layer_thickness / layer_thickness_lim)
                 n_layers = 1
