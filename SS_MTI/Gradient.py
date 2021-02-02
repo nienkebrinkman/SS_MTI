@@ -22,6 +22,34 @@ import Create_Vmod
 import subprocess
 from SS_MTI import PreProcess as _PreProcess
 from SS_MTI import PhaseTracer as _PhaseTracer
+import SS_MTI.SourceTimeFunction as _STF
+
+
+def bandpass_filt(stream, f1, f2, dt, order=2):
+    """
+    filter waveforms by using Butterworth bandpass filter
+    """
+    fN = 1.0 / (2.0 * dt)
+    low = f1 / fN
+    high = f2 / fN
+    [b, a] = signal.butter(order, low, "high")
+    [d, c] = signal.butter(order, high, "low")
+
+    for tr in stream:
+        tr.data = signal.filtfilt(b, a, tr.data)
+        tr.data = signal.filtfilt(d, c, tr.data)
+
+    return stream
+
+
+def taper_trace(stream, max_perc=0.03, ttype="hann"):
+    """
+    taper traces in stream
+    """
+    for tr in stream:
+        tr.taper(max_perc, ttype)
+
+    return stream
 
 
 def create_taup_model(input_file: str, save_folder: str, ret=True):
@@ -40,7 +68,27 @@ def create_taup_model(input_file: str, save_folder: str, ret=True):
         return input_file.replace(".tvel", ".npz")
 
 
-def read_refl_mseeds(path: str, dt: float, stack: bool = False):
+def rot_data(st, angle):
+    Z = st.select(channel="xxz")[0].data
+    R = st.select(channel="xxr")[0].data
+    T = st.select(channel="xxt")[0].data
+
+    data = np.vstack((Z, R, T))
+
+    cost = np.cos(np.deg2rad(angle))
+    sint = np.sin(np.deg2rad(angle))
+    #     Rot_mat = np.array([[cost, 0, sint], [0, 1, 0], [-sint, 0, cost]]) # ZT (as 2 constant)
+    Rot_mat = np.array([[cost, -sint, 0.0], [-sint, cost, 0], [0, 0, 1]])
+    rot_data = Rot_mat @ data
+
+    st.select(channel="xxz")[0].data = rot_data[0, :]
+    st.select(channel="xxr")[0].data = rot_data[1, :]
+    st.select(channel="xxt")[0].data = rot_data[2, :]
+
+    return st
+
+
+def read_refl_mseeds(path: str, dt: float = None, stack: bool = False):
     """ 
     This functions reads in the output of reflectivity code (miniseeds)
     :param pat:the path where the miniseeds are located
@@ -48,6 +96,9 @@ def read_refl_mseeds(path: str, dt: float, stack: bool = False):
     :param stack: stacks the streams in one array (Z,R,T) -> numpy.array
     :returns: obspy stream for stack = False, numpy.array for stack = True
     """
+    # path = (
+    #     "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/S0235b/jupyter_notebook/235b-location/"
+    # )
 
     st = obspy.Stream()
     st_files = [f for f in lsdir(path) if f.startswith("st") if isfile(pjoin(path, f))]
@@ -67,10 +118,11 @@ def read_refl_mseeds(path: str, dt: float, stack: bool = False):
         )
         st += st_temp
 
-    st.select(channel="xxz")[0].data *= -1
-    st.select(channel="xxt")[0].data *= -1
-    if st[0].stats.delta != dt:
-        st.resample((1 / dt))
+    # st.select(channel="xxz")[0].data *= -1
+    # st.select(channel="xxt")[0].data *= -1
+    # if st[0].stats.delta != dt:
+    #     print(f"Traces will be resampled from dt:{st[0].stats.delta} to dt:{dt}")
+    #     st.resample((1 / dt))
     if stack:
         Z = st.select(channel="xxz")[0].data
         R = st.select(channel="xxr")[0].data
@@ -94,6 +146,8 @@ def plot_waveforms_src_str(
     tt_syn: [float],
     ylims: [float],
     save_file: str,
+    ins_full=None,
+    ins_w=None,
 ):
     """
     plot function
@@ -119,13 +173,19 @@ def plot_waveforms_src_str(
         ax[i].plot(
             st_obs_full[i].times() - tt_obs[i], st_obs_full[i].data, lw=1, c="k",
         )
+        ax[i].plot(
+            st_syn_w[i].times() - t_pres[i], -st_syn_w[i].data, lw=3, c="r", label="Reflectivity",
+        )
+        ax[i].plot(
+            st_syn_full[i].times() - tt_syn[i], -st_syn_full[i].data, lw=1, c="r",
+        )
 
-        ax[i].plot(
-            st_syn_w[i].times() - t_pres[i], st_syn_w[i].data, lw=3, c="r", label="Synthetic",
-        )
-        ax[i].plot(
-            st_syn_full[i].times() - tt_syn[i], st_syn_full[i].data, lw=1, c="r",
-        )
+        # ax[i].plot(
+        #     ins_w[i].times() - t_pres[i], ins_w[i].data, lw=3, c="b", label="Instaseis",
+        # )
+        # ax[i].plot(
+        #     ins_full[i].times() - tt_syn[i], ins_full[i].data, lw=1, c="b",
+        # )
 
         ax[i].text(
             s=f"{phase}{components[i]}",
@@ -141,6 +201,12 @@ def plot_waveforms_src_str(
         ax[i].get_yaxis().get_offset_text().set_visible(False)
         ax_max = max(ax[i].get_yticks())
         exponent_axis = np.floor(np.log10(ax_max)).astype(int)
+        ax[i].annotate(
+            r"$\times$10$^{%i}$" % (exponent_axis),
+            xy=(0.01, 0.75),
+            xycoords="axes fraction",
+            fontsize=32,
+        )
         global_max = max([tr.data.max() for tr in st_obs_w]) * 1.2
         global_min = min([tr.data.min() for tr in st_obs_w]) * 1.2
         if ylims is None:
@@ -188,6 +254,9 @@ class SRC_STR:
         vpvs: bool,
         depth: bool,
         dt: [float],
+        baz: float,
+        sigma: float,
+        tstars: [float] = None,
         fmin: float = None,
         fmax: float = None,
         zerophase: bool = False,
@@ -223,6 +292,9 @@ class SRC_STR:
         self.fmax = fmax
         self.zerophase = zerophase
         self.dt = dt
+        self.tstars = tstars
+        self.baz = baz
+        self.sigma = sigma
 
         """ Step 1. copy binary file into datfile folder"""
         subprocess.call(f"scp {binary_file_path} .", shell=True, cwd=path_to_dat)
@@ -275,12 +347,20 @@ class SRC_STR:
         """ Run the forward modeller"""
         st_syn = self.forward(m)
 
+        ## Filter
+        # dt_ref = st_syn[0].stats.delta
+        # print(dt_ref)
+        # ff = np.array([0.1, 0.5])
+        # st_syn = taper_trace(st_syn)
+        # st_syn = bandpass_filt(st_syn, ff[0], ff[1], dt_ref)
+
         """ Windowing s_syn and s_obs around P and S """
         """ 1. .npz file needs to be created from .tvel file """
         path_to_tvel = pjoin(self.f_dat, self.tvel_file_name + ".tvel")
         npz_file = create_taup_model(input_file=path_to_tvel, save_folder=self.f_dat)
 
         """ 2. Initialize .npz file & calculate phase arrivals """
+        # npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
         Taup = TauPyModel(npz_file)
         depth = Create_Vmod.read_depth_from_dat(self.f_dat)
         epi = Create_Vmod.read_epi_from_dat(self.f_dat)
@@ -288,24 +368,91 @@ class SRC_STR:
         for i, phase in enumerate(self.phases):
             self.syn_tts.append(_PhaseTracer.get_traveltime(Taup, phase, depth, epi))
 
-        """ 3. Window the synthetic data """
+        """ Temporary compare with instaseis"""
+        # import instaseis
+        # db = instaseis.open_db("http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/")
+        # # # Event parameters
+        # depth_ev = 41.0e3  # depth [m]
+        # time_ev = st_syn[0].stats.starttime
+        # # Retrieve the waveform
+        # receiver = instaseis.Receiver(
+        #     latitude=4.5, longitude=135.623447, network="XB", station="ELYSE"
+        # )
+        # strike = 0
+        # dip = 40
+        # rake = -150
+        # M0 = 9.1925923e13
+        # from SS_MTI import GreensFunctions
+        # MT = GreensFunctions.convert_SDR(strike, dip, rake, M0)
+        # source = instaseis.Source(
+        #     latitude=10.99032013,
+        #     longitude=160.9467524,
+        #     depth_in_m=depth_ev,
+        #     m_rr=MT[0],
+        #     m_tt=MT[1],
+        #     m_pp=MT[2],
+        #     m_rt=MT[3],
+        #     m_rp=MT[4],
+        #     m_tp=MT[5],
+        #     origin_time=time_ev,
+        #     time_shift=None,
+        #     sliprate=None,
+        # )
+        # st_ins1 = db.get_seismograms(
+        #     source=source, receiver=receiver, components="ZRT", dt=0.05, kind="displacement"
+        # )
+        # ## Filter
+        # # dt_ins = st_ins1[0].stats.delta
+        # # print(dt_ins)
+        # # st_ins1 = taper_trace(st_ins1)
+        # # st_ins1 = bandpass_filt(st_ins1, ff[0], ff[1], dt_ins)
+
+        """ 3. Window the synthetic data (& convolve with STF) """
         s_syn = np.array([])
         s_obs = np.array([])
         self.st_syn_w = obspy.Stream()  # keep this one for plotting
         self.st_syn_full = obspy.Stream()
+
+        # st_ins_w = obspy.Stream()  # keep this one for plotting
+        # st_ins_full = obspy.Stream()
         for i, phase in enumerate(self.phases):
             tr_full = st_syn.select(channel=f"xx{self.components[i]}")[0].copy()
+            # ins_full = st_ins1.select(channel=f"??{self.components[i]}")[0].copy()
+            """ step 4. convolve with STF """
+            # if self.tstars is not None:
+            #     stf_len_sec = 30.0
+            #     dt_stf = 0.36245500941554226
+            #     npts_stf = 82
+            #     stf = _STF.stf_tstar(
+            #         tstar=self.tstars[i], dt=self.dt, npts=int(stf_len_sec / self.dt)
+            #     )[0]
+            #     tr_full.data = _STF.convolve_stf(stf, tr_full.data)
+            #     stf = _STF.stf_tstar(
+            #         tstar=self.tstars[i], dt=db.info.dt, npts=int(stf_len_sec / db.info.dt)
+            #     )[0]
+            #     ins_full.data = _STF.convolve_stf(stf, tr_full.data, nfft=db.info.nfft)
             if self.fmin is not None and self.fmax is not None:
                 _PreProcess.filter_tr(
                     tr_full, fmin=self.fmin, fmax=self.fmax, zerophase=self.zerophase
                 )
+
+                # _PreProcess.filter_tr(
+                #     ins_full, fmin=self.fmin, fmax=self.fmax, zerophase=self.zerophase
+                # )
             o_time = tr_full.stats.starttime
             tr = tr_full.slice(
                 starttime=o_time + self.syn_tts[i] - self.t_pres[i],
                 endtime=o_time + self.syn_tts[i] + self.t_posts[i],
             )
+            # o_time = ins_full.stats.starttime
+            # tr_ins = ins_full.slice(
+            #     starttime=o_time + self.syn_tts[i] - self.t_pres[i],
+            #     endtime=o_time + self.syn_tts[i] + self.t_posts[i],
+            # )
             self.st_syn_w += tr
             self.st_syn_full += tr_full
+            # st_ins_w += tr_ins
+            # st_ins_full += ins_full
             s_syn = np.hstack((s_syn, tr.data))
             s_obs = np.hstack((s_obs, st_obs_w[i].data))
 
@@ -325,10 +472,13 @@ class SRC_STR:
                 tt_syn=self.syn_tts,
                 ylims=self.ylims,
                 save_file=pjoin(self.f_dat, f"Iteration_{self.it}", f"Update_{self.mi}.svg"),
+                ins_w=None,
+                ins_full=None,
             )
 
         """ 5. Calculate misfit """
-        xi = np.linalg.norm((s_syn - s_obs), ord=2)
+        # sigma = 1e-10
+        xi = np.linalg.norm(((s_syn - s_obs) / self.sigma), ord=2)
         print(xi)
         self.mi += 1
         if self.mi == len(m) + 2:

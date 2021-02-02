@@ -17,7 +17,8 @@ from SS_MTI import PreProcess as _PreProcess
 
 """  Parameters """
 save_folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/Spectra_paperfig/"
-folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases_cluster/Test_2020/"
+# folder = "/home/nienke/Documents/Research/Data/MTI/Inversion/Result_2/5phases_cluster/Test_2020/"
+folder = "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/S0235b/"
 
 Normalize = False
 
@@ -110,7 +111,7 @@ zerophase = False
 win_len_sec = [20.0, 20.0, 20.0, 20.0, 20.0]
 dt = 0.05
 
-veloc_name = "TAYAK_BKE"
+veloc_name = "TAYAK"
 db_path = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
 # db_path = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
 # db_path = "/mnt/marshost/instaseis2/databases/EH45TcoldCrust1b"

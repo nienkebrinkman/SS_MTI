@@ -16,19 +16,20 @@ import SS_MTI
 import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Data_2021/Event_325/5phases/"
+# save_folder = "/home/nienke/Documents/Research/Data/MTI/Data_2021/Event_325/5phases/"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/S0235b/"
 
 """ Read the inventory and catalog file (the once that contain info about the marsquakes) """
-# path = "/home/nienke/Documents/Research/Data/MTI/Catalog/old_catalog"
-path = "/home/nienke/Documents/Research/Data/MTI/Catalog"
+path = "/home/nienke/Documents/Research/Data/MTI/Catalog/old_catalog"
+# path = "/home/nienke/Documents/Research/Data/MTI/Catalog"
 path_to_inventory = pjoin(path, "inventory.xml")
 path_to_catalog = pjoin(path, "catalog.xml")
 inv = SS_MTI.DataGetter.read_inv(inv_path=path_to_inventory)  # Inventory file
 cat = SS_MTI.DataGetter.read_cat(cat_path=path_to_catalog)  # Catalog file
 
 """ Specify input file """
-input_file = "/home/nienke/Documents/Research/SS_MTI/Input/325_5phases.toml"
-# input_file = "/home/nienke/Documents/Research/SS_MTI/Input/TAYAK_BKE_tstar_update.toml"
+# input_file = "/home/nienke/Documents/Research/SS_MTI/Input/325_5phases.toml"
+input_file = "/home/nienke/Documents/Research/SS_MTI/Input/TAYAK_BKE_tstar_update.toml"
 event_input = toml.load(input_file, _dict=dict)
 
 """ Get the data into a list of obspy.Event objects """
@@ -49,8 +50,8 @@ lon_rec = 135.623447
 rec = instaseis.Receiver(latitude=lat_rec, longitude=lon_rec)
 
 """ Specify depth range """
-depths = np.arange(5, 90, 3)
-# depths = [35]
+# depths = np.arange(5, 90, 3)
+depths = [41]
 
 strikes = np.arange(0, 360, 20)
 dips = np.arange(0, 91, 20)
@@ -63,14 +64,14 @@ bazs = np.arange(160, 360, 20)
 db_name_1 = "/mnt/marshost/instaseis2/databases/TAYAK_15s_BKE"
 npz_file_name_1 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_BKE.npz"
 
-db_name_2 = "/mnt/marshost/instaseis2/databases/TAYAK_shallow"
+db_name_2 = "/mnt/marshost/instaseis/databases/blindtestmodels_1s/TAYAK_1s"
 npz_file_name_2 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
 
 db_name_3 = "/mnt/marshost/instaseis2/databases/TAYAK_1s_30km"
 npz_file_name_3 = "/home/nienke/Documents/Research/Data/npz_files/TAYAK_30km.npz"
 
-db_names = [db_name_1]  # , db_name_3, db_name_4, db_name_5]
-npz_file_names = [npz_file_name_1]
+db_names = [db_name_2]  # , db_name_3, db_name_4, db_name_5]
+npz_file_names = [npz_file_name_2]
 
 """ Loop over events to invert for: """
 event_nr = 0
@@ -187,7 +188,7 @@ for i, v in event_input.items():
 
         """ Start inversion """
         for baz in bazs:
-            event.baz = baz
+            # event.baz = baz
             # new_output = pjoin(output_folder, f"{baz}")
             # if not exist(new_output):
             #     makedirs(new_output)
@@ -205,7 +206,7 @@ for i, v in event_input.items():
                 dips=dips,
                 rakes=rakes,
                 phase_corrs=phase_corrs,
-                tstars=tstars,
+                tstars=None,
                 fmin=fmin,
                 fmax=fmax,
                 zerophase=zerophase,
@@ -217,6 +218,7 @@ for i, v in event_input.items():
                 Ylims=ylims,
                 Parallel=True,
             )
+            break
 
             SS_MTI.Inversion.Direct(
                 fwd=fwd,

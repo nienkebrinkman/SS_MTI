@@ -85,6 +85,7 @@ if __name__ == "__main__":
     phases = input_file["EVENTS"][event.name]["phases"]
     comps = input_file["EVENTS"][event.name]["components"]
     phase_corrs = input_file["EVENTS"][event.name]["phase_corrs"]
+    tstars = input_file["EVENTS"][event.name]["tstars"]
     t_pres = input_file["EVENTS"][event.name]["t_pre"]
     t_posts = input_file["EVENTS"][event.name]["t_post"]
     ylims = input_file["EVENTS"][event.name]["ylims"]
@@ -92,6 +93,12 @@ if __name__ == "__main__":
     fmin = input_file["PARAMETERS"]["FILTER"]["fmin"]
     fmax = input_file["PARAMETERS"]["FILTER"]["fmax"]
     zerophase = input_file["PARAMETERS"]["FILTER"]["zerophase"]
+
+    rec_lat = input_file["PARAMETERS"]["RECEIVER"]["latitude"]
+    rec_lon = input_file["PARAMETERS"]["RECEIVER"]["longitude"]
+
+    radius = input_file["PARAMETERS"]["PLANET"]["radius"]
+    flattening = input_file["PARAMETERS"]["PLANET"]["flattening"]
 
     """ 3. Read in starting parameters """
     npz_file = input_file["PARAMETERS"]["START_VALUE"]["npz_file"]
@@ -105,7 +112,7 @@ if __name__ == "__main__":
 
     """ 4. Create dat file """
     """ 4.1 convert strike, dip, rake, M0 into full moment tensor """
-    focal_mech0 = np.asarray(_GreensFunctions.convert_SDR(strike, dip, rake, M0)) / 1e17
+    focal_mech0 = np.asarray(_GreensFunctions.convert_SDR(strike, dip, rake, M0)) / 1e14
 
     """ 4.2 Create the velocity .dat file"""
     bin_path = input_file["BINARY"]["bin_path"]
@@ -116,12 +123,25 @@ if __name__ == "__main__":
     if not lsdir(save_folder):
         subprocess.call(f"scp {bin_path} .", shell=True, cwd=save_folder)
     bm_file_path = "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/bm_models/TAYAK.bm"
+    from obspy.geodetics import gps2dist_azimuth
+
+    epi_in_km, _az, _baz = gps2dist_azimuth(
+        lat1=event.latitude,
+        lon1=event.longitude,
+        lat2=rec_lat,
+        lon2=rec_lon,
+        a=radius,
+        f=flattening,
+    )
+
+    baz = _baz
     Create_Vmod.create_dat_file(
         src_depth=depth,
         focal_mech=focal_mech0,
         M0=None,
-        epi=epi,
+        epi_in_km=epi_in_km,
         baz=baz,
+        dt=dt,
         save_path=save_folder,
         bm_file_path=bm_file,
     )
@@ -130,7 +150,7 @@ if __name__ == "__main__":
     obs_tt = []
     for i, phase in enumerate(phases):
         obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
-    st_obs_w, sigmas_noise = _PreProcess.prepare_event_data(
+    st_obs_w, _ = _PreProcess.prepare_event_data(
         event=event,
         phases=phases,
         components=comps,
@@ -156,13 +176,31 @@ if __name__ == "__main__":
         noise_level=False,
     )
 
+    sigma = np.max(sigmas_noise)
+
+    ## Filter
+    # st_obs_dt = st_obs_full[0].stats.delta
+    # print(st_obs_dt)
+    # ff = np.array([0.1, 0.5])
+    # st_obs_full = _Gradient.taper_trace(st_obs_full)
+    # st_obs_full = _Gradient.bandpass_filt(st_obs_full, ff[0], ff[1], st_obs_dt)
+
+    # st_obs_w = obspy.Stream()
+    # for i, phase in enumerate(phases):
+    #     tr_full = st_obs_full.select(channel=f"??{comps[i]}")[0].copy()
+
+    #     tr = tr_full.slice(
+    #         starttime=event.origin_time + obs_tt[i] - t_pres[i],
+    #         endtime=event.origin_time + obs_tt[i] + t_posts[i],
+    #     )
+    #     st_obs_w += tr
     """ Get the parameter (m) array ready """
     dat_path = pjoin(save_folder, "crfl.dat")
     with open(dat_path, "r+") as f:
         data = f.readlines()
         f.close()
-    moment_param = np.array(re.findall("\d+\.\d+", data[-8]), dtype=float)
-
+    moment_param = np.array(data[-8].split(), dtype=float)
+    moment_param
     """
     4 different cases that you can try:
     1. Changing only the MOHO depth (depth = True, vpvs = False)
@@ -196,7 +234,7 @@ if __name__ == "__main__":
     Start the misfit function with your initial model 
     (i.e., it will run the forward model and calculates the misfit)
     """
-    n_it = 40
+    n_it = 2
     fac = 1  # factor that you want to multiply with the gradient
     epsilon = 0.01
     xis = np.zeros(n_it)
@@ -213,6 +251,9 @@ if __name__ == "__main__":
         t_posts=t_posts,
         depth=depth,
         dt=dt,
+        baz=baz,
+        sigma=sigma,
+        tstars=tstars,
         vpvs=vpvs,
         fmin=fmin,
         fmax=fmax,

@@ -15,7 +15,7 @@ from scipy import fftpack
 import pylab
 
 
-def stf_tstar(tstar, dt, npts, nfft):
+def stf_tstar(tstar, dt, npts, nfft=None):
     # Create source time function with
     # M(f) = 1 / (1+(f/fc)**2)
     f = fftpack.fftfreq(npts, dt)
@@ -33,6 +33,31 @@ def stf_tstar(tstar, dt, npts, nfft):
     # stf_td = fftpack.irfft(stf_amp * 2 * np.pi)
     # f = 1
     return stf_td.real, f, stf_amp
+
+
+def convolve_stf(stf: np.array, data: np.array, nfft=None):
+    # conv = np.convolve(stf, data, mode="same")
+    from scipy import signal
+
+    # recovered, remainder = signal.deconvolve(data, stf)
+
+    from obspy.signal.util import _npts2nfft
+    import math
+
+    if nfft is None:
+        nfft = _npts2nfft(npts=len(data))
+    stf_conv_f = np.fft.rfft(stf, n=nfft)
+
+    # Apply a 5 percent, at least 5 samples taper at the end.
+    # The first sample is guaranteed to be zero in any case.
+    tlen = max(int(math.ceil(0.05 * len(data))), 5)
+    taper = np.ones_like(data)
+    taper[-tlen:] = signal.hann(tlen * 2)[tlen:]
+    dataf = np.fft.rfft(taper * data, n=nfft)
+
+    f = stf_conv_f
+    recovered = np.fft.irfft(dataf * f)[:nfft]
+    return recovered
 
 
 def Create_stf_from_file(Filepath, desired_dt):

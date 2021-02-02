@@ -85,13 +85,13 @@ def update_dat_file(
             depth = m[6 : 6 + n_params]
             if n_params == 1:
                 print("depth of MOHO (from TAYAK) will be changed")
-                flt = np.array(re.findall("\d+\.\d+", data[7]), dtype=float)
+                flt = np.array(re.findall("\d+\.\d+", data[9]), dtype=float)
                 data[
-                    7
+                    9
                 ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
-                flt = np.array(re.findall("\d+\.\d+", data[6]), dtype=float)
+                flt = np.array(re.findall("\d+\.\d+", data[8]), dtype=float)
                 data[
-                    6
+                    8
                 ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
             else:
                 print("depths are changed in dat file starting from depth 0")
@@ -197,9 +197,10 @@ def create_tvel_file(
 
 def create_dat_file(
     src_depth: float,
-    epi: float,
+    epi_in_km: float,
     baz: float,
     focal_mech: [float],
+    dt: float,
     M0: float = None,
     save_path: str = "./",
     bm_file_path: str = "./",
@@ -210,7 +211,7 @@ def create_dat_file(
     :paran src_depth: source depth
     :param focal_mech: strike,dip,rake or m_rr, m_tt, m_pp, m_rt, m_rp, m_tp
     :param M0: scalar moment, only necessesary when focal_mech strike,dip,rake
-    :param epi: Epicentral distance (in degrees)
+    :param epi_in_km : epi_in_km central distance (in degrees)
     :param baz: Back-azimuth (in degrees)
     :param save_path: path to save .dat file
     :param fdom: dominant frequency
@@ -221,12 +222,12 @@ def create_dat_file(
     f = np.loadtxt(bm_file, skiprows=5)
     f_ud = np.flipud(f)
 
-    radius_mars = f_ud[0][0]  # 3390 (km)
+    radius_mars = 3389.5 * 1e3  # f_ud[0][0]  # 3390 (km)
 
     # radius_of_planet = 3390
-    km_per_deg = np.pi * (radius_mars * 1e-3) / 180.0
-    dist_in_km = epi * np.pi * (radius_mars * 1e-3) / 180.0
-    dist = dist_in_km
+    # km_per_deg = np.pi * (radius_mars * 1e-3) / 180.0
+    # dist_in_km = epi_in_km  * np.pi * (radius_mars * 1e-3) / 180.0
+    dist = epi_in_km
 
     if baz < 0:
         baz *= -1
@@ -255,7 +256,7 @@ def create_dat_file(
     M_rt_ins = focal_mech[3]
     M_tp_ins = focal_mech[5]
 
-    moment_tensor = f"{M_tt_ins:10.4f}{M_tp_ins:10.4f}{-M_rt_ins+0:10.4f}{M_pp_ins:10.4f}{-M_rp_ins+0:10.4f}{M_rr_ins:10.4f}"
+    moment_tensor = f"{M_tt_ins:10.4f}{-M_tp_ins+0:10.4f}{M_rt_ins:10.4f}{M_pp_ins:10.4f}{-M_rp_ins+0:10.4f}{M_rr_ins:10.4f}"
     # moment_tensor = f"{M_tt_ins:10.4f}{M_tp_ins:10.4f}{M_rt_ins:10.4f}{M_pp_ins:10.4f}{M_rp_ins:10.4f}{M_rr_ins:10.4f}"
 
     # model = TauPyModel(taup_path)
@@ -322,7 +323,10 @@ def create_dat_file(
         f.write(f"{12.:10.4f}   {-300.:10.4f}\n")
         f.write("    3.0000    3.5000   23.5000   25.0000      650\n")
         f.write(f"    0.0100    0.0133{fdom:10.4f}    1.0300    0.0000\n")
-        f.write("    0.0250     65536         0         2    0.0250  491.5200\n")
+        # f.write("    0.2420     32768         0         2    0.2420  245.7600\n")
+        npts = 32768
+        t_sigma = 0.3 * dt * npts
+        f.write(f"{dt:10.4f}{npts:10d}{0:10d}{2:10d}{dt:10.4f}{t_sigma:10.4f}\n")
 
     f.close()
 
@@ -370,7 +374,7 @@ def plot_dat_file(dat_paths: [str]):
 #     src_depth=20.0,
 #     focal_mech=[0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
 #     M0=None,
-#     epi=20.0,
+#     epi_in_km =20.0,
 #     baz=0.0,
 #     save_path=save_path,
 #     bm_file_path=bm_file_path,
