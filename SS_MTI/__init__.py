@@ -23,6 +23,7 @@ from SS_MTI import (
     SourceTimeFunction,
     Read_H5,
     RadiationPattern,
+    Gradient,
 )
 
 
@@ -40,4 +41,5 @@ __all__ = [
     "SourceTimeFunction",
     "Read_H5",
     "RadiationPattern",
+    "Gradient",
 ]

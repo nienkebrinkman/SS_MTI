@@ -115,7 +115,7 @@ def Grid_Search_run(
     # sigmas_model = [9e-10, 2e-9, 1e-9, 7e-10, 2e-9]
 
     # sigmas = [i ** 2 + j ** 2 for i, j in zip(sigmas_noise, sigmas_model)]
-    sigmas = [i ** 2 for i in sigmas_noise]
+    variances = [i ** 2 for i in sigmas_noise]
 
     if Parallel:
         rank = mpi4py.MPI.COMM_WORLD.Get_rank()
@@ -223,7 +223,7 @@ def Grid_Search_run(
                             d_weight[:samps] = start_weight
                             d_weight[samps:] = end_weight
 
-                            Wd = 1 / (sigmas[i] * d_weight)
+                            Wd = 1 / (variances[i] * d_weight)
                             # Wd = 1 / (_np.std(st_obs[i].data) ** 2 * d_weight)
 
                             if i == 0:
@@ -256,7 +256,7 @@ def Grid_Search_run(
 
                     """ Determine the misfit between syntetic and observed"""
                     chi = misfit.run_misfit(
-                        phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas
+                        phases=phases, st_obs=st_obs, st_syn=st_syn, variances=variances
                     )
                     # print(chi)
                     """ Write into file"""
@@ -433,7 +433,7 @@ def Direct(
     # sigmas_model = [9e-10, 2e-9, 1e-9, 7e-10, 2e-9]
 
     # sigmas = [i ** 2 + j ** 2 for i, j in zip(sigmas_noise, sigmas_model)]
-    sigmas = [i ** 2 for i in sigmas_noise]
+    variances = [i ** 2 for i in sigmas_noise]
     rec_in = instaseis.Receiver(
         latitude=90.0 - event.distance,
         longitude=0.0,
@@ -495,7 +495,7 @@ def Direct(
             d_weight[:samps] = start_weight
             d_weight[samps:] = end_weight
 
-            Wd = 1 / (sigmas[i] * d_weight)
+            Wd = 1 / (variances[i] * d_weight)
             # Wd = 1 / (_np.std(st_obs[i].data) ** 2 * d_weight)
 
             if i == 0:
@@ -745,7 +745,7 @@ def Direct(
             #     file.close()
 
         ## Calculate the misfit
-        chi = misfit.run_misfit(phases=phases, st_obs=st_obs, st_syn=st_syn, sigmas=sigmas)
+        chi = misfit.run_misfit(phases=phases, st_obs=st_obs, st_syn=st_syn, variances=variances)
         # print(chi)
         ## Calculate take-off angles P,S & pP
         takeoff_angles = ["P", "S", "pP"]

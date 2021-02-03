@@ -37,19 +37,24 @@ class L2(_AbstractMisfit):
     description = "L2 based misfit"
     noise_level = True  # Do you need to determine level of noise for this misfit class?
 
-    def __init__(self, weights: [_List[int]], start_weight_len: float, dt: float):
+    def __init__(
+        self, weights: [_List[int]] = None, start_weight_len: float = None, dt: float = None
+    ):
         """
         L2 misfit initializer
         :param weights: a list for each phase/comp combination that each have another list [start_weight, end_weight]
         :param start_weight_len: the amount of seconds that the start_weight is used in the window
 
         """
-        self.weights = weights
-        self.start_weight_len = start_weight_len
-        self.dt = dt
+        if weights is not None:
+            self.weights = weights
+            self.start_weight_len = start_weight_len
+            self.dt = dt
+        else:
+            self.weights = None
 
     def run_misfit(
-        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, sigmas: [float],
+        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, variances: [float],
     ) -> [float]:
         """
         L2 misfit is calculated with a weighting matrix based on a noise array before arrival
@@ -60,40 +65,37 @@ class L2(_AbstractMisfit):
             " of traces AND the trace lengths should be the same"
         )
 
-        samps = int(self.start_weight_len / self.dt)
+        if self.weights is not None:
+            samps = int(self.start_weight_len / self.dt)
 
-        assert (
-            len(st_obs[0].data) > samps
-        ), "The start_weight_len should not be longer than the window you are inverting for"
+            assert (
+                len(st_obs[0].data) > samps
+            ), "The start_weight_len should not be longer than the window you are inverting for"
 
         misfit_L2 = []
-        # sigmas_model = []
+        # variances_model = []
         for i in range(len(phases)):
             d_obs = _np.expand_dims(st_obs[i].data, axis=1)
             d_syn = _np.expand_dims(st_syn[i].data, axis=1)
 
-            start_weight = self.weights[i][0]
-            end_weight = self.weights[i][1]
-
-            d_weight = _np.zeros_like(st_obs[i].data)
-            d_weight[:samps] = start_weight
-            d_weight[samps:] = end_weight
-
-            # inv_Std = _np.diag(1 / (_np.std(d_obs) ** 2 * d_weight))
-            # misfit_L2.append(0.5 * ((d_obs - d_syn).T @ inv_Std @ (d_obs - d_syn))[0][0])
-
-            # TODO: determine sigma based on RMS of data + sigma noise!!
-            # sigmas_model.append(_np.sqrt(_np.mean(d_syn ** 2 + d_obs ** 2)))
+            if self.weights is not None:
+                start_weight = self.weights[i][0]
+                end_weight = self.weights[i][1]
+                d_weight = _np.zeros_like(st_obs[i].data)
+                d_weight[:samps] = start_weight
+                d_weight[samps:] = end_weight
+            else:
+                d_weight = _np.ones_like(st_obs[i].data)
 
             misfit_L2.append(
                 0.5
                 * (
                     (d_obs - d_syn).T
-                    @ (_np.expand_dims(1 / (sigmas[i] * d_weight), axis=1) * (d_obs - d_syn))
+                    @ (_np.expand_dims(1 / (variances[i] * d_weight), axis=1) * (d_obs - d_syn))
                 )[0][0]
             )
             # misfit_L2.append(0.5 * ((d_obs - d_syn).T @ (d_obs - d_syn))[0][0])
-        # print(sigmas)
+        # print(variances)
         # print(misfit_L2)
         return misfit_L2
 
@@ -107,7 +109,7 @@ class CC(_AbstractMisfit):
         self.shift = shift_samples
 
     def run_misfit(
-        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, sigmas: [float]
+        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, variances: [float]
     ):
         assert (len(st_obs) == len(st_syn)) and (len(st_obs[0].data) == len(st_syn[0].data)), (
             "st_obs and st_syn should have equal amount"
@@ -187,7 +189,7 @@ class Pol(_AbstractMisfit):
         self.dt = dt
 
     def run_misfit(
-        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, sigmas: [float]
+        self, phases: [str], st_obs: _obspy.Stream, st_syn: _obspy.Stream, variances: [float]
     ):
         seen = set()
         uniq = [x for x in phases if x not in seen and not seen.add(x)]

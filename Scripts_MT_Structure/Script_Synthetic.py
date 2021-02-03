@@ -96,15 +96,6 @@ m_rp0 = 0.0
 m_tp0 = 0.0
 focal_mech0 = [m_rr0, m_tt0, m_pp0, m_rt0, m_rp0, m_tp0]
 
-phases = ["P", "P", "S", "S", "S"]
-comps = ["Z", "R", "Z", "R", "T"]
-t_pres = [1, 1, 1, 1, 1]
-t_posts = [30, 30, 30, 30, 30]
-ylims = [1e-9, 1e-9, 2e-9, 3e-9, 2e-9]
-
-fmin = 0.2
-fmax = 0.6
-zerophase = False
 
 # This is basically your prior model, you need to set this up once:
 save_path = "/home/nienke/Documents/Research/SS_MTI/External_packages/Test_reflectivity/m0_gradient_descent/"
@@ -185,14 +176,14 @@ m0 = np.hstack((moment_param, MOHO))  # Case 1
 depth = True
 vpvs = False
 
-sigma = 1e-10
+sigmas = np.ones(len(phases)) * 1e-10
 
 """ 
 Start the misfit function with your initial model 
 (i.e., it will run the forward model and calculates the misfit)
 """
-n_it = 3
-fac = 0.5  # factor that you want to multiply with the gradient
+n_it = 15
+fac = 0.001  # factor that you want to multiply with the gradient
 epsilon = 0.01
 xis = np.zeros(n_it)
 dxi_dms = np.zeros((len(m0), n_it))
@@ -212,7 +203,7 @@ src_str = _Gradient.SRC_STR(
     fmax=fmax,
     dt=dt,
     baz=baz,
-    sigma=sigma,
+    sigmas=sigmas,
     zerophase=zerophase,
     plot=True,
     st_obs_full=st_obs_full,

@@ -60,7 +60,7 @@ def scale_traces(st1, st2):
     return st1, st2
 
 
-m0 = np.load("/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/S0235b/m0s.npy")
+# m0 = np.load("/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/S0235b/m0s.npy")
 
 ## Step 1: Define parameters
 or_time = obspy.UTCDateTime("2020-3-10T12:00:00")

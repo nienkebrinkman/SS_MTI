@@ -22,6 +22,7 @@ import Create_Vmod
 import subprocess
 from SS_MTI import PreProcess as _PreProcess
 from SS_MTI import PhaseTracer as _PhaseTracer
+from SS_MTI import Misfit as _Misfit
 import SS_MTI.SourceTimeFunction as _STF
 
 
@@ -238,6 +239,83 @@ def plot_waveforms_src_str(
     plt.savefig(save_file)
 
 
+def get_tt_from_dat_file(phases: [str], dat_file_path: str, name_tvel: str = None):
+    """
+    This function can determine travel-times for phases based on crfl.dat file
+    (i.e., it extracts the depth, epicentral distance from the .dat file)
+    :param phases: phases to determine the traveltimes from
+    :param dat_file_path: path to dat_file
+    :returns tts: travel times for each phases based on info from .dat file
+    """
+    if name_tvel is None:
+        name_tvel = "temp"
+
+    path_to_tvel = pjoin(dat_file_path, f"{name_tvel}.tvel")
+    npz_file = create_taup_model(input_file=path_to_tvel, save_folder=dat_file_path)
+
+    """ 2. Initialize .npz file & calculate phase arrivals """
+    Taup = TauPyModel(npz_file)
+    depth = Create_Vmod.read_depth_from_dat(dat_file_path)
+    epi = Create_Vmod.read_epi_from_dat(dat_file_path)
+    tts = []
+    for i, phase in enumerate(phases):
+        tts.append(_PhaseTracer.get_traveltime(Taup, phase, depth, epi))
+    return tts
+
+
+def window(
+    st: obspy.Stream,
+    phases: [str],
+    components: [str],
+    tts: [float],
+    t_pres: [float],
+    t_posts: [float],
+    fmin: float = None,
+    fmax: float = None,
+    zerophase: bool = False,
+):
+    """ 
+    Windowing an obspy stream around phase arrivals on specific components
+    :param st_syn: obspy stream not-windowed
+    :param phases: list of phases that you want to window
+    :param components: list of components that the phases need to be windowed on 
+    :param tts: list of travel-times for each phase
+    :returns st_windowed:obspy.Stream, st_full:obspy.Stream, d_stack:np.array 
+    """
+    assert len(phases) == len(components), "phases and components should be of same length"
+
+    """ Window the synthetic data (& TODO: convolve with STF) """
+    d_stack = np.array([])
+    st_windowed = obspy.Stream()  # keep this one for plotting
+    st_full = obspy.Stream()
+
+    for i, phase in enumerate(phases):
+        tr_full = st.select(channel=f"xx{components[i]}")[0].copy()
+        """ step 4. convolve with STF """
+        # TODO: implement tstars
+        # if self.tstars is not None:
+        #     stf_len_sec = 30.0
+        #     dt_stf = 0.36245500941554226
+        #     npts_stf = 82
+        #     stf = _STF.stf_tstar(
+        #         tstar=self.tstars[i], dt=self.dt, npts=int(stf_len_sec / self.dt)
+        #     )[0]
+        #     tr_full.data = _STF.convolve_stf(stf, tr_full.data)
+        #     stf = _STF.stf_tstar(
+        #         tstar=self.tstars[i], dt=db.info.dt, npts=int(stf_len_sec / db.info.dt)
+        #     )[0]
+        if fmin is not None and fmax is not None:
+            _PreProcess.filter_tr(tr_full, fmin=fmin, fmax=fmax, zerophase=zerophase)
+        o_time = tr_full.stats.starttime
+        tr = tr_full.slice(
+            starttime=o_time + tts[i] - t_pres[i], endtime=o_time + tts[i] + t_posts[i],
+        )
+        st_windowed += tr
+        st_full += tr_full
+        d_stack = np.hstack((d_stack, tr.data))
+    return st_windowed, st_full, d_stack
+
+
 class SRC_STR:
     """ 
     This class does source and structure inversion
@@ -255,7 +333,7 @@ class SRC_STR:
         depth: bool,
         dt: [float],
         baz: float,
-        sigma: float,
+        sigmas: [float],
         tstars: [float] = None,
         fmin: float = None,
         fmax: float = None,
@@ -276,12 +354,15 @@ class SRC_STR:
         :param vpvs: if true vpvs updates will be done
         :param depth: if true layer depth updates will be done 
         :param dt: desired delta
+        :param baz: backazimuth
+        :param sigmas: list of noise level estimate
         :param fmin: lower bound frequency
         :param fmax: upper bound frequency
         :param zerophase: zerophase the data while filtering
         :param plot: plotting or not
         :param st_obs_full: plot = True, observed tream (ordered as phases/component)
         :param tt_obs: observed travel times (ordered as (phases/components)
+        :param ylims: limit of the y-axis for plot
         """
         assert len(phases) == len(components), "phases and components should be of same length"
         self.phases = phases
@@ -294,7 +375,7 @@ class SRC_STR:
         self.dt = dt
         self.tstars = tstars
         self.baz = baz
-        self.sigma = sigma
+        self.sigmas = sigmas
 
         """ Step 1. copy binary file into datfile folder"""
         subprocess.call(f"scp {binary_file_path} .", shell=True, cwd=path_to_dat)
@@ -347,27 +428,6 @@ class SRC_STR:
         """ Run the forward modeller"""
         st_syn = self.forward(m)
 
-        ## Filter
-        # dt_ref = st_syn[0].stats.delta
-        # print(dt_ref)
-        # ff = np.array([0.1, 0.5])
-        # st_syn = taper_trace(st_syn)
-        # st_syn = bandpass_filt(st_syn, ff[0], ff[1], dt_ref)
-
-        """ Windowing s_syn and s_obs around P and S """
-        """ 1. .npz file needs to be created from .tvel file """
-        path_to_tvel = pjoin(self.f_dat, self.tvel_file_name + ".tvel")
-        npz_file = create_taup_model(input_file=path_to_tvel, save_folder=self.f_dat)
-
-        """ 2. Initialize .npz file & calculate phase arrivals """
-        # npz_file = "/home/nienke/Documents/Research/Data/npz_files/TAYAK.npz"
-        Taup = TauPyModel(npz_file)
-        depth = Create_Vmod.read_depth_from_dat(self.f_dat)
-        epi = Create_Vmod.read_epi_from_dat(self.f_dat)
-        self.syn_tts = []
-        for i, phase in enumerate(self.phases):
-            self.syn_tts.append(_PhaseTracer.get_traveltime(Taup, phase, depth, epi))
-
         """ Temporary compare with instaseis"""
         # import instaseis
         # db = instaseis.open_db("http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/")
@@ -401,62 +461,22 @@ class SRC_STR:
         # st_ins1 = db.get_seismograms(
         #     source=source, receiver=receiver, components="ZRT", dt=0.05, kind="displacement"
         # )
-        # ## Filter
-        # # dt_ins = st_ins1[0].stats.delta
-        # # print(dt_ins)
-        # # st_ins1 = taper_trace(st_ins1)
-        # # st_ins1 = bandpass_filt(st_ins1, ff[0], ff[1], dt_ins)
 
-        """ 3. Window the synthetic data (& convolve with STF) """
-        s_syn = np.array([])
-        s_obs = np.array([])
-        self.st_syn_w = obspy.Stream()  # keep this one for plotting
-        self.st_syn_full = obspy.Stream()
+        """ Window the data """
+        self.syn_tts = get_tt_from_dat_file(self.phases, self.f_dat, self.tvel_file_name)
+        self.st_syn_w, self.st_syn_full, s_syn = window(
+            st_syn,
+            self.phases,
+            self.components,
+            self.syn_tts,
+            self.t_pres,
+            self.t_posts,
+            self.fmin,
+            self.fmax,
+            self.zerophase,
+        )
 
-        # st_ins_w = obspy.Stream()  # keep this one for plotting
-        # st_ins_full = obspy.Stream()
-        for i, phase in enumerate(self.phases):
-            tr_full = st_syn.select(channel=f"xx{self.components[i]}")[0].copy()
-            # ins_full = st_ins1.select(channel=f"??{self.components[i]}")[0].copy()
-            """ step 4. convolve with STF """
-            # if self.tstars is not None:
-            #     stf_len_sec = 30.0
-            #     dt_stf = 0.36245500941554226
-            #     npts_stf = 82
-            #     stf = _STF.stf_tstar(
-            #         tstar=self.tstars[i], dt=self.dt, npts=int(stf_len_sec / self.dt)
-            #     )[0]
-            #     tr_full.data = _STF.convolve_stf(stf, tr_full.data)
-            #     stf = _STF.stf_tstar(
-            #         tstar=self.tstars[i], dt=db.info.dt, npts=int(stf_len_sec / db.info.dt)
-            #     )[0]
-            #     ins_full.data = _STF.convolve_stf(stf, tr_full.data, nfft=db.info.nfft)
-            if self.fmin is not None and self.fmax is not None:
-                _PreProcess.filter_tr(
-                    tr_full, fmin=self.fmin, fmax=self.fmax, zerophase=self.zerophase
-                )
-
-                # _PreProcess.filter_tr(
-                #     ins_full, fmin=self.fmin, fmax=self.fmax, zerophase=self.zerophase
-                # )
-            o_time = tr_full.stats.starttime
-            tr = tr_full.slice(
-                starttime=o_time + self.syn_tts[i] - self.t_pres[i],
-                endtime=o_time + self.syn_tts[i] + self.t_posts[i],
-            )
-            # o_time = ins_full.stats.starttime
-            # tr_ins = ins_full.slice(
-            #     starttime=o_time + self.syn_tts[i] - self.t_pres[i],
-            #     endtime=o_time + self.syn_tts[i] + self.t_posts[i],
-            # )
-            self.st_syn_w += tr
-            self.st_syn_full += tr_full
-            # st_ins_w += tr_ins
-            # st_ins_full += ins_full
-            s_syn = np.hstack((s_syn, tr.data))
-            s_obs = np.hstack((s_obs, st_obs_w[i].data))
-
-        """ 4. Plot the synthetic data vs. observed data """
+        """ Plot the synthetic data vs. observed data """
         if self.plot:
             plot_waveforms_src_str(
                 save_folder=self.f_dat,
@@ -476,9 +496,16 @@ class SRC_STR:
                 ins_full=None,
             )
 
-        """ 5. Calculate misfit """
-        # sigma = 1e-10
-        xi = np.linalg.norm(((s_syn - s_obs) / self.sigma), ord=2)
+        """ Get stacked version of observed data """
+        s_obs = np.array([])
+        for i, phase in enumerate(self.phases):
+            s_obs = np.hstack((s_obs, st_obs_w[i].data))
+
+        """ Calculate misfit """
+        fmisfit = _Misfit.L2()
+        xis = fmisfit.run_misfit(self.phases, st_obs_w, self.st_syn_w, self.sigmas ** 2)
+        xi = np.sum(xis)
+        # xi = np.linalg.norm(((s_syn - s_obs) / np.max(self.sigmas)), ord=2)
         print(xi)
         self.mi += 1
         if self.mi == len(m) + 2:

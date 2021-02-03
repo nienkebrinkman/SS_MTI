@@ -252,7 +252,7 @@ if __name__ == "__main__":
         depth=depth,
         dt=dt,
         baz=baz,
-        sigma=sigma,
+        sigmas=sigmas_noise,
         tstars=tstars,
         vpvs=vpvs,
         fmin=fmin,
