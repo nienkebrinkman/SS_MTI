@@ -360,7 +360,7 @@ class SRC_STR:
         :param fmax: upper bound frequency
         :param zerophase: zerophase the data while filtering
         :param plot: plotting or not
-        :param st_obs_full: plot = True, observed tream (ordered as phases/component)
+        :param st_obs_full: plot = True, observed stream (ordered as phases/component)
         :param tt_obs: observed travel times (ordered as (phases/components)
         :param ylims: limit of the y-axis for plot
         """
@@ -393,7 +393,7 @@ class SRC_STR:
         if self.plot:
             assert (
                 st_obs_full is not None and tt_obs is not None
-            ), "if plot = True, you must give st_obs_full"
+            ), "if plot = True, you must give st_obs_full, tt_obs and ylims"
             self.st_obs_full = st_obs_full
             self.tt_obs = tt_obs
             self.ylims = ylims
@@ -424,43 +424,9 @@ class SRC_STR:
         :param st_obs_w: obspy stream (windowed) with observed data
         :returns xi: misfit of synthetic data vs observed data
         """
-        print(f"model parameter nr {self.mi} is updated now")
+        print(f"Update nr {self.mi} with m: {m}")
         """ Run the forward modeller"""
         st_syn = self.forward(m)
-
-        """ Temporary compare with instaseis"""
-        # import instaseis
-        # db = instaseis.open_db("http://instaseis.ethz.ch/blindtest_1s/TAYAK_1s/")
-        # # # Event parameters
-        # depth_ev = 41.0e3  # depth [m]
-        # time_ev = st_syn[0].stats.starttime
-        # # Retrieve the waveform
-        # receiver = instaseis.Receiver(
-        #     latitude=4.5, longitude=135.623447, network="XB", station="ELYSE"
-        # )
-        # strike = 0
-        # dip = 40
-        # rake = -150
-        # M0 = 9.1925923e13
-        # from SS_MTI import GreensFunctions
-        # MT = GreensFunctions.convert_SDR(strike, dip, rake, M0)
-        # source = instaseis.Source(
-        #     latitude=10.99032013,
-        #     longitude=160.9467524,
-        #     depth_in_m=depth_ev,
-        #     m_rr=MT[0],
-        #     m_tt=MT[1],
-        #     m_pp=MT[2],
-        #     m_rt=MT[3],
-        #     m_rp=MT[4],
-        #     m_tp=MT[5],
-        #     origin_time=time_ev,
-        #     time_shift=None,
-        #     sliprate=None,
-        # )
-        # st_ins1 = db.get_seismograms(
-        #     source=source, receiver=receiver, components="ZRT", dt=0.05, kind="displacement"
-        # )
 
         """ Window the data """
         self.syn_tts = get_tt_from_dat_file(self.phases, self.f_dat, self.tvel_file_name)
@@ -508,9 +474,4 @@ class SRC_STR:
         # xi = np.linalg.norm(((s_syn - s_obs) / np.max(self.sigmas)), ord=2)
         print(xi)
         self.mi += 1
-        if self.mi == len(m) + 2:
-            self.mi = 0
-            self.it += 1
-            if not exist(pjoin(self.f_dat, f"Iteration_{self.it}")):
-                makedirs(pjoin(self.f_dat, f"Iteration_{self.it}"))
         return xi

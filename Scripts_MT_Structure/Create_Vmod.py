@@ -201,9 +201,9 @@ def create_dat_file(
     baz: float,
     focal_mech: [float],
     dt: float,
+    save_path: str,
+    bm_file_path: str,
     M0: float = None,
-    save_path: str = "./",
-    bm_file_path: str = "./",
     fdom: str = 1.000,
 ):
     """ 
