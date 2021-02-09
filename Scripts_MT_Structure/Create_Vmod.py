@@ -44,7 +44,7 @@ def update_dat_file(
     This function will update an existing dat file with only changes 
     in the moment tensor and the Vp and Vs
     :param dat_folder: folder to your .dat file
-    :param m: vector including model parameters (fmech(6), structure(x))
+    :param m: vector including model parameters (focal_mech(6), structure(x))
     :param vpvs: if true, vpvs updates will be done (starts from depth layer zero)
     :param depth: if true, depth layer updates will be done 
                   (if only 1 depth given: MOHO will change)
@@ -52,14 +52,14 @@ def update_dat_file(
                          based on the updated .dat file
     :param tvel_name: name of the .tvel file
     """
-    fmech = m[:6]
+    focal_mech = m[:6]  # / 1e14
 
     with open(join(dat_folder, "crfl.dat"), "r+") as f:
         data = f.readlines()
         skiprows = 3  # Always need to skip first 3 lines
         """ Updating the moment tensor in .dat file"""
-        fmech_update = f"{fmech[0]:10.4f}{fmech[1]:10.4f}{fmech[2]:10.4f}{fmech[3]:10.4f}{fmech[4]:10.4f}{fmech[5]:10.4f}\n"
-        data[-8] = fmech_update
+        focal_mech_update = f"{focal_mech[0]:10.4f}{focal_mech[1]:10.4f}{focal_mech[2]:10.4f}{focal_mech[3]:10.4f}{focal_mech[4]:10.4f}{focal_mech[5]:10.4f}\n"
+        data[-8] = focal_mech_update
         """ Updating the structural parameters in .dat file """
         if vpvs and depth == False:
             print("vpvs are changed in dat file starting from depth 0")
@@ -249,12 +249,12 @@ def create_dat_file(
     for i in range(len(focal_mech)):
         focal_mech[i] += 0
 
-    M_tt_ins = focal_mech[1]
-    M_pp_ins = focal_mech[2]
-    M_rr_ins = focal_mech[0]
-    M_rp_ins = focal_mech[4]
-    M_rt_ins = focal_mech[3]
-    M_tp_ins = focal_mech[5]
+    M_tt_ins = focal_mech[1]  # / 1e14
+    M_pp_ins = focal_mech[2]  # / 1e14
+    M_rr_ins = focal_mech[0]  # / 1e14
+    M_rp_ins = focal_mech[4]  # / 1e14
+    M_rt_ins = focal_mech[3]  # / 1e14
+    M_tp_ins = focal_mech[5]  # / 1e14
 
     moment_tensor = f"{M_tt_ins:10.4f}{-M_tp_ins+0:10.4f}{M_rt_ins:10.4f}{M_pp_ins:10.4f}{-M_rp_ins+0:10.4f}{M_rr_ins:10.4f}"
     # moment_tensor = f"{M_tt_ins:10.4f}{M_tp_ins:10.4f}{M_rt_ins:10.4f}{M_pp_ins:10.4f}{M_rp_ins:10.4f}{M_rr_ins:10.4f}"
