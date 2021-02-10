@@ -12,5 +12,4 @@
     ],
     "launch": {},
     "python.linting.pylintEnabled": false,
-    "python.pythonPath": "/home/nienke/Applications/anaconda3/envs/BBB/bin/python",
 }
