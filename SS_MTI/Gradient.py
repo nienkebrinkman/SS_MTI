@@ -134,7 +134,6 @@ def read_refl_mseeds(path: str, dt: float = None, stack: bool = False):
 
 
 def plot_waveforms_src_str(
-    save_folder: str,
     st_syn_full: obspy.Stream,
     st_obs_full: obspy.Stream,
     st_syn_w: obspy.Stream,
@@ -146,7 +145,7 @@ def plot_waveforms_src_str(
     tt_obs: [float],
     tt_syn: [float],
     ylims: [float],
-    save_file: str,
+    save_file: str = None,
     ins_full=None,
     ins_w=None,
 ):
@@ -164,7 +163,7 @@ def plot_waveforms_src_str(
     :param tt_obs: traveltime arrivals of observed data
     :param tt_syn: traveltime arrivals of synthetic data
     :param ylims: ylimits (ordered as in phases)
-    :param save_file: path and name of the file 
+    :param save_file: path and name of the file (if None, fig output)
     """
     fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(18, 20))
     for i, phase in enumerate(phases):
@@ -236,7 +235,10 @@ def plot_waveforms_src_str(
 
     ax[-1].set_xlim(-10.0, 32.0)
     ax[-1].set_xlabel("time after phase (s)", fontsize=45)
-    plt.savefig(save_file)
+    if save_file is not None:
+        plt.savefig(save_file)
+    else:
+        return fig
 
 
 def get_tt_from_dat_file(phases: [str], dat_file_path: str, name_tvel: str = None):
@@ -324,7 +326,8 @@ class SRC_STR:
     def __init__(
         self,
         binary_file_path: str,
-        path_to_dat: str,
+        prior_dat_filepath: str,
+        save_folder: str,
         phases: [str],
         components: [str],
         t_pres: [float],
@@ -346,7 +349,8 @@ class SRC_STR:
         """ 
         If vpvs and depth are both True (depth and vpvs are both inverted)
         :param binary_path: path to reflectivity code binary file
-        :param path_to_dat: path to dat file
+        :param prior_dat_filepath: path to your initial (prior) crfl.dat file
+        :param save_folder: save folder
         :param phases: phases to be windowed
         :param components: on which component the phases should be windowed
         :param t_pres: time before phase arrival to window
@@ -377,16 +381,13 @@ class SRC_STR:
         self.baz = baz
         self.sigmas = sigmas
 
-        """ Step 1. copy binary file into datfile folder"""
-        subprocess.call(f"scp {binary_file_path} .", shell=True, cwd=path_to_dat)
-
-        self.f_dat = path_to_dat
-        self.mi = 0  # model parameter that is currently updated
-        self.it = 0  # iteration of the full inversion
-        if not exist(pjoin(self.f_dat, f"Iteration_{self.it}")):
-            makedirs(pjoin(self.f_dat, f"Iteration_{self.it}"))
+        self.binary_file_path = binary_file_path
+        self.prior_dat_filepath = prior_dat_filepath
+        self.f_dat_OG = save_folder
+        self.it = 0
         self.vpvs = vpvs
         self.depth = depth
+        """ """
 
         """ Plotting values """
         self.plot = plot
@@ -404,15 +405,26 @@ class SRC_STR:
         :param m: array of source and structure parameters
         :returns s_syn: synthetic output based on input m
         """
-
+        print(f"forward run in iteration: {self.it}")
+        if not exist(pjoin(self.f_dat_OG, f"It_{self.it}")):
+            makedirs(pjoin(self.f_dat_OG, f"It_{self.it}"))
+        self.f_dat = pjoin(self.f_dat_OG, f"It_{self.it}")
+        if self.it == 0:
+            subprocess.call(f"scp {self.prior_dat_filepath} .", shell=True, cwd=self.f_dat)
+        else:
+            prev_it = self.it - 1
+            prev_it_file = pjoin(self.f_dat_OG, f"It_{prev_it}", "crfl.dat")
+            subprocess.call(f"scp {prev_it_file} .", shell=True, cwd=self.f_dat)
         """ step 1. plug in the model parameters in the .dat file (.tvel will be created)"""
         create_tvel = True
-        self.tvel_file_name = f"{self.mi}"
+        tvel_file_name = f"{m[-1]}"
         Create_Vmod.update_dat_file(
-            self.f_dat, m, self.vpvs, self.depth, create_tvel, self.tvel_file_name
+            self.f_dat, m, self.vpvs, self.depth, create_tvel, tvel_file_name
         )
-        """ step 2. run the dat file """
+        """ step 2. copy binary file into datfile folder & run the dat file """
+        subprocess.call(f"scp {self.binary_file_path} .", shell=True, cwd=self.f_dat)
         subprocess.call("./crfl_sac", shell=True, cwd=self.f_dat)
+        self.it += 1
         """ step 3. read in the output of the run """
         return read_refl_mseeds(path=self.f_dat, dt=self.dt, stack=False)
 
@@ -424,17 +436,17 @@ class SRC_STR:
         :param st_obs_w: obspy stream (windowed) with observed data
         :returns xi: misfit of synthetic data vs observed data
         """
-        print(f"Update nr {self.mi} with m: {m}")
+        print(f"Forward run + misfit calc for m: {m}")
         """ Run the forward modeller"""
         st_syn = self.forward(m)
 
         """ Window the data """
-        self.syn_tts = get_tt_from_dat_file(self.phases, self.f_dat, self.tvel_file_name)
-        self.st_syn_w, self.st_syn_full, s_syn = window(
+        syn_tts = get_tt_from_dat_file(self.phases, self.f_dat, m[-1])
+        st_syn_w, st_syn_full, s_syn = window(
             st_syn,
             self.phases,
             self.components,
-            self.syn_tts,
+            syn_tts,
             self.t_pres,
             self.t_posts,
             self.fmin,
@@ -442,25 +454,24 @@ class SRC_STR:
             self.zerophase,
         )
 
-        """ Plot the synthetic data vs. observed data """
-        if self.plot:
-            plot_waveforms_src_str(
-                save_folder=self.f_dat,
-                st_syn_full=self.st_syn_full,
-                st_obs_full=self.st_obs_full,
-                st_syn_w=self.st_syn_w,
-                st_obs_w=st_obs_w,
-                phases=self.phases,
-                components=self.components,
-                t_pres=self.t_pres,
-                t_posts=self.t_posts,
-                tt_obs=self.tt_obs,
-                tt_syn=self.syn_tts,
-                ylims=self.ylims,
-                save_file=pjoin(self.f_dat, f"Iteration_{self.it}", f"Update_{self.mi}.svg"),
-                ins_w=None,
-                ins_full=None,
-            )
+        # """ Plot the synthetic data vs. observed data """
+        # if self.plot:
+        #     plot_waveforms_src_str(
+        #         st_syn_full=st_syn_full,
+        #         st_obs_full=self.st_obs_full,
+        #         st_syn_w=st_syn_w,
+        #         st_obs_w=st_obs_w,
+        #         phases=self.phases,
+        #         components=self.components,
+        #         t_pres=self.t_pres,
+        #         t_posts=self.t_posts,
+        #         tt_obs=self.tt_obs,
+        #         tt_syn=syn_tts,
+        #         ylims=self.ylims,
+        #         save_file=pjoin(self.f_dat, f"Update_{mi}.svg"),
+        #         ins_w=None,
+        #         ins_full=None,
+        #     )
 
         """ Get stacked version of observed data """
         s_obs = np.array([])
@@ -469,9 +480,8 @@ class SRC_STR:
 
         """ Calculate misfit """
         fmisfit = _Misfit.L2()
-        xis = fmisfit.run_misfit(self.phases, st_obs_w, self.st_syn_w, self.sigmas ** 2)
+        xis = fmisfit.run_misfit(self.phases, st_obs_w, st_syn_w, self.sigmas ** 2)
         xi = np.sum(xis)
         # xi = np.linalg.norm(((s_syn - s_obs) / np.max(self.sigmas)), ord=2)
         print(xi)
-        self.mi += 1
         return xi
