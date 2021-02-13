@@ -16,7 +16,7 @@ def read_depth_from_dat(dat_folder: str):
     with open(join(dat_folder, "crfl.dat"), "r+") as f:
         data = f.readlines()
         f.close()
-    return np.array(re.findall("\d+\.\d+", data[-9]), dtype=float)[2]
+    return np.array(re.findall("\d+\.\d+", data[-7]), dtype=float)[2]
 
 
 def read_epi_from_dat(dat_folder: str, radius: float = 3389.5):
@@ -52,13 +52,21 @@ def update_dat_file(
                          based on the updated .dat file
     :param tvel_name: name of the .tvel file
     """
-    focal_mech = m[:6]  # / 1e14
+    M_tt = m[1]  # / 1e14
+    M_pp = m[2]  # / 1e14
+    M_rr = m[0]  # / 1e14
+    M_rp = m[4]  # / 1e14
+    M_rt = m[3]  # / 1e14
+    M_tp = m[5]  # / 1e14
+
+    focal_mech_update = (
+        f"{M_tt:10.4f}{-M_tp+0:10.4f}{M_rt:10.4f}{M_pp:10.4f}{-M_rp+0:10.4f}{M_rr:10.4f}\n"
+    )
 
     with open(join(dat_folder, "crfl.dat"), "r+") as f:
         data = f.readlines()
         skiprows = 3  # Always need to skip first 3 lines
         """ Updating the moment tensor in .dat file"""
-        focal_mech_update = f"{focal_mech[0]:10.4f}{focal_mech[1]:10.4f}{focal_mech[2]:10.4f}{focal_mech[3]:10.4f}{focal_mech[4]:10.4f}{focal_mech[5]:10.4f}\n"
         data[-8] = focal_mech_update
         """ Updating the structural parameters in .dat file """
         if vpvs and depth == False:
@@ -85,13 +93,13 @@ def update_dat_file(
             depth = m[6 : 6 + n_params]
             if n_params == 1:
                 print("depth of MOHO (from TAYAK) will be changed")
-                flt = np.array(re.findall("\d+\.\d+", data[9]), dtype=float)
+                flt = np.array(re.findall("\d+\.\d+", data[7]), dtype=float)
                 data[
-                    9
+                    7
                 ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
-                flt = np.array(re.findall("\d+\.\d+", data[8]), dtype=float)
+                flt = np.array(re.findall("\d+\.\d+", data[6]), dtype=float)
                 data[
-                    8
+                    6
                 ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
             else:
                 print("depths are changed in dat file starting from depth 0")

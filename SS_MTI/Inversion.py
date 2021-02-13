@@ -13,12 +13,14 @@ import instaseis
 import numpy as _np
 import h5py as _h5
 import matplotlib.pyplot as plt
-from os.path import join as pjoin
+from os.path import exists, isfile, join
+from os import listdir, makedirs
 from obspy.taup import TauPyModel
 from obspy import UTCDateTime as utct
 from numpy import linalg as _LA
 from typing import List as _List, Union as _Union
 from obspy.signal.cross_correlation import xcorr_max, correlate
+from scipy.optimize import approx_fprime as _af
 import mpi4py.MPI
 
 
@@ -27,6 +29,7 @@ from SS_MTI import Forward as _Forward
 from SS_MTI import Misfit as _Misfit
 from SS_MTI import MTDecompose as _MTDecompose
 from SS_MTI import PostProcessing as _PostProcessing
+from SS_MTI import Gradient as _Gradient
 
 
 def Grid_Search_run(
@@ -130,7 +133,7 @@ def Grid_Search_run(
         print(depth)
         """ Open .h5 file """
         file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}_{event.baz}.hdf5"
-        f = _h5.File(pjoin(output_folder, file_name), "w")
+        f = _h5.File(join(output_folder, file_name), "w")
         data_len = 6 + len(phases)
         file_len = len(strikes) * len(dips) * len(rakes)
         f.create_dataset("samples", (file_len, data_len), maxshape=(None, 50))
@@ -305,7 +308,7 @@ def Grid_Search_run(
                 color=color_plot,
             )
             plt.savefig(
-                pjoin(
+                join(
                     output_folder,
                     f"GS_BBB__{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
                 ),
@@ -344,7 +347,7 @@ def Grid_Search_run(
             )
 
             plt.savefig(
-                pjoin(
+                join(
                     output_folder,
                     f"GS_waveforms_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
                 ),
@@ -599,7 +602,7 @@ def Direct(
         ax[-1].set_xlabel("Parameters", fontsize=20)
         plt.tight_layout()
         plt.savefig(
-            pjoin(
+            join(
                 output_folder,
                 f"Condition_nr_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
             ),
@@ -740,7 +743,7 @@ def Direct(
             # residual = tr_syn.data - d_new
 
             # dat = _np.vstack((tr_syn.data,st_obs[i].data))
-            # with open(pjoin(output_folder, f"Direct_{tr_syn.stats.channel}_{phase}.txt"), 'wb') as file:
+            # with open(join(output_folder, f"Direct_{tr_syn.stats.channel}_{phase}.txt"), 'wb') as file:
             #     _np.save(file,dat, allow_pickle=False)
             #     file.close()
 
@@ -757,7 +760,7 @@ def Direct(
 
         """ Open .h5 file """
         file_name = f"Direct_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}_{event.baz}.hdf5"
-        f = _h5.File(pjoin(output_folder, file_name), "w")
+        f = _h5.File(join(output_folder, file_name), "w")
         data_len = 6 + 3 * 6 + len(angles) + len(phases)
         file_len = 1
         f.create_dataset("samples", (file_len, data_len))
@@ -808,7 +811,7 @@ def Direct(
             )
 
             plt.savefig(
-                pjoin(
+                join(
                     output_folder,
                     f"Direct_BB_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
                 ),
@@ -849,7 +852,7 @@ def Direct(
                 Ylims=Ylims,
             )
             plt.savefig(
-                pjoin(
+                join(
                     output_folder,
                     f"Direct_waveforms_{event.name}_{depth}_{misfit.name}_{fwd.veloc_name}_{event.baz}.svg",
                 ),
@@ -859,6 +862,167 @@ def Direct(
         f.close()
     if Parallel:
         mpi4py.MPI.COMM_WORLD.Barrier()
+
+
+def gradient_descent(
+    bin_path: str,
+    save_path: str,
+    epsilon: float,
+    update_nr: int,
+    dt: float,
+    sigmas: [float],
+    st_obs_w: obspy.Stream,
+    current_update: int = 0,
+    prior_crfl_filepath: str = None,
+    alphas: [float] = [1e-6, 1e-5, 5e-5, 1e-4, 5e-4, 1e-3, 1e-2, 1e-1],
+    fmin: float = None,
+    fmax: float = None,
+    phases: [str] = ["P", "S", "P", "S", "S"],
+    comps: [str] = ["Z", "T", "R", "Z", "R"],
+    t_pres: [int] = [1, 1, 1, 1, 1],
+    t_posts: [int] = [30, 30, 30, 30, 30],
+):
+    """ 
+    This function will do a gradient-descent step based on a line-search
+    :param bin_path: filepath to reflectivity binary
+    :param save_path: path where all updates will be saved
+    :param epsilon: step size w.r.t. each parameter
+    :param update_nr: amount of updates you want to do
+    :param dt: sampling rate [second/sample]
+    :param sigmas: expected standard deviation for each phase
+    :param st_obs_w: stream with windowed observed data
+    :param current_update: current update nr, it restarts from previous update
+    :param prior_crfl_filepath: only necessary when update_nr = 0
+    :param alphas: gradient step sizes to test in the line search
+    :param fmin: highpass frequency band
+    :param fmax: lowpass frequency band
+    :param phases: phases to window
+    :param comps: components to window
+    :param t_pres: length before arrival
+    :param t_posts: length after arrival
+    """
+
+    #     assert (
+    #         current_update == 0 and prior_crfl_filepath is not None
+    #     ), "if current_update = 0, you have to specify filepath of your prior crfl.dat"
+
+    save_path_OG = save_path
+
+    if current_update != 0:
+        """ Check where the previous update ended and take this crfl.dat file as prior file"""
+        prev_update = current_update - 1
+        prev_it = max(
+            [
+                int(f.strip("It_"))
+                for f in listdir(join(save_path_OG, f"Update_{prev_update}"))
+                if f.startswith("It_")
+            ]
+        )
+        prior_crfl_filepath = join(
+            save_path_OG, f"Update_{prev_update}", f"It_{prev_it}", "crfl.dat"
+        )
+        prev_m0 = [
+            f
+            for f in listdir(join(save_path, f"Update_{prev_update}"))
+            if f.startswith("m1_")
+            if isfile(join(save_path, f"Update_{prev_update}", f))
+        ][0]
+        m0 = _np.load(join(save_path_OG, f"Update_{prev_update}", prev_m0,))
+    else:
+        # NOTE: we have to convert fm parameters:
+        # reflectivity fm: mtt,mtp,mrt,mpp,mrp,mrr
+        # this code(also instaseis) fm: mrr,mtt,mpp,mrt,mrp,mtp
+        with open(prior_crfl_filepath, "r") as f:
+            data = f.readlines()
+            fm = _np.array(data[-8].split(), dtype=float)
+        m0 = _np.array(
+            [fm[5], fm[0], fm[3], fm[2], -fm[4] + 0, -fm[1] + 0, float(data[7].split()[0])]
+        )
+
+    while current_update < update_nr:
+        if not exists(join(save_path_OG, f"Update_{current_update}")):
+            makedirs(join(save_path_OG, f"Update_{current_update}"))
+        save_path = join(save_path_OG, f"Update_{current_update}")
+
+        """ Calculating the gradient with given epsilon """
+        src_str = _Gradient.SRC_STR(
+            binary_file_path=bin_path,
+            prior_dat_filepath=prior_crfl_filepath,
+            save_folder=save_path,
+            phases=phases,
+            components=comps,
+            t_pres=t_pres,
+            t_posts=t_posts,
+            depth=True,
+            vpvs=False,
+            fmin=fmin,
+            fmax=fmax,
+            dt=dt,
+            sigmas=sigmas,
+            zerophase=False,
+            start_it=0,
+        )
+
+        dxi_dms = _np.zeros((len(m0), 1))
+        if not isfile(join(save_path, "dxi_dms.npy")):
+            dxi_dm = _af(
+                m0,
+                src_str.misfit,
+                epsilon
+                * _np.array(
+                    [
+                        _np.mean(m0[:-1]),
+                        _np.mean(m0[:-1]),
+                        _np.mean(m0[:-1]),
+                        _np.mean(m0[:-1]),
+                        _np.mean(m0[:-1]),
+                        _np.mean(m0[:-1]),
+                        0.1 * m0[-1],
+                    ]
+                ),
+                st_obs_w,
+            )
+            dxi_dms[:, 0] = dxi_dm
+            _np.save(join(save_path, "dxi_dms.npy"), dxi_dms)
+        else:
+            print("dxi_dms.npy already exists in this folder, reads in the existing file")
+            dxi_dms = _np.load(join(save_path, "dxi_dms.npy"))
+
+        """ Doing update using a line-search (i.e., update based on best alpha) """
+        if not isfile(join(save_path, f"m1s_{epsilon}.npy")):
+            m1s = _np.zeros((len(m0), len(alphas)))
+            X1s = _np.zeros(len(alphas))
+            for i, alpha in enumerate(alphas):
+                m1s[:, i] = m0 - dxi_dm * alpha
+
+                X1s[i] = src_str.misfit(m1s[:, i], st_obs_w)
+            _np.save(join(save_path, f"m1s_{epsilon}.npy"), m1s)
+            _np.save(join(save_path, f"X1s_{epsilon}.npy"), X1s)
+        else:
+            m1s = _np.load(join(save_path, f"m1s_{epsilon}.npy"))
+            X1s = _np.load(join(save_path, f"X1s_{epsilon}.npy"))
+
+        min_misfit = X1s.argmin()
+        min_alpha = alphas[min_misfit]
+        m1 = m1s[:, min_misfit]
+        _np.save(join(save_path, f"m1_eps_{epsilon}_alpha_{min_alpha}.npy"), m1)
+
+        """ Do a final forward run with the achieved m1 model: """
+        st_m1 = src_str.forward(m1)
+        st_m1.write(join(save_path, "st_m1.mseed"), format="MSEED")
+
+        """
+        Make the latest iteration in this update, which is based on m1,
+        the new prior for the next update
+        """
+        update_it = src_str.it - 1
+        print(f"this is the iteration used for next update: {update_it}")
+        prior_crfl_filepath = join(
+            save_path_OG, f"Update_{current_update}", f"It_{update_it}", "crfl.dat"
+        )
+
+        current_update += 1
+        m0 = m1
 
 
 def MH(self, event: obspy.core.event.Event):

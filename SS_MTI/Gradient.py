@@ -335,16 +335,12 @@ class SRC_STR:
         vpvs: bool,
         depth: bool,
         dt: [float],
-        baz: float,
         sigmas: [float],
         tstars: [float] = None,
         fmin: float = None,
         fmax: float = None,
         zerophase: bool = False,
-        plot: bool = True,
-        st_obs_full: obspy.Stream = None,
-        tt_obs: [float] = None,
-        ylims: [float] = None,
+        start_it: int = 0,
     ):
         """ 
         If vpvs and depth are both True (depth and vpvs are both inverted)
@@ -363,6 +359,7 @@ class SRC_STR:
         :param fmin: lower bound frequency
         :param fmax: upper bound frequency
         :param zerophase: zerophase the data while filtering
+        :param start_it: start iteration (other iterations already saved in same folder)
         :param plot: plotting or not
         :param st_obs_full: plot = True, observed stream (ordered as phases/component)
         :param tt_obs: observed travel times (ordered as (phases/components)
@@ -377,32 +374,21 @@ class SRC_STR:
         self.fmax = fmax
         self.zerophase = zerophase
         self.dt = dt
-        self.tstars = tstars
-        self.baz = baz
+        self.tstars = tstars  # TODO: implement t-stars
         self.sigmas = sigmas
 
         self.binary_file_path = binary_file_path
         self.prior_dat_filepath = prior_dat_filepath
         self.f_dat_OG = save_folder
-        self.it = 0
+        self.it = start_it
         self.vpvs = vpvs
         self.depth = depth
         """ """
 
-        """ Plotting values """
-        self.plot = plot
-        if self.plot:
-            assert (
-                st_obs_full is not None and tt_obs is not None
-            ), "if plot = True, you must give st_obs_full, tt_obs and ylims"
-            self.st_obs_full = st_obs_full
-            self.tt_obs = tt_obs
-            self.ylims = ylims
-
     def forward(self, m: np.array):
         """
         forward function that runs the reflectivity code based on the model parameters(m).
-        :param m: array of source and structure parameters
+        :param m: array of source and structure parameters [mrr,mtt,mpp,mrt,mrp,mtp,moho-d]
         :returns s_syn: synthetic output based on input m
         """
         print(f"forward run in iteration: {self.it}")
@@ -426,6 +412,7 @@ class SRC_STR:
         subprocess.call("./crfl_sac", shell=True, cwd=self.f_dat)
         self.it += 1
         """ step 3. read in the output of the run """
+        np.save(pjoin(self.f_dat, "m.npy"), m)
         return read_refl_mseeds(path=self.f_dat, dt=self.dt, stack=False)
 
     def misfit(self, m: np.array, st_obs_w: obspy.Stream):
@@ -454,25 +441,6 @@ class SRC_STR:
             self.zerophase,
         )
 
-        # """ Plot the synthetic data vs. observed data """
-        # if self.plot:
-        #     plot_waveforms_src_str(
-        #         st_syn_full=st_syn_full,
-        #         st_obs_full=self.st_obs_full,
-        #         st_syn_w=st_syn_w,
-        #         st_obs_w=st_obs_w,
-        #         phases=self.phases,
-        #         components=self.components,
-        #         t_pres=self.t_pres,
-        #         t_posts=self.t_posts,
-        #         tt_obs=self.tt_obs,
-        #         tt_syn=syn_tts,
-        #         ylims=self.ylims,
-        #         save_file=pjoin(self.f_dat, f"Update_{mi}.svg"),
-        #         ins_w=None,
-        #         ins_full=None,
-        #     )
-
         """ Get stacked version of observed data """
         s_obs = np.array([])
         for i, phase in enumerate(self.phases):
@@ -482,6 +450,5 @@ class SRC_STR:
         fmisfit = _Misfit.L2()
         xis = fmisfit.run_misfit(self.phases, st_obs_w, st_syn_w, self.sigmas ** 2)
         xi = np.sum(xis)
-        # xi = np.linalg.norm(((s_syn - s_obs) / np.max(self.sigmas)), ord=2)
         print(xi)
         return xi

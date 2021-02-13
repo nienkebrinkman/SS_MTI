@@ -22,7 +22,7 @@ from sklearn.cluster import KMeans
 from pyrocko import moment_tensor as mtm
 import matplotlib.patches as mpatches
 
-pyproj_datadir = os.environ["PROJ_LIB"]
+# pyproj_datadir = os.environ["PROJ_LIB"]
 
 from mpl_toolkits.basemap import Basemap
 import re

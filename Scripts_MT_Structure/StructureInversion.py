@@ -24,6 +24,7 @@ import subprocess
 from SS_MTI import PreProcess as _PreProcess
 from SS_MTI import GreensFunctions as _GreensFunctions
 from SS_MTI import Gradient as _Gradient
+from SS_MTI import Inversion as _Inversion
 
 
 def define_arguments():
@@ -120,9 +121,8 @@ if __name__ == "__main__":
     if not exist(save_folder):
         makedirs(save_folder)
     # check if folder is empty
-    if not lsdir(save_folder):
-        subprocess.call(f"scp {bin_path} .", shell=True, cwd=save_folder)
-    bm_file_path = "/home/nienke/Documents/Research/Data/MTI/MT_vs_STR/bm_models/TAYAK.bm"
+    # if not lsdir(save_folder):
+    #     subprocess.call(f"scp {bin_path} .", shell=True, cwd=save_folder)
     from obspy.geodetics import gps2dist_azimuth
 
     epi_in_km, _az, _baz = gps2dist_azimuth(
@@ -134,7 +134,10 @@ if __name__ == "__main__":
         f=flattening,
     )
 
-    baz = _baz
+    # baz = _baz
+    if not exist(pjoin(save_folder, "start_v")):
+        makedirs(pjoin(save_folder, "start_v"))
+    f_start = pjoin(save_folder, "start_v")
     Create_Vmod.create_dat_file(
         src_depth=depth,
         focal_mech=focal_mech0,
@@ -142,11 +145,12 @@ if __name__ == "__main__":
         epi_in_km=epi_in_km,
         baz=baz,
         dt=dt,
-        save_path=save_folder,
+        save_path=f_start,
         bm_file_path=bm_file,
     )
 
     """ Create observed data array (for the moment all synthetic)"""
+    event.waveforms_VBB.resample((1 / dt))
     obs_tt = []
     for i, phase in enumerate(phases):
         obs_tt.append(utct(event.picks[phase]) - event.origin_time + phase_corrs[i])
@@ -173,34 +177,11 @@ if __name__ == "__main__":
         fmin=fmin,
         fmax=fmax,
         zerophase=zerophase,
-        noise_level=False,
+        tts=obs_tt,
+        noise_level=True,
     )
+    sigmas_noise = np.asarray(sigmas_noise)
 
-    sigma = np.max(sigmas_noise)
-
-    ## Filter
-    # st_obs_dt = st_obs_full[0].stats.delta
-    # print(st_obs_dt)
-    # ff = np.array([0.1, 0.5])
-    # st_obs_full = _Gradient.taper_trace(st_obs_full)
-    # st_obs_full = _Gradient.bandpass_filt(st_obs_full, ff[0], ff[1], st_obs_dt)
-
-    # st_obs_w = obspy.Stream()
-    # for i, phase in enumerate(phases):
-    #     tr_full = st_obs_full.select(channel=f"??{comps[i]}")[0].copy()
-
-    #     tr = tr_full.slice(
-    #         starttime=event.origin_time + obs_tt[i] - t_pres[i],
-    #         endtime=event.origin_time + obs_tt[i] + t_posts[i],
-    #     )
-    #     st_obs_w += tr
-    """ Get the parameter (m) array ready """
-    dat_path = pjoin(save_folder, "crfl.dat")
-    with open(dat_path, "r+") as f:
-        data = f.readlines()
-        f.close()
-    moment_param = np.array(data[-8].split(), dtype=float)
-    moment_param
     """
     4 different cases that you can try:
     1. Changing only the MOHO depth (depth = True, vpvs = False)
@@ -208,24 +189,17 @@ if __name__ == "__main__":
     3. Changing the vpvs only (depth = False, vpvps = True)
     4. Changing the depth and vpvps (depth = True, vpvps = True)
     """
-    import pandas as pd
 
-    dat_file = pd.read_csv(
-        dat_path,
-        skiprows=3,
-        skipfooter=11 + 7,
-        header=None,
-        delim_whitespace=True,
-        engine="python",
-    )
     # depths = dat_file.values[0:10:2, 0] + 10.0
     # MOHO = 50.0  # depths[5]
     # vp = dat_file.values[0:10:2, 1] + dat_file.values[0:10:2, 1] * 0.01
     # vs = dat_file.values[0:10:2, 3] + dat_file.values[0:10:2, 3] * 0.01
-    m0 = np.hstack((moment_param, MOHO))  # Case 1
+    m0 = np.hstack((focal_mech0, MOHO))  # Case 1
     # m0 = np.hstack((moment_param, depths)) # Case 2
     # m0 = np.hstack((np.hstack((moment_param, vp)), vs)) # Case 3
     # m0 = np.hstack((np.hstack((np.hstack((moment_param, depths)), vp)), vs)) # Case 4
+
+    np.save(pjoin(f_start, "m0.npy"), m0)
 
     depth = True
     vpvs = False
@@ -234,62 +208,27 @@ if __name__ == "__main__":
     Start the misfit function with your initial model 
     (i.e., it will run the forward model and calculates the misfit)
     """
-    n_it = 2
-    fac = 1  # factor that you want to multiply with the gradient
-    epsilon = 0.01
-    xis = np.zeros(n_it)
-    dxi_dms = np.zeros((len(m0), n_it))
-    m0s = np.zeros((len(m0), n_it + 1))
-    m0s[:, 0] = m0
+    update_nr = 10
+    current_update = 0
 
-    src_str = _Gradient.SRC_STR(
-        binary_file_path=bin_path,
-        path_to_dat=save_folder,
-        phases=phases,
-        components=comps,
-        t_pres=t_pres,
-        t_posts=t_posts,
-        depth=depth,
+    epsilon = 0.001
+    prior_crfl_filepath = pjoin(f_start, "crfl.dat")
+    _Inversion.gradient_descent(
+        bin_path=bin_path,
+        save_path=save_folder,
+        epsilon=epsilon,
+        update_nr=update_nr,
         dt=dt,
-        baz=baz,
         sigmas=sigmas_noise,
-        tstars=tstars,
-        vpvs=vpvs,
+        st_obs_w=st_obs_w,
+        current_update=current_update,
+        prior_crfl_filepath=prior_crfl_filepath,
+        alphas=[1e-6, 1e-5, 5e-5, 1e-4, 5e-4, 1e-3, 1e-2, 1e-1],
         fmin=fmin,
         fmax=fmax,
-        zerophase=zerophase,
-        plot=True,
-        st_obs_full=st_obs_full,
-        tt_obs=obs_tt,
-        ylims=ylims,
+        phases=phases,
+        comps=comps,
+        t_pres=t_pres,
+        t_posts=t_posts,
     )
 
-    for i in range(n_it):
-        xis[i] = src_str.misfit(m0, st_obs_w)
-        dxi_dm = af(
-            m0,
-            src_str.misfit,
-            epsilon
-            * np.array(
-                [
-                    np.mean(m0[:-1]),
-                    np.mean(m0[:-1]),
-                    np.mean(m0[:-1]),
-                    np.mean(m0[:-1]),
-                    np.mean(m0[:-1]),
-                    np.mean(m0[:-1]),
-                    m0[-1],
-                ]
-            ),
-            st_obs_w,
-        )
-        dxi_dms[:, i] = dxi_dm
-        m0 -= fac * dxi_dm
-        m0s[:, i + 1] = m0
-        np.save(pjoin(save_folder, f"it_{i}_dxi_dm.npy"), dxi_dm)
-        np.save(pjoin(save_folder, f"it_{i}_xi.npy"), xis[i])
-        np.save(pjoin(save_folder, f"it_{i}_m0.npy"), m0)
-
-    np.save(pjoin(save_folder, "dxi_dms.npy"), dxi_dms)
-    np.save(pjoin(save_folder, "xis.npy"), xis)
-    np.save(pjoin(save_folder, "m0s.npy"), m0s)
