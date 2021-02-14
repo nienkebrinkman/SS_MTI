@@ -16,7 +16,7 @@ def read_depth_from_dat(dat_folder: str):
     with open(join(dat_folder, "crfl.dat"), "r+") as f:
         data = f.readlines()
         f.close()
-    return np.array(re.findall("\d+\.\d+", data[-7]), dtype=float)[2]
+    return np.array(re.findall("\d+\.\d+", data[-9]), dtype=float)[2]
 
 
 def read_epi_from_dat(dat_folder: str, radius: float = 3389.5):
@@ -93,13 +93,13 @@ def update_dat_file(
             depth = m[6 : 6 + n_params]
             if n_params == 1:
                 print("depth of MOHO (from TAYAK) will be changed")
-                flt = np.array(re.findall("\d+\.\d+", data[7]), dtype=float)
+                flt = np.array(re.findall("\d+\.\d+", data[9]), dtype=float)
                 data[
-                    7
+                    9
                 ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
-                flt = np.array(re.findall("\d+\.\d+", data[6]), dtype=float)
+                flt = np.array(re.findall("\d+\.\d+", data[8]), dtype=float)
                 data[
-                    6
+                    8
                 ] = f"{depth[0]:10.4f}{flt[1]:10.4f}{flt[2]:10.4f}{flt[3]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
             else:
                 print("depths are changed in dat file starting from depth 0")
