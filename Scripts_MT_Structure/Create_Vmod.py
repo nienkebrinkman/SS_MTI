@@ -137,9 +137,6 @@ def update_dat_file(
                     """ replace depth """
                     text = f"{depth[i+1]:10.4f}{vp[i]:10.4f}{flt[2]:10.4f}{vs[i]:10.4f}{flt[4]:10.4f}{flt[5]:10.4f}{1:10d}\n"
                     data[skiprows + i * 2 + 1] = text
-        else:
-            raise ValueError("vpvs either True or False & depth either True or False")
-
         f.close()
     with open(join(dat_folder, "crfl.dat"), "w") as f:
         f.write("".join(data))
