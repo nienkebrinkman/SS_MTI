@@ -142,18 +142,19 @@ def update_dat_file(
         f.write("".join(data))
         f.close()
     """ automatically create .tvel file """
-    depth = np.zeros(len(data[3:-18]))
-    vp = np.zeros(len(data[3:-18]))
-    vs = np.zeros(len(data[3:-18]))
-    dens = np.zeros(len(data[3:-18]))
-    for i, line in enumerate(data[3:-18]):
-        """ search for and create floats from the string line """
-        flt = np.array(re.findall("\d+\.\d+", line), dtype=float)
-        depth[i] = flt[0]
-        vp[i] = flt[1]
-        vs[i] = flt[3]
-        dens[i] = flt[5]
-    create_tvel_file(depth, vp, vs, dens, dat_folder, tvel_name)
+    if produce_tvel:
+        depth = np.zeros(len(data[3:-18]))
+        vp = np.zeros(len(data[3:-18]))
+        vs = np.zeros(len(data[3:-18]))
+        dens = np.zeros(len(data[3:-18]))
+        for i, line in enumerate(data[3:-18]):
+            """ search for and create floats from the string line """
+            flt = np.array(re.findall("\d+\.\d+", line), dtype=float)
+            depth[i] = flt[0]
+            vp[i] = flt[1]
+            vs[i] = flt[3]
+            dens[i] = flt[5]
+        create_tvel_file(depth, vp, vs, dens, dat_folder, tvel_name)
 
 
 def create_tvel_file(

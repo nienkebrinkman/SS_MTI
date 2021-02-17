@@ -89,7 +89,7 @@ def rot_data(st, angle):
     return st
 
 
-def read_refl_mseeds(path: str, dt: float = None, stack: bool = False):
+def read_refl_mseeds(path: str, stack: bool = False):
     """ 
     This functions reads in the output of reflectivity code (miniseeds)
     :param pat:the path where the miniseeds are located
@@ -128,7 +128,7 @@ def read_refl_mseeds(path: str, dt: float = None, stack: bool = False):
         Z = st.select(channel="xxz")[0].data
         R = st.select(channel="xxr")[0].data
         T = st.select(channel="xxt")[0].data
-        return np.hstack((np.hstack((Z, R)), T))
+        return np.hstack((Z, R, T))
     else:
         return st
 
@@ -241,6 +241,174 @@ def plot_waveforms_src_str(
         return fig
 
 
+def plot_updates(
+    save_path, st_obs_full, st_obs_w, phases, comps, t_pres, t_posts, fmin, fmax, zerophase, ylims,
+):
+    fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(18, 20))
+
+    update_folders = np.sort(
+        np.asarray(
+            [int(f.strip("Update_")) for f in listdir(save_path) if f.startswith("Update_")]
+        )
+    )
+    for up_nr in update_folders:
+        update_folder = join(save_path, f"Update_{up_nr}")
+        max_it = max(
+            [
+                int(f.strip("It_"))
+                for f in listdir(join(save_path, update_folder))
+                if f.startswith("It_")
+            ]
+        )
+        # Read in the data:
+        st_m = obspy.read(join(save_path, update_folder, "st_m1.mseed"))
+        m = np.load(
+            join(
+                save_path,
+                update_folder,
+                [
+                    f
+                    for f in listdir(join(save_path, update_folder))
+                    if f.startswith("m1_")
+                    if isfile(join(save_path, update_folder, f))
+                ][0],
+            )
+        )
+        # Window the data:
+        npz_name = [
+            f
+            for f in listdir(join(save_path, update_folder, f"It_{max_it}"))
+            if f.endswith(".npz")
+            if isfile(join(save_path, update_folder, f"It_{max_it}", f))
+        ]
+        if npz_name:
+            npz_file = join(save_path, update_folder, f"It_{max_it}", npz_name[0],)
+            dat_file = join(save_path, update_folder, f"It_{max_it}",)
+
+            Taup = TauPyModel(npz_file)
+            depth = Create_Vmod.read_depth_from_dat(dat_file)
+            epi = Create_Vmod.read_epi_from_dat(dat_file)
+            m_tts = []
+            for i, phase in enumerate(phases):
+                m_tts.append(PhaseTracer.get_traveltime(Taup, phase, depth, epi))
+        else:
+            m_tts = Gradient.get_tt_from_dat_file(
+                phases, join(save_path, update_folder, f"It_{max_it}"), m[-1]
+            )
+
+        st_w, st_full, s_m = Gradient.window(
+            st_m, phases, comps, m_tts, t_pres, t_posts, fmin, fmax, zerophase,
+        )
+        if up_nr == 0:
+            alpha = 1 / len(update_folders)
+        else:
+            alpha = up_nr / len(update_folders)
+        for i, (tr_full, tr_w) in enumerate(zip(st_full, st_w)):
+            ax[i].plot(
+                tr_w.times() - t_pres[i], tr_w.data, lw=3, c="b", alpha=alpha, label=f"m{up_nr}",
+            )
+            ax[i].plot(
+                tr_full.times() - m_tts[i], tr_full.data, lw=3, alpha=alpha, c="b",
+            )
+    for i, (tr_obs_full, tr_obs_w) in enumerate(zip(st_obs_full, st_obs_w)):
+        ax[i].plot(
+            tr_obs_full.times() - obs_tts[i], tr_obs_full.data, lw=1, c="k", label="Observed",
+        )
+        ax[i].plot(
+            tr_obs_w.times() - obs_tts[i], tr_obs_w.data, lw=1, c="k",
+        )
+
+        ax[i].text(
+            s=f"{phases[i]}{comps[i]}",
+            x=0.99,
+            y=0.75,
+            ha="right",
+            transform=ax[i].transAxes,
+            color="blue",
+            fontsize=40,
+        )
+        ax[i].tick_params(axis="both", which="major", labelsize=35)
+        ax[i].get_yaxis().get_offset_text().set_visible(False)
+        ax_max = max(ax[i].get_yticks())
+        exponent_axis = np.floor(np.log10(ax_max)).astype(int)
+        ax[i].annotate(
+            r"$\times$10$^{%i}$" % (exponent_axis),
+            xy=(0.01, 0.75),
+            xycoords="axes fraction",
+            fontsize=32,
+        )
+        if ylims is None:
+            global_max = max([tr.data.max() for tr in st_obs_w]) * 1.2
+            global_min = min([tr.data.min() for tr in st_obs_w]) * 1.2
+            ax[i].set_ylim(global_min, global_max)
+        else:
+            ax[i].set_ylim(-ylims[i], ylims[i])
+        ymax = ax[i].get_ylim()[1]
+        ax[i].axvline(x=t_posts[i], c="grey", ls="dashed")
+        ax[i].axvline(x=-t_pres[i], c="grey", ls="dashed")
+        ax[i].axvline(x=0.0, c="dimgrey", lw=2)
+        ax[i].text(
+            0 + 0.1,
+            ymax * 0.8,
+            phases[i],
+            verticalalignment="center",
+            color="dimgray",
+            fontsize=30,
+        )
+
+    fig.text(0.01, 0.5, "Displacement (nm)", va="center", rotation="vertical", fontsize=45)
+    fig.text(
+        0.5,
+        0.88,
+        "Synthetic test",
+        ha="center",
+        va="bottom",
+        size="x-large",
+        color="purple",
+        fontsize=45,
+    )
+
+    ax[0].legend(
+        ncol=5,
+        prop={"size": 15},
+        loc="center left",
+        bbox_to_anchor=(0.12, 0.93),
+        bbox_transform=fig.transFigure,
+    )
+
+    ax[-1].set_xlim(-10.0, 32.0)
+    ax[-1].set_xlabel("time after phase (s)", fontsize=45)
+
+
+def plot_misfits(
+    save_path, epsilon,
+):
+    fig, ax = plt.subplots(nrows=1, ncols=1, sharex="all", figsize=(8, 8))
+
+    update_folders = np.sort(
+        np.asarray(
+            [int(f.strip("Update_")) for f in listdir(save_path) if f.startswith("Update_")]
+        )
+    )
+    print(update_folders)
+
+    Xs = np.array(
+        [
+            np.load(join(save_path, f"Update_{update_folders[up_nr]}", f"X1s_{epsilon}.npy"))
+            for up_nr in update_folders
+        ]
+    )
+    ms = np.arange(0, len(Xs))
+    Xs = Xs.min(axis=1)
+    ax.semilogy(ms, Xs)
+    ax.tick_params(axis="both", which="major", labelsize=15)
+    ax.tick_params(axis="both", which="minor", labelsize=15)
+    ax.set_xlabel("Update nr", fontsize=20)
+    ax.set_ylabel("Misfit", fontsize=20)
+    ax.set_xticks(ms)
+    ax.set_xticklabels(ms)
+
+
 def get_tt_from_dat_file(phases: [str], dat_file_path: str, name_tvel: str = None):
     """
     This function can determine travel-times for phases based on crfl.dat file
@@ -320,7 +488,7 @@ def window(
 
 class SRC_STR:
     """ 
-    This class does source and structure inversion
+    This class does source (SRC) and structure (STR) inversion
     """
 
     def __init__(
@@ -442,9 +610,9 @@ class SRC_STR:
         )
 
         """ Get stacked version of observed data """
-        s_obs = np.array([])
-        for i, phase in enumerate(self.phases):
-            s_obs = np.hstack((s_obs, st_obs_w[i].data))
+        # s_obs = np.array([])
+        # for i, phase in enumerate(self.phases):
+        #     s_obs = np.hstack((s_obs, st_obs_w[i].data))
 
         """ Calculate misfit """
         fmisfit = _Misfit.L2()

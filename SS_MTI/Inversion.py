@@ -1005,6 +1005,8 @@ def gradient_descent(
         min_misfit = X1s.argmin()
         min_alpha = alphas[min_misfit]
         m1 = m1s[:, min_misfit]
+        _np.save(join(save_path, f"misfit.npy"), X1s.min())
+        _np.save(join(save_path, f"alpha.npy"), min_alpha)
         _np.save(join(save_path, f"m1_eps_{epsilon}_alpha_{min_alpha}.npy"), m1)
 
         """ Do a final forward run with the achieved m1 model: """
