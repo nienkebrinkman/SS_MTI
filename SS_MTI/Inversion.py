@@ -936,7 +936,7 @@ def gradient_descent(
             data = f.readlines()
             fm = _np.array(data[-8].split(), dtype=float)
         m0 = _np.array(
-            [fm[5], fm[0], fm[3], fm[2], -fm[4] + 0, -fm[1] + 0, float(data[7].split()[0])]
+            [fm[5], fm[0], fm[3], fm[2], -fm[4] + 0, -fm[1] + 0, float(data[9].split()[0])]
         )
 
     while current_update < update_nr:
@@ -1025,6 +1025,21 @@ def gradient_descent(
 
         current_update += 1
         m0 = m1
+
+
+def gauss_newton():
+
+    J = 1
+
+    J_inv = J.T @ J
+    J_d = J @ d_tot
+
+    try:
+        M_upd = _np.linalg.solve(J_inv, J_d)
+    except _np.linalg.LinAlgError:
+        print("least-square")
+        M_upd = _np.linalg.lstsq(J_inv, J_d)[0]
+    m1s[:, i] = m0 - M_upd
 
 
 def MH(self, event: obspy.core.event.Event):

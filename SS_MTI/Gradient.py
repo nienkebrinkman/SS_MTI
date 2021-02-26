@@ -4,10 +4,8 @@ and returns the misfit directly
 """
 __author__ = "Nienke Brinkman"
 
-from os.path import join as pjoin
-from os.path import exists as exist
-from os.path import isfile
-from os import listdir as lsdir
+from os.path import join, isfile, exists
+from os import listdir
 from os import makedirs
 from obspy.taup import TauPyModel
 import obspy
@@ -102,10 +100,10 @@ def read_refl_mseeds(path: str, stack: bool = False):
     # )
 
     st = obspy.Stream()
-    st_files = [f for f in lsdir(path) if f.startswith("st") if isfile(pjoin(path, f))]
+    st_files = [f for f in listdir(path) if f.startswith("st") if isfile(join(path, f))]
 
     for st_file in st_files:
-        st_temp = obspy.read(pjoin(path, st_file))
+        st_temp = obspy.read(join(path, st_file))
 
         st_temp[0].stats.channel = "xx" + st_file.split(".")[-1]
         distance = st_temp[0].stats.sac.gcarc
@@ -242,7 +240,18 @@ def plot_waveforms_src_str(
 
 
 def plot_updates(
-    save_path, st_obs_full, st_obs_w, phases, comps, t_pres, t_posts, fmin, fmax, zerophase, ylims,
+    save_path: str,
+    st_obs_full: obspy.Stream,
+    st_obs_w: obspy.Stream,
+    obs_tts: [float],
+    phases: [str],
+    comps: [str],
+    t_pres: [float],
+    t_posts: [float],
+    fmin: float,
+    fmax: float,
+    zerophase: bool,
+    ylims: [float],
 ):
     fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(18, 20))
 
@@ -290,13 +299,13 @@ def plot_updates(
             epi = Create_Vmod.read_epi_from_dat(dat_file)
             m_tts = []
             for i, phase in enumerate(phases):
-                m_tts.append(PhaseTracer.get_traveltime(Taup, phase, depth, epi))
+                m_tts.append(_PhaseTracer.get_traveltime(Taup, phase, depth, epi))
         else:
-            m_tts = Gradient.get_tt_from_dat_file(
+            m_tts = get_tt_from_dat_file(
                 phases, join(save_path, update_folder, f"It_{max_it}"), m[-1]
             )
 
-        st_w, st_full, s_m = Gradient.window(
+        st_w, st_full, s_m = window(
             st_m, phases, comps, m_tts, t_pres, t_posts, fmin, fmax, zerophase,
         )
         if up_nr == 0:
@@ -420,7 +429,7 @@ def get_tt_from_dat_file(phases: [str], dat_file_path: str, name_tvel: str = Non
     if name_tvel is None:
         name_tvel = "temp"
 
-    path_to_tvel = pjoin(dat_file_path, f"{name_tvel}.tvel")
+    path_to_tvel = join(dat_file_path, f"{name_tvel}.tvel")
     npz_file = create_taup_model(input_file=path_to_tvel, save_folder=dat_file_path)
 
     """ 2. Initialize .npz file & calculate phase arrivals """
@@ -560,14 +569,14 @@ class SRC_STR:
         :returns s_syn: synthetic output based on input m
         """
         print(f"forward run in iteration: {self.it}")
-        if not exist(pjoin(self.f_dat_OG, f"It_{self.it}")):
-            makedirs(pjoin(self.f_dat_OG, f"It_{self.it}"))
-        self.f_dat = pjoin(self.f_dat_OG, f"It_{self.it}")
+        if not exists(join(self.f_dat_OG, f"It_{self.it}")):
+            makedirs(join(self.f_dat_OG, f"It_{self.it}"))
+        self.f_dat = join(self.f_dat_OG, f"It_{self.it}")
         if self.it == 0:
             subprocess.call(f"scp {self.prior_dat_filepath} .", shell=True, cwd=self.f_dat)
         else:
             prev_it = self.it - 1
-            prev_it_file = pjoin(self.f_dat_OG, f"It_{prev_it}", "crfl.dat")
+            prev_it_file = join(self.f_dat_OG, f"It_{prev_it}", "crfl.dat")
             subprocess.call(f"scp {prev_it_file} .", shell=True, cwd=self.f_dat)
         """ step 1. plug in the model parameters in the .dat file (.tvel will be created)"""
         create_tvel = True
@@ -580,8 +589,8 @@ class SRC_STR:
         subprocess.call("./crfl_sac", shell=True, cwd=self.f_dat)
         self.it += 1
         """ step 3. read in the output of the run """
-        np.save(pjoin(self.f_dat, "m.npy"), m)
-        return read_refl_mseeds(path=self.f_dat, dt=self.dt, stack=False)
+        np.save(join(self.f_dat, "m.npy"), m)
+        return read_refl_mseeds(path=self.f_dat, stack=False)
 
     def misfit(self, m: np.array, st_obs_w: obspy.Stream):
         """
@@ -592,6 +601,11 @@ class SRC_STR:
         :returns xi: misfit of synthetic data vs observed data
         """
         print(f"Forward run + misfit calc for m: {m}")
+
+        print(m[-1])
+        if m[-1] >= 80.0:
+            m[-1] = 79.0
+
         """ Run the forward modeller"""
         st_syn = self.forward(m)
 
