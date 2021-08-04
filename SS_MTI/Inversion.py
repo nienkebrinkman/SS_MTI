@@ -106,18 +106,6 @@ def Grid_Search_run(
         noise_level=misfit.noise_level,
     )
 
-    # # TODO: remove this again:
-    # if event.name == "Test_Event":
-    #     sigmas_noise[0] = 1.7711953652440284e-11
-    #     sigmas_noise[3] = 4.5996573530998017e-11
-
-    # sigmas_noise[2] = sigmas_noise[1]
-    # sigmas_noise[3] = sigmas_noise[0]
-    # sigmas_noise[4] = sigmas_noise[1]
-    # print(sigmas)
-    # sigmas_model = [9e-10, 2e-9, 1e-9, 7e-10, 2e-9]
-
-    # sigmas = [i ** 2 + j ** 2 for i, j in zip(sigmas_noise, sigmas_model)]
     variances = [i ** 2 for i in sigmas_noise]
 
     if Parallel:
@@ -129,7 +117,6 @@ def Grid_Search_run(
             if iPar % size != rank:
                 continue
             print(f"Depth number {depth} being done by processor {rank} of {size}")
-        # M0_corrs_range = [1.26126e14]  # _np.linspace(0, 2, 1000)
         print(depth)
         """ Open .h5 file """
         file_name = f"GS_{event.name}_{depth}_{fmin}_{fmax}_{misfit.name}_{fwd.veloc_name}_{event.baz}.hdf5"
@@ -324,7 +311,29 @@ def Grid_Search_run(
             else:
                 extra_arrs = None
 
-            fig, ax = _PostProcessing.waveform_plot(
+            # fig, ax = _PostProcessing.waveform_plot(
+            #     syn_GFs=syn_GFs,
+            #     syn_tts=syn_tts,
+            #     obs_tts=obs_tt,
+            #     fwd=fwd,
+            #     misfit_weight_len=misfit.start_weight_len,
+            #     event=event,
+            #     phases=phases,
+            #     components=components,
+            #     t_pre=t_pre,
+            #     t_post=t_post,
+            #     MTs=sdrs,
+            #     M0s=M0_plot,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            #     zerophase=zerophase,
+            #     plot_extra_phases=plot_extra_phases,
+            #     extra_arrs=extra_arrs,
+            #     color_plot=color_plot,
+            #     Ylims=Ylims,
+            # )
+
+            fig, ax = _PostProcessing.waveform_plot_copy(
                 syn_GFs=syn_GFs,
                 syn_tts=syn_tts,
                 obs_tts=obs_tt,
@@ -337,6 +346,10 @@ def Grid_Search_run(
                 t_post=t_post,
                 MTs=sdrs,
                 M0s=M0_plot,
+                depth=depth,
+                rec=rec,
+                tstar=tstars,
+                phase_corrs=phase_corrs,
                 fmin=fmin,
                 fmax=fmax,
                 zerophase=zerophase,
@@ -830,7 +843,29 @@ def Direct(
             else:
                 extra_arrs = None
 
-            fig = _PostProcessing.waveform_plot(
+            # fig = _PostProcessing.waveform_plot(
+            #     syn_GFs=syn_GFs,
+            #     syn_tts=syn_tts,
+            #     obs_tts=obs_tt,
+            #     fwd=fwd,
+            #     misfit_weight_len=misfit.start_weight_len,
+            #     event=event,
+            #     phases=phases,
+            #     components=components,
+            #     t_pre=t_pre,
+            #     t_post=t_post,
+            #     MTs=MT,
+            #     M0s=M0,
+            #     fmin=fmin,
+            #     fmax=fmax,
+            #     zerophase=zerophase,
+            #     plot_extra_phases=plot_extra_phases,
+            #     extra_arrs=extra_arrs,
+            #     color_plot=color_plot,
+            #     Ylims=Ylims,
+            # )
+
+            fig, ax = _PostProcessing.waveform_plot_copy(
                 syn_GFs=syn_GFs,
                 syn_tts=syn_tts,
                 obs_tts=obs_tt,
@@ -843,6 +878,10 @@ def Direct(
                 t_post=t_post,
                 MTs=MT,
                 M0s=M0,
+                depth=depth,
+                rec=rec,
+                tstar=tstars,
+                phase_corrs=phase_corrs,
                 fmin=fmin,
                 fmax=fmax,
                 zerophase=zerophase,

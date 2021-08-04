@@ -21,8 +21,9 @@ from obspy.imaging.beachball import aux_plane
 from sklearn.cluster import KMeans
 from pyrocko import moment_tensor as mtm
 import matplotlib.patches as mpatches
+import glob
 
-# pyproj_datadir = os.environ["PROJ_LIB"]
+pyproj_datadir = os.environ["PROJ_LIB"]
 
 from mpl_toolkits.basemap import Basemap
 import re
@@ -361,8 +362,9 @@ def Plot_event_location(
     m.plot(mstatlon, mstatlat, "k^", markersize=20, label="InSight")
 
     EQlonA, EQlatA = m(lo_s, la_s)
-    #     EQlonB, EQlatB = m(lo_sB, la_sB)
-    #     EQlonC, EQlatC = m(lo_sC, la_sC)
+    # EQlonB, EQlatB = m(lo_sB, la_sB) # 235b
+    # EQlonC, EQlatC = m(lo_sC, la_sC)
+    # EQlonD, EQlatD = m(lo_sC, la_sC)
     m.plot(EQlonA, EQlatA, "r*", markersize=20, zorder=10, label=name)
     # m.plot(EQlonB, EQlatB, 'g*', markersize=20, zorder=10, label = event_B.name)
     #     m.plot(EQlonC, EQlatC, 'b*', markersize=20, zorder=10, label=event_C.name)
@@ -765,19 +767,19 @@ def plot_misfit_vs_depth(
     labels = ["", ""]
     n_lowest = 1
 
-    # fig, ax = plt.subplots(
-    #     nrows=3, ncols=1, sharex="all", figsize=(28, 17), gridspec_kw={"height_ratios": [4, 1, 1]},
-    # )
-    if event_name == "S0183a":
-        fig, ax = plt.subplots(nrows=1, ncols=1, sharex="all", figsize=(28, 5.33),)
-    else:
-        fig, ax = plt.subplots(
-            nrows=3,
-            ncols=1,
-            sharex="all",
-            figsize=(28, 8),
-            gridspec_kw={"height_ratios": [4, 1, 1]},
-        )
+    fig, ax = plt.subplots(
+        nrows=3, ncols=1, sharex="all", figsize=(28, 17), gridspec_kw={"height_ratios": [4, 1, 1]},
+    )
+    # if event_name == "S0183a":
+    #     fig, ax = plt.subplots(nrows=1, ncols=1, sharex="all", figsize=(28, 5.33),)
+    # else:
+    #     fig, ax = plt.subplots(
+    #         nrows=3,
+    #         ncols=1,
+    #         sharex="all",
+    #         figsize=(28, 8),
+    #         gridspec_kw={"height_ratios": [4, 1, 1]},
+    #     )
     # from matplotlib import gridspec
     # gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
     BB = []
@@ -797,7 +799,7 @@ def plot_misfit_vs_depth(
             GS_File = glob.glob(
                 pjoin(
                     save_path,
-                    f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}_{baz}.hdf5",
+                    f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
                 )
             )[0]
             if event_name == "S0183a":
@@ -806,7 +808,7 @@ def plot_misfit_vs_depth(
                 Direct_File = glob.glob(
                     pjoin(
                         save_path,
-                        f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}_{baz}.hdf5",
+                        f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{veloc_model}.hdf5",
                     )
                 )[0]
 
@@ -977,6 +979,7 @@ def plot_misfit_vs_depth(
     ax_current.tick_params(axis="both", which="major", labelsize=23)
     ax_current.tick_params(axis="both", which="minor", labelsize=23)
     ax_current.grid(True)
+    # ax_current.set_ylim(-0.5, 10)
 
     if event_name == "S0183a":
         pass
@@ -1662,7 +1665,7 @@ def post_waveform_plotting(
             plt.savefig(
                 pjoin(
                     h5_file_folder,
-                    f"GS_BBB__{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
+                    f"GS_BBB__{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.pdf",
                 ),
                 dpi=300,
             )
@@ -1716,7 +1719,7 @@ def post_waveform_plotting(
             plt.savefig(
                 pjoin(
                     h5_file_folder,
-                    f"Direct_BB_{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
+                    f"Direct_BB_{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.pdf",
                 ),
                 dpi=300,
             )
@@ -1725,72 +1728,72 @@ def post_waveform_plotting(
             MT = np.expand_dims(DC_MT, axis=0)
             M0 = np.expand_dims(M0_DC, axis=0)
 
-        """ Generate Green's functions per depth """
-        syn_tts = []
-        syn_GFs = []
-        for i, phase in enumerate(phases):
-            syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
+        # """ Generate Green's functions per depth """
+        # syn_tts = []
+        # syn_GFs = []
+        # for i, phase in enumerate(phases):
+        #     syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
 
-            syn_GF = fwd.get_greens_functions(
-                comp=components[i],
-                depth=depth,
-                distance=event.distance,
-                lat_src=event.latitude,
-                lon_src=event.longitude,
-                rec=rec,
-                tstar=tstars[i],
-                LQT=LQT_value,
-                inc=inc,
-                baz=baz,
-                M0=1.0,
-                filter=filter_par,
-                fmin=fmin,
-                fmax=fmax,
-                zerophase=zerophase,
-            )
-            syn_GFs.append(syn_GF)
-            syn_tts.append(syn_tt)
+        #     syn_GF = fwd.get_greens_functions(
+        #         comp=components[i],
+        #         depth=depth,
+        #         distance=event.distance,
+        #         lat_src=event.latitude,
+        #         lon_src=event.longitude,
+        #         rec=rec,
+        #         tstar=tstars[i],
+        #         LQT=LQT_value,
+        #         inc=inc,
+        #         baz=baz,
+        #         M0=1.0,
+        #         filter=filter_par,
+        #         fmin=fmin,
+        #         fmax=fmax,
+        #         zerophase=zerophase,
+        #     )
+        #     syn_GFs.append(syn_GF)
+        #     syn_tts.append(syn_tt)
 
-        if plot_extra_phases is not None:
-            extra_arrs = []
-            for j, extraphase in enumerate(plot_extra_phases):
-                arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
-                extra_arrs.append(arr)
-        else:
-            extra_arrs = None
+        # if plot_extra_phases is not None:
+        #     extra_arrs = []
+        #     for j, extraphase in enumerate(plot_extra_phases):
+        #         arr = fwd.get_phase_tt(phase=extraphase, depth=depth, distance=event.distance)
+        #         extra_arrs.append(arr)
+        # else:
+        #     extra_arrs = None
 
-        fig = waveform_plot(
-            syn_GFs=syn_GFs,
-            syn_tts=syn_tts,
-            obs_tts=obs_tt,
-            fwd=fwd,
-            misfit_weight_len=misfit_weight_len,
-            event=event,
-            phases=phases,
-            components=components,
-            t_pre=t_pre,
-            t_post=t_post,
-            MTs=MT,
-            M0s=M0,
-            fmin=fmin,
-            fmax=fmax,
-            zerophase=zerophase,
-            plot_extra_phases=plot_extra_phases,
-            extra_arrs=extra_arrs,
-            color_plot=color_plot,
-            Ylims=Ylims,
-        )
-        if Return_Fig:
-            return fig
-        else:
-            plt.savefig(
-                pjoin(
-                    h5_file_folder,
-                    f"{method}_waveforms_{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.svg",
-                ),
-                dpi=300,
-            )
-            plt.close()
+        # fig = waveform_plot(
+        #     syn_GFs=syn_GFs,
+        #     syn_tts=syn_tts,
+        #     obs_tts=obs_tt,
+        #     fwd=fwd,
+        #     misfit_weight_len=misfit_weight_len,
+        #     event=event,
+        #     phases=phases,
+        #     components=components,
+        #     t_pre=t_pre,
+        #     t_post=t_post,
+        #     MTs=MT,
+        #     M0s=M0,
+        #     fmin=fmin,
+        #     fmax=fmax,
+        #     zerophase=zerophase,
+        #     plot_extra_phases=plot_extra_phases,
+        #     extra_arrs=extra_arrs,
+        #     color_plot=color_plot,
+        #     Ylims=Ylims,
+        # )
+        # if Return_Fig:
+        #     return fig
+        # else:
+        #     plt.savefig(
+        #         pjoin(
+        #             h5_file_folder,
+        #             f"{method}_waveforms_{event.name}_{depth}_{misfit_name}_{fwd.veloc_name}_Post.pdf",
+        #         ),
+        #         dpi=300,
+        #     )
+        #     plt.close()
 
 
 def post_waveform_plotting_COMBINED(
@@ -2036,6 +2039,290 @@ def post_waveform_plotting_COMBINED(
                 dpi=300,
             )
             plt.close()
+
+
+def waveform_plot_copy(
+    syn_GFs: obspy.Stream,
+    syn_tts: [float],
+    obs_tts: [float],
+    fwd: _Forward._AbstractForward,
+    misfit_weight_len: float,
+    event: obspy.core.event.Event,
+    phases: [str],
+    components: [float],
+    t_pre: [float],
+    t_post: [float],
+    MTs: _List[float],
+    M0s: [float],
+    depth: float,
+    rec: instaseis.Receiver,
+    tstar: _Union[float, str],
+    phase_corrs: [float],
+    fmin: float = None,
+    fmax: float = None,
+    zerophase: bool = None,
+    plot_extra_phases: [str] = None,
+    extra_arrs: [float] = None,
+    color_plot: str = None,
+    Ylims: [float] = None,
+    fig: [bool] = None,
+    ax: [bool] = None,
+):
+    """ Waveform plot """
+
+    if (fmin == None) or (fmax == None):
+        print("Data will not be filtered due to fmin or fmax equal to None")
+        filter_par = False
+    else:
+        filter_par = True
+
+    inv_phases = len(phases)
+
+    """ Prepare all phases for the plot """
+    all_phase_combs = set(["PZ", "PR", "SZ", "SR", "ST"])
+    pc = set([p + c for p, c in zip(phases, components)])
+    PorS = set([phase[0] for phase in pc])
+    missing = all_phase_combs - pc
+    phases_to_plot = []
+    comps_to_plot = []
+    corrs_missing = []
+    tstar_missing = []
+    t_pres_missing = []
+    t_posts_missing = []
+    Ylims_missing = []
+    for missing_phase in missing:
+        if missing_phase[0] in PorS:
+            corrs_missing.append(phase_corrs[phases.index(missing_phase[0])])
+            tstar_missing.append(tstar[phases.index(missing_phase[0])])
+            t_pres_missing.append(t_pre[phases.index(missing_phase[0])])
+            t_posts_missing.append(t_post[phases.index(missing_phase[0])])
+            Ylims_missing.append(Ylims[phases.index(missing_phase[0])])
+            phases_to_plot.append(missing_phase[0])
+            comps_to_plot.append(missing_phase[1])
+    """ Add missing observed arrival times"""
+    for i, phase in enumerate(phases_to_plot):
+        obs_tts.append(utct(event.picks[phase]) - event.origin_time + corrs_missing[i])
+    """ Add missing synthetic GF """
+    for i, phase in enumerate(phases_to_plot):
+        syn_tt = fwd.get_phase_tt(phase=phase, depth=depth, distance=event.distance)
+        syn_GF = fwd.get_greens_functions(
+            comp=comps_to_plot[i],
+            depth=depth,
+            distance=event.distance,
+            lat_src=event.latitude,
+            lon_src=event.longitude,
+            rec=rec,
+            tstar=tstar_missing[i],
+            LQT=False,
+            inc=None,
+            baz=None,
+            M0=1,
+            filter=filter_par,
+            fmin=fmin,
+            fmax=fmax,
+            zerophase=zerophase,
+        )
+        syn_GFs.append(syn_GF)
+        syn_tts.append(syn_tt)
+
+    phases_to_plot = phases + phases_to_plot
+    comps_to_plot = components + comps_to_plot
+    t_pres_missing = t_pre + t_pres_missing
+    t_posts_missing = t_post + t_posts_missing
+    Ylims_missing = Ylims + Ylims_missing
+
+    if fig is None and ax is None:
+        # fig, ax = plt.subplots(nrows=len(phases), ncols=1, sharex="all", figsize=(18, 16))
+        fig, ax = plt.subplots(nrows=len(phases_to_plot), ncols=1, sharex="all", figsize=(18, 20))
+
+    for i, phase in enumerate(phases_to_plot):
+        for n in range(len(M0s)):
+            tr_syn_full = fwd.generate_synthetic_data(
+                st_GF=syn_GFs[i], focal_mech=MTs[n], M0=M0s[n], slice=False,
+            )
+
+            tr_slice = tr_syn_full.slice(
+                starttime=fwd.or_time + syn_tts[i] - t_pres_missing[i],
+                endtime=fwd.or_time + syn_tts[i] + t_posts_missing[i],
+            )
+            if i < inv_phases:
+                if n == 0:
+                    if color_plot == "blue":
+                        ax[i].plot(
+                            tr_slice.times() - t_pres_missing[i],
+                            tr_slice.data,
+                            lw=2,
+                            c=color_plot,
+                            label="Synthetic (Grid-search)",
+                        )
+                    else:
+                        ax[i].plot(
+                            tr_slice.times() - t_pres_missing[i],
+                            tr_slice.data,
+                            lw=3,
+                            c=color_plot,
+                            label="Synthetic (Direct)",
+                        )
+
+                else:
+                    ax[i].plot(
+                        tr_slice.times() - t_pres_missing[i], tr_slice.data, lw=2, c=color_plot,
+                    )
+            ax[i].plot(
+                tr_syn_full.times() - (syn_tts[i] - fwd.start_cut),
+                tr_syn_full.data,
+                lw=1,
+                c=color_plot,
+            )
+            # ax[i].legend()
+
+            st = obspy.Stream()
+            st += tr_slice
+
+            if n == len(M0s) - 1:
+                st_obs_full, sigmasPLOT = _PreProcess.prepare_event_data(
+                    event=event,
+                    phases=phases_to_plot,
+                    components=comps_to_plot,
+                    slice=False,
+                    filter=filter_par,
+                    fmin=fmin,
+                    fmax=fmax,
+                    zerophase=zerophase,
+                    noise_level=False,
+                )
+
+                st_obs = st_obs_full.slice(
+                    starttime=fwd.or_time + obs_tts[i] - t_pres_missing[i],
+                    endtime=fwd.or_time + obs_tts[i] + t_posts_missing[i],
+                )
+                ax[i].plot(
+                    st_obs_full[i].times() - obs_tts[i], st_obs_full[i].data, lw=1, c="k",
+                )
+                if i < inv_phases:
+                    ax[i].plot(
+                        st_obs[i].times() - t_pres_missing[i],
+                        st_obs[i].data,
+                        lw=3,
+                        c="k",
+                        label="Observed",
+                    )
+
+                st += st_obs[i]
+                if Ylims_missing is None:
+                    ax[i].set_ylim(global_min, global_max)
+                else:
+                    ax[i].set_ylim(-Ylims_missing[i], Ylims_missing[i])
+
+                global_max = max([tr.data.max() for tr in st]) * 1.2
+                global_min = min([tr.data.min() for tr in st]) * 1.2
+                if i < inv_phases:
+                    for axis in ["top", "bottom", "left", "right"]:
+                        ax[i].spines[axis].set_linewidth(5)
+
+                    ax[i].axvline(x=t_posts_missing[i], c="grey", ls="dashed")
+                    ax[i].axvline(x=-t_pres_missing[i], c="grey", ls="dashed")
+                    ax[i].axvspan(
+                        -t_pres_missing[i], misfit_weight_len, facecolor="grey", alpha=0.3
+                    )
+                    ax[i].axvspan(
+                        misfit_weight_len, t_posts_missing[i], facecolor="grey", alpha=0.1
+                    )
+                ymin = ax[i].get_ylim()[0]
+                ymax = ax[i].get_ylim()[1]
+                if event.name == "S0173a" and phase == "P":
+                    ax[i].axvspan(
+                        t_posts_missing[i], t_posts_missing[i] + 23, facecolor="green", alpha=0.1
+                    )
+                    ax[i].text(
+                        29,
+                        ymin * 0.8,
+                        "Glitch",
+                        verticalalignment="center",
+                        color="green",
+                        fontsize=35,
+                    )
+
+                ax[i].axvline(x=0.0, c="dimgrey", lw=2)
+                ax[i].text(
+                    0 + 0.1,
+                    ymax * 0.8,
+                    phase,
+                    verticalalignment="center",
+                    color="dimgray",
+                    fontsize=30,
+                )
+                ax[i].text(
+                    s="%s%s" % (phases_to_plot[i], comps_to_plot[i]),
+                    x=0.99,
+                    y=0.75,
+                    ha="right",
+                    transform=ax[i].transAxes,
+                    color=color_plot,
+                    fontsize=40,
+                )
+
+                # Extra phase arrivals:
+                if plot_extra_phases is not None:
+                    for j, extraphase in enumerate(plot_extra_phases):
+                        arr = extra_arrs[j]
+                        if arr:
+                            if arr - syn_tts[i] > 0 and arr - syn_tts[i] < 31:
+                                ax[i].axvline(x=arr - syn_tts[i], c="dimgrey", lw=2)
+                                ax[i].text(
+                                    arr - syn_tts[i] + 0.1,
+                                    ymax * 0.75,
+                                    extraphase,
+                                    verticalalignment="center",
+                                    color="dimgrey",
+                                    fontsize=30,
+                                    rotation=90,
+                                )
+                ax[i].tick_params(axis="both", which="major", labelsize=35)
+                ax[i].tick_params(axis="both", which="minor", labelsize=25)
+
+                ax[i].get_yaxis().get_offset_text().set_visible(False)
+                ax_max = max(ax[i].get_yticks())
+                exponent_axis = np.floor(np.log10(ax_max)).astype(int)
+                # ax[i].annotate(
+                #     r"$\times$10$^{%i}$" % (exponent_axis),
+                #     xy=(0.01, 0.75),
+                #     xycoords="axes fraction",
+                #     fontsize=32,
+                # )
+
+    fig.text(
+        0.9,
+        0.88,
+        "M0: %.2e" % (M0s[0]),
+        ha="right",
+        va="bottom",
+        size="medium",
+        color="black",
+        fontsize=40,
+    )
+    fig.text(0.01, 0.5, "Displacement (nm)", va="center", rotation="vertical", fontsize=45)
+    fig.text(
+        0.5,
+        0.88,
+        event.name,
+        ha="center",
+        va="bottom",
+        size="x-large",
+        color=color_plot,
+        fontsize=45,
+    )
+
+    ax[0].legend(
+        prop={"size": 35},
+        loc="center left",
+        bbox_to_anchor=(0.12, 0.93),
+        bbox_transform=fig.transFigure,
+    )
+
+    ax[-1].set_xlim(-10.0, 32.0)
+    ax[-1].set_xlabel("time after phase (s)", fontsize=45)
+    return fig, ax
 
 
 def waveform_plot(
@@ -2745,10 +3032,12 @@ def Source_Uncertainty(
         if event_name == "S0183a":
             pass
         else:
-            h5_file_path = pjoin(
-                h5_file_folder,
-                f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
-            )
+            h5_file_path = glob.glob(
+                pjoin(
+                    h5_file_folder,
+                    f"Direct_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}_*.hdf5",
+                )
+            )[0]
 
             (
                 depth_Direct,
@@ -2763,7 +3052,7 @@ def Source_Uncertainty(
                 angles,
                 cond_nr,
             ) = _ReadH5.Read_Direct_Inversion(h5_file_path, amount_of_phases=5)
-            if Epsilon > 0.15:
+            if Epsilon > 0.2:
                 continue
             if event_name == "S0173a" and depth > 60.0:
                 continue
@@ -2805,10 +3094,12 @@ def Source_Uncertainty(
 
             color_plot = "r"
         color_plot = "b"
-        h5_file_path = pjoin(
-            h5_file_folder,
-            f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}.hdf5",
-        )
+        h5_file_path = glob.glob(
+            pjoin(
+                h5_file_folder,
+                f"GS_{event_name}_{depth}_{fmin}_{fmax}_{misfit_name}_{fwd.veloc_name}_*.hdf5",
+            )
+        )[0]
         depth_GS, sdr, M0_GS, misfit_L2_GS = _ReadH5.Read_GS_h5(
             Filename=h5_file_path, amount_of_phases=len(phases)
         )
@@ -2818,7 +3109,7 @@ def Source_Uncertainty(
         misfit_low = Total_L2_GS[:] - Total_L2_GS[0]
         uncert = 0.05 * Total_L2_GS[0]
         inds = np.where(misfit_low < uncert)
-        lowest_indices = lowest_ind[inds][:300]
+        lowest_indices = lowest_ind[inds][:10]
         GOF_GS = (np.sum(misfit_L2_GS, axis=1) / DOF)[lowest_indices]
         M0 = M0_GS[lowest_indices]
 
@@ -3054,19 +3345,19 @@ def Source_Uncertainty(
 
     fig1.suptitle(event_name, fontsize=30)
 
-    # fig = Plot_GS_BB(
-    #     MT_sdrs[:, 0],
-    #     MT_sdrs[:, 1],
-    #     MT_sdrs[:, 2],
-    #     azimuths=[10, 10, 10],
-    #     inc_angles=[10, 10, 10],
-    #     phase_names=["P", "P", "P"],
-    #     color="blue",
-    # )
-    # plt.savefig(
-    #     pjoin(h5_file_folder, f"Overal_BBB__{event_name}.svg",), dpi=300,
-    # )
-    # plt.close()
+    fig = Plot_GS_BB(
+        MT_sdrs[:, 0],
+        MT_sdrs[:, 1],
+        MT_sdrs[:, 2],
+        azimuths=[10, 10, 10],
+        inc_angles=[10, 10, 10],
+        phase_names=["P", "P", "P"],
+        color="blue",
+    )
+    plt.savefig(
+        pjoin(h5_file_folder, f"Overal_BBB__{event_name}.svg",), dpi=300,
+    )
+    plt.close()
     return fig1
 
 

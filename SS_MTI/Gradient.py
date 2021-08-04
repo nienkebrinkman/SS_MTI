@@ -16,7 +16,7 @@ from obspy.geodetics import gps2dist_azimuth
 from obspy.geodetics import kilometer2degrees
 
 import SS_MTI
-import Create_Vmod
+from Scripts_MT_Structure import Create_Vmod
 import subprocess
 from SS_MTI import PreProcess as _PreProcess
 from SS_MTI import PhaseTracer as _PhaseTracer

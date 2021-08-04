@@ -22,20 +22,51 @@ import EventInterface
 from SS_MTI import PostProcessing as _PostProcessing
 from SS_MTI import PreProcess as _PreProcess
 
-# Event325a:
+
+# Event820a:
+# t_start = -700
+# t_end = 1100
+# pre_noise = 600.0  # Time for the noise window  (for event S0409d: 1100)
+# S_zoom = 5e-10
+# P_zoom = 1e-10
+# P_pre = 5.0
+# P_post = 5.0
+# S_pre = 10.0
+# S_post = 10.0
+# P_shift = 6.0
+# S_shift = 0.0  # 5.0
+# left_BP = 0.25
+# right_BP = 0.71
+
+# Event809a:
 t_start = -700
 t_end = 1100
 pre_noise = 600.0  # Time for the noise window  (for event S0409d: 1100)
-S_zoom = 5e-9
-P_zoom = 1e-9
+S_zoom = 1e-9
+P_zoom = 4e-10
 P_pre = 5.0
 P_post = 5.0
 S_pre = 10.0
 S_post = 10.0
-P_shift = 0.0
-S_shift = -25.0  # 5.0
+P_shift = -0.7  # -0.7
+S_shift = 0.2  # 5.0
 left_BP = 0.2
-right_BP = 0.6
+right_BP = 0.8
+
+# # Event325a:
+# t_start = -700
+# t_end = 1100
+# pre_noise = 600.0  # Time for the noise window  (for event S0409d: 1100)
+# S_zoom = 5e-9
+# P_zoom = 1e-9
+# P_pre = 5.0
+# P_post = 5.0
+# S_pre = 10.0
+# S_post = 10.0
+# P_shift = 0.0
+# S_shift = -25.0  # 5.0
+# left_BP = 0.2
+# right_BP = 0.6
 
 # Event 407a:
 # t_start = -700
@@ -68,9 +99,9 @@ right_BP = 0.6
 # right_BP = 0.8
 
 
-Event_names = {"S0325a": {}}
+Event_names = {"S0809a": {}}
 components = ["Z", "N", "E"]
-save_folder = "/home/nienke/Documents/Research/Data/MTI/Data_2021/"
+save_folder = "/home/nienke/Documents/Research/Data/MTI/"
 
 # """ Parameters for Time domain plot (set these parameters to None if you dont know) """
 # t_start = -1200
@@ -379,8 +410,8 @@ for event in events:
         # ax[i, 2].plot(
         #     tr_S.times() - P_pre, tr_S.data, label=f"selected S data", c="blue",
         # )
-        ax[i, 0].scatter(tr_P.times() - P_pre, tr_P.data, c=tr_P.times(), cmap="seismic")
-        ax[i, 2].scatter(tr_S.times() - S_pre, tr_S.data, c=tr_S.times(), cmap="seismic")
+        ax[i, 0].scatter(tr_P.times() - P_pre, tr_P.data, c=tr_P.times(), cmap="coolwarm")
+        ax[i, 2].scatter(tr_S.times() - S_pre, tr_S.data, c=tr_S.times(), cmap="coolwarm")
 
         """ Set plotting parameters """
         fsize = 15
@@ -438,7 +469,7 @@ for event in events:
         """ P-hodogram """
         ntP = len(Hodo_P[i].data)
         t = np.linspace(0, dt * ntP, ntP, endpoint=False) - P_pre
-        sc = ax[i, 1].scatter(Hodo_P[i].data, Hodo_P[ind[i]].data, c=t, cmap="seismic",)
+        sc = ax[i, 1].scatter(Hodo_P[i].data, Hodo_P[ind[i]].data, c=t, cmap="coolwarm",)
         # ax.set_xlim(st_real[0].data.min(), st_real[0].data.max())
         # ax.set_ylim(st_real[1].data.min(), st_real[1].data.max())
         ax[i, 1].set_xlabel(Hodo_P[i].stats.channel, fontsize=fsize, c="blue")
@@ -447,7 +478,7 @@ for event in events:
         """ S-hodogram """
         ntS = len(Hodo_S[i].data)
         t = np.linspace(0, dt * ntS, ntS, endpoint=False) - S_pre
-        sc = ax[i, 3].scatter(Hodo_S[i].data, Hodo_S[ind[i]].data, c=t, cmap="seismic",)
+        sc = ax[i, 3].scatter(Hodo_S[i].data, Hodo_S[ind[i]].data, c=t, cmap="coolwarm",)
         # ax.set_xlim(st_real[0].data.min(), st_real[0].data.max())
         # ax.set_ylim(st_real[1].data.min(), st_real[1].data.max())
         ax[i, 3].set_xlabel(Hodo_S[i].stats.channel, fontsize=fsize, c="blue")
@@ -464,4 +495,22 @@ for event in events:
         fontsize=30,
     )
     plt.savefig(pjoin(save_folder, f"{event.name}_Hodogram_PS.svg"))
+    plt.close("all")
+
+    # fig, ax = plt.subplots(nrows=1, ncols=1, sharex="col", sharey="col", figsize=(30, 15))
+    from mpl_toolkits.mplot3d import Axes3D
+
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    dt = Hodo_P[0].stats.delta
+    """ P-hodogram """
+    ntP = len(Hodo_P[0].data)
+    t = np.linspace(0, dt * ntP, ntP, endpoint=False) - P_pre
+    ax.scatter(Hodo_P[0].data, Hodo_P[1].data, Hodo_P[2].data, c=t, cmap="coolwarm")
+    idx = (np.abs(t - 0.0)).argmin()
+    ax.scatter(Hodo_P[0].data[idx], Hodo_P[1].data[idx], Hodo_P[2].data[idx], c="k")
+    ax.set_xlabel(Hodo_P[0].stats.channel)
+    ax.set_ylabel(Hodo_P[1].stats.channel)
+    ax.set_zlabel(Hodo_P[2].stats.channel)
+    plt.show()
 
